@@ -66,6 +66,8 @@ export interface RunsService {
   removeAll(q: { skillKey?: string }): number;
   recoverOrphans(): number;
   activeCount(): number;
+  /** Stops every run in progress and waits until each has finished writing (server shutdown). */
+  shutdown(): Promise<void>;
   /** The workflow a run was started with (steps the graph is shaped by). */
   workflowOf(id: string): WorkflowSource;
 }
@@ -129,6 +131,7 @@ export function createRunsService(deps: RunsDeps): RunsService {
   const stopping = new Set<string>();
   const openAsks = new Map<string, Map<string, number>>();
   const workflows = new Map<string, WorkflowSource>();
+  const launches = new Map<string, Promise<void>>();
 
   const row = (id: string): RunRow | null => {
     const r = deps.db.get<DbRun>("SELECT * FROM runs WHERE id = ?", id);
@@ -256,7 +259,8 @@ export function createRunsService(deps: RunsDeps): RunsService {
     const queued = deps.db.all<{ id: string }>("SELECT id FROM runs WHERE status = 'queued' AND kind = 'button' ORDER BY created_at, rowid LIMIT ?", free);
     for (const q of queued) {
       deps.db.run("UPDATE runs SET status = 'running' WHERE id = ? AND status = 'queued'", q.id);
-      void launch(q.id);
+      const p = launch(q.id).finally(() => launches.delete(q.id));
+      launches.set(q.id, p);
     }
   }
 
@@ -403,6 +407,13 @@ export function createRunsService(deps: RunsDeps): RunsService {
     },
 
     activeCount,
+    async shutdown() {
+      // Nothing new starts: queued runs stay queued and are failed by recoverOrphans at the next start.
+      deps.config = ((orig) => () => ({ ...orig(), maxRuns: 0 }))(deps.config);
+      for (const id of launches.keys()) stopping.add(id);
+      await Promise.all([...handles.values()].map((h) => h.stop().catch(() => {})));
+      await Promise.all([...launches.values()].map((p) => p.catch(() => {})));
+    },
     workflowOf: (id) => workflows.get(id) ?? { steps: null, from: "none", note: null },
   };
 }

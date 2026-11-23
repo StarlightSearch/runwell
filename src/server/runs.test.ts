@@ -222,3 +222,15 @@ describe("RunsService", () => {
     expect(runs.get(r.run.id)).toMatchObject({ rating: null, note: null });
   });
 });
+
+describe("shutdown", () => {
+  it("stops runs in progress and waits until they have finished writing", async () => {
+    const { runs, db } = await setup({ holdMs: 10_000 });
+    const r = await runs.start(input());
+    if (!r.ok) throw new Error(r.message);
+    await waitFor(() => runs.get(r.run.id)!.status === "running");
+    await runs.shutdown();
+    expect(runs.get(r.run.id)!.status).toBe("stopped");
+    db.close();
+  });
+});

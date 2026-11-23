@@ -18,7 +18,7 @@ export interface Seeded {
   claudeHome: string;
   trusted: string;
   untrusted: string;
-  runIds: { video: string; second: string; third: string; failed: string };
+  runIds: { video: string; second: string; third: string; failed: string; loop: string };
 }
 
 const ev = (events: RunEvent[]) => events.map((e) => JSON.stringify(e)).join("\n") + "\n";
@@ -59,11 +59,41 @@ export async function seed(): Promise<Seeded> {
       db.run("INSERT INTO outputs (run_id, path, label, kind, bytes, mtime, copied) VALUES (?, ?, 'written', ?, ?, ?, 0)", id, rel, rel.endsWith(".mp4") ? "video" : rel.endsWith(".png") ? "image" : rel.endsWith(".md") ? "markdown" : "text", body.length, created);
     }
   };
-  const runIds = { video: "aaaaaaaaaaa1", second: "aaaaaaaaaaa2", third: "aaaaaaaaaaa3", failed: "aaaaaaaaaaa4" };
+  const runIds = { video: "aaaaaaaaaaa1", second: "aaaaaaaaaaa2", third: "aaaaaaaaaaa3", failed: "aaaaaaaaaaa4", loop: "aaaaaaaaaaa5" };
   mk(runIds.video, 1, "finished", 3 * DAY, 1, [], { "ad-9x16.mp4": "fake-mp4", "poster.png": "fake-png" });
   mk(runIds.second, 2, "finished", 2 * DAY, 1, [], { "notes.md": "# Notes\n\nA list." });
   mk(runIds.third, 3, "finished", DAY, -1, [], { "copy.txt": "words" });
   mk(runIds.failed, 4, "failed", 3_600_000, null, [], {}, "Claude stopped without finishing");
+  // A skill with a loop in its workflow map, and a run of it on its second pass.
+  mkdirSync(join(claudeHome, "skills/review-loop"), { recursive: true });
+  writeFileSync(
+    join(claudeHome, "skills/review-loop/SKILL.md"),
+    [
+      "---", "name: review-loop", "description: Drafts, reviews and revises until the reviewer accepts.", "---",
+      "# Review loop", "## Steps", "### 1. Read the brief", "### 2. Draft and review", "#### 2.1 Write the draft", "#### 2.2 Review the draft", "### 3. Publish",
+      "## Workflow map", "```pulsar-workflow",
+      JSON.stringify({ version: 1, steps: [
+        { title: "1. Read the brief", detail: "Read it.", kind: "action" },
+        { title: "2. Draft and review", detail: "Up to 3 passes.", kind: "loop", maxPasses: 3, children: [
+          { title: "2.1 Write the draft", detail: "Write.", kind: "action" }, { title: "2.2 Review the draft", detail: "Review.", kind: "action" }] },
+        { title: "3. Publish", detail: "Publish.", kind: "action" }] }),
+      "```",
+    ].join("\n"),
+  );
+  const t0 = now - 4 * DAY;
+  const step = (stepId: string, status: "started" | "done", k: number): RunEvent => ({ t: "step", at: t0 + k * 10_000, stepId, status, note: null });
+  db.run(
+    `INSERT INTO runs (id, skill_key, skill_ref, n, kind, status, brief, cwd, place, created_at, started_at, ended_at, skill_version)
+     VALUES (?, 'personal:review-loop', 'review-loop', 1, 'button', 'finished', 'Review the launch post', ?, 'folder', ?, ?, ?, 1)`,
+    runIds.loop, p.work(runIds.loop), t0, t0, t0 + 90_000,
+  );
+  mkdirSync(p.work(runIds.loop), { recursive: true });
+  writeFileSync(p.events(runIds.loop), ev([
+    { t: "status", at: t0, status: "running", reason: null },
+    step("s1", "started", 0), step("s1", "done", 1), step("s2.1", "started", 2), step("s2.1", "done", 3), step("s2.2", "started", 4), step("s2.2", "done", 5),
+    step("s2.1", "started", 6), step("s2.1", "done", 7), step("s2.2", "started", 8), step("s2.2", "done", 8), step("s3", "started", 9), step("s3", "done", 9),
+    { t: "result", at: t0 + 90_000, ok: true, error: null }, { t: "status", at: t0 + 90_000, status: "finished", reason: null },
+  ]));
   db.close();
   return { home, claudeHome, trusted, untrusted, runIds };
 }
