@@ -1,5 +1,5 @@
 /** Builds every service and route for a server (or a test) from the base context. One wiring for both. */
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { dirname, join } from "node:path";
@@ -35,11 +35,16 @@ export interface ServiceOptions {
   mcpEntry?: string;
 }
 
+/** A process's command line: /proc on Linux, `ps` elsewhere (macOS). Null when it is not running. */
 function pidCommand(pid: number): string | null {
   try {
     return readFileSync(`/proc/${pid}/cmdline`, "utf8").replace(/\0/g, " ").trim() || null;
   } catch {
-    return null;
+    try {
+      return execFileSync("ps", ["-o", "command=", "-p", String(pid)], { timeout: 2000 }).toString().trim() || null;
+    } catch {
+      return null;
+    }
   }
 }
 

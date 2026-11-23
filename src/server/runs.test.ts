@@ -169,7 +169,7 @@ describe("RunsService", () => {
     await runs.stop(r.run.id);
   });
 
-  it("recoverOrphans fails running rows, keeps their events, and only signals a claude process", async () => {
+  it("recoverOrphans fails running rows, keeps their events, and only signals that run's own process", async () => {
     const { runs, db, p, deps } = await setup();
     const kill = vi.spyOn(process, "kill").mockImplementation(() => true);
     for (const [id, pid] of [["orphan1", 111], ["orphan2", 222]] as const) {
@@ -177,7 +177,8 @@ describe("RunsService", () => {
       mkdirSync(p.runDir(id), { recursive: true });
       writeFileSync(p.events(id), JSON.stringify({ t: "text", at: 1, agentId: null, text: "hi" }) + "\n");
     }
-    deps.pidCommand = (pid) => (pid === 111 ? "/usr/bin/claude -p --output-format stream-json" : "/usr/bin/vim");
+    deps.pidCommand = (pid) =>
+      pid === 111 ? `/home/me/.local/share/claude/versions/2.1.330 -p --mcp-config ${join(p.runDir("orphan1"), "mcp.json")}` : `/usr/bin/claude -p --mcp-config ${join(p.runDir("other"), "mcp.json")}`;
     expect(runs.recoverOrphans()).toBe(2);
     expect(runs.get("orphan1")).toMatchObject({ status: "failed", error: "Runwell restarted during this run" });
     expect(runs.events("orphan1")[0]).toMatchObject({ t: "text" });

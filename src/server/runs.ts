@@ -395,7 +395,9 @@ export function createRunsService(deps: RunsDeps): RunsService {
         const reason = "Runwell restarted during this run";
         deps.db.run("UPDATE runs SET status = 'failed', error = ?, ended_at = ?, pid = NULL WHERE id = ?", reason, deps.now(), o.id);
         append(o.id, { t: "status", at: deps.now(), status: "failed", reason });
-        if (o.pid && /(^|[/\s])claude(\s|$)/.test(deps.pidCommand(o.pid) ?? "")) {
+        // Only the run's own process: its command line names this run's mcp.json. A pid reused by an
+        // unrelated program never does, whatever claude's binary is called (native, npm, a wrapper).
+        if (o.pid && (deps.pidCommand(o.pid) ?? "").includes(join(deps.paths.runDir(o.id), "mcp.json"))) {
           try {
             process.kill(o.pid, "SIGTERM");
           } catch {

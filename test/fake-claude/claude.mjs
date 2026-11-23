@@ -8,8 +8,11 @@
 //   {"__fake":"exit","code":1}
 // Env: FAKE_CLAUDE_FIXTURE (path), FAKE_CLAUDE_AUTH (in|out), FAKE_CLAUDE_LOG (path),
 // FAKE_CLAUDE_IGNORE_SIGINT=1, FAKE_CLAUDE_HOLD_MS (wait this long before replaying), RUNWELL_HOME, RUNWELL_RUN_ID.
+// The brief can pick the fixture and behaviour instead (for a server started once): "[fixture:failure]"
+// replays fixtures/stream/failure.jsonl, "[ignore-sigint]" ignores the interrupt.
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
 
 const argv = process.argv.slice(2);
@@ -31,7 +34,7 @@ if (!argv.includes("-p")) {
   process.exit(2);
 }
 
-log({ argv, cwd: process.cwd() });
+log({ argv, cwd: process.cwd(), pid: process.pid });
 const refuse = (why) => {
   process.stderr.write(`fake claude: ${why}\n`);
   process.exit(2);
@@ -40,8 +43,10 @@ if (argv.includes("--bare")) refuse("--bare is not allowed");
 for (const k of ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN"]) if (env[k] !== undefined) refuse(`${k} must not be set`);
 
 let stopping = false;
+let ignoreSigint = env.FAKE_CLAUDE_IGNORE_SIGINT === "1";
+let fixture = env.FAKE_CLAUDE_FIXTURE;
 process.on("SIGINT", () => {
-  if (env.FAKE_CLAUDE_IGNORE_SIGINT === "1") return;
+  if (ignoreSigint) return;
   stopping = true;
   process.stdout.write(STOP_LINE + "\n");
   process.exit(0);
@@ -64,8 +69,11 @@ rl.on("line", async (line) => {
   log({ stdin: line });
   if (started) return;
   started = true;
+  const pick = /\[fixture:([a-z-]+)\]/.exec(line);
+  if (pick) fixture = join(dirname(fileURLToPath(import.meta.url)), "..", "fixtures", "stream", `${pick[1]}.jsonl`);
+  if (line.includes("[ignore-sigint]")) ignoreSigint = true;
   if (env.FAKE_CLAUDE_HOLD_MS) await sleep(Number(env.FAKE_CLAUDE_HOLD_MS));
-  const lines = readFileSync(env.FAKE_CLAUDE_FIXTURE, "utf8").split("\n").filter((l) => l.trim());
+  const lines = readFileSync(fixture, "utf8").split("\n").filter((l) => l.trim());
   for (const l of lines) {
     if (stopping) return;
     let ctl = null;
