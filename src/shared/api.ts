@@ -4,6 +4,8 @@ export interface HealthResponse {
   ok: true;
   version: string;
   activeRuns: number;
+  /** The server's pid, so a launcher can tell its own server from another one on the same port. */
+  pid: number;
 }
 export interface AuthLinkRequest {
   to?: string;

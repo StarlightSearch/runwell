@@ -58,6 +58,22 @@ describe("the built mod", () => {
     expect(await cmd($, { args: "improve" })).toMatchObject({ text: expect.stringContaining("Usage") });
   });
 
+  it("finds its own files from a plugin folder whose path has a space and an accent", async () => {
+    const { cpSync, mkdirSync, mkdtempSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const root = join(mkdtempSync(join(tmpdir(), "runwell-mod-")), "José plugins", "runwell");
+    mkdirSync(join(root, "hooks"), { recursive: true });
+    cpSync(BUILT, join(root, "hooks", "register.js"));
+    const mod = await import(pathToFileURL(join(root, "hooks", "register.js")).href);
+    const hooks = new Map<string, Hook>();
+    mod.register((event: string, a: unknown, b?: unknown) => hooks.set(event, (b ?? a) as Hook));
+    const run = vi.fn(async () => ({ exitCode: 0, stdout: "", stderr: "" }));
+    const $ = { process: { run }, command: { register: async () => ({}) }, store: { get: async () => true, set: async () => {} }, ui: { toast: () => {} } };
+    await hooks.get("session.start")!($, {}, async () => "done");
+    expect((run.mock.calls[0] as unknown as [string[]])[0][1]).toBe(join(root, "dist", "launcher.js"));
+  });
+
   it("stays small, has no imports, logs nothing and fetches nothing", () => {
     const src = readFileSync(BUILT, "utf8");
     expect(src.split("\n").filter((l) => l.trim()).length).toBeLessThan(300);

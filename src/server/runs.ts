@@ -406,10 +406,15 @@ export function createRunsService(deps: RunsDeps): RunsService {
         // Only the run's own process: its command line names this run's mcp.json. A pid reused by an
         // unrelated program never does, whatever claude's binary is called (native, npm, a wrapper).
         if (o.pid && (deps.pidCommand(o.pid) ?? "").includes(join(deps.paths.runDir(o.id), "mcp.json"))) {
+          // Its whole process group (button runs start claude detached), else the process alone.
           try {
-            process.kill(o.pid, "SIGTERM");
+            process.kill(process.platform === "win32" ? o.pid : -o.pid, "SIGTERM");
           } catch {
-            /* already gone */
+            try {
+              process.kill(o.pid, "SIGTERM");
+            } catch {
+              /* already gone */
+            }
           }
         }
       }

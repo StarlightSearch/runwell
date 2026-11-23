@@ -1,6 +1,5 @@
 /** Builds every service and route for a server (or a test) from the base context. One wiring for both. */
-import { execFileSync, spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { spawn } from "node:child_process";
 import { homedir, platform } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,6 +21,7 @@ import { skillsRoutes } from "./routes/skills";
 import { stepsRoutes } from "./routes/steps";
 import { uploadsRoutes } from "./routes/uploads";
 import { workflowRoutes } from "./routes/workflow";
+import { pidCommand } from "./proc";
 import { continueRoutes } from "./routes/continue";
 import { systemLaunch, type Launch } from "./continue";
 import { createRunsService } from "./runs";
@@ -39,18 +39,6 @@ export interface ServiceOptions {
   launch?: Launch;
 }
 
-/** A process's command line: /proc on Linux, `ps` elsewhere (macOS). Null when it is not running. */
-function pidCommand(pid: number): string | null {
-  try {
-    return readFileSync(`/proc/${pid}/cmdline`, "utf8").replace(/\0/g, " ").trim() || null;
-  } catch {
-    try {
-      return execFileSync("ps", ["-o", "command=", "-p", String(pid)], { timeout: 2000 }).toString().trim() || null;
-    } catch {
-      return null;
-    }
-  }
-}
 
 function defaultReveal(file: string): void {
   const p = platform();

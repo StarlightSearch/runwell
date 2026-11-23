@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -130,11 +130,41 @@ describe("running", () => {
   });
 
   it("a stop of a cooperative process gives the stop result", async () => {
-    const { spec, driver } = setup("happy", { holdMs: 10_000 });
+    const { spec, driver, logged } = setup("happy", { holdMs: 10_000 });
     const h = driver.start(spec);
-    setTimeout(() => void h.stop(), 200);
+    // Stop once the fake is up (it logs after installing its SIGINT handler), not after a fixed delay.
+    for (let i = 0; i < 100; i++) {
+      try {
+        if (logged().some((l) => l.stdin)) break;
+      } catch {
+        /* not written yet */
+      }
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    void h.stop();
     const events = await drain(h.events);
     expect(events.at(-1)).toMatchObject({ t: "result", ok: false });
+  });
+
+  it.skipIf(process.platform === "win32")("a forced stop also ends what the process started", async () => {
+    const { spec, root } = setup("happy");
+    const pidFile = join(root, "child.pid");
+    const bin = join(root, "stubborn.sh");
+    writeFileSync(bin, `#!/bin/sh\nsleep 300 &\necho $! > "${pidFile}"\ntrap '' INT\nwhile true; do sleep 1; done\n`, { mode: 0o755 });
+    const h = createClaudeDriver({ bin, home: root, graceMs: 100 }).start(spec);
+    for (let i = 0; i < 100 && !existsSync(pidFile); i++) await new Promise((r) => setTimeout(r, 50));
+    const child = Number(readFileSync(pidFile, "utf8"));
+    await h.stop();
+    const alive = () => {
+      try {
+        process.kill(child, 0);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    for (let i = 0; i < 40 && alive(); i++) await new Promise((r) => setTimeout(r, 50));
+    expect(alive()).toBe(false);
   });
 
   it("adds no credential to the child environment (the fake would exit 2)", async () => {

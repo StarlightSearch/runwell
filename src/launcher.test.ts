@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
@@ -66,6 +67,27 @@ describe.skipIf(!existsSync(ENTRY))("ensureServer (needs npm run build)", () => 
     expect(a!.pid).not.toBe(999999);
     started.push(a!.pid);
   });
+
+  it("launcher.js hands a replace to a detached copy and exits at once", async () => {
+    const h = await home();
+    let shut = false;
+    const old = await startServer({ home: h, port: 0, onShutdown: () => (shut = true) });
+    const LAUNCHER = fileURLToPath(new URL("../plugin/dist/launcher.js", import.meta.url));
+    const t = performance.now();
+    // Async: the "old" server lives in this test process and must keep answering.
+    const code = await new Promise<number | null>((res) => spawn(process.execPath, [LAUNCHER], { env: { ...process.env, RUNWELL_HOME: h }, stdio: "ignore" }).on("exit", res));
+    expect(code).toBe(0);
+    expect(performance.now() - t).toBeLessThan(1500);
+    let info = null;
+    for (let i = 0; i < 80; i++) {
+      await new Promise((res) => setTimeout(res, 100));
+      info = readServerInfo(paths(h));
+      if (shut && info && info.pid !== old.info.pid && (await probe(info))) break;
+    }
+    expect(shut).toBe(true);
+    expect(info!.pid).not.toBe(old.info.pid);
+    started.push(info!.pid);
+  }, 15_000);
 
   it("replaces an older idle server, and reuses an older one that is in a run", async () => {
     const h = await home();

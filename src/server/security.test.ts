@@ -144,7 +144,7 @@ describe("health", () => {
     const r = await app.request("/health", { headers: { host: H } });
     expect(r.status).toBe(200);
     const body = await r.json();
-    expect(body).toEqual({ ok: true, version: "0.1.0", activeRuns: 0 });
+    expect(body).toEqual({ ok: true, version: "0.1.0", activeRuns: 0, pid: process.pid });
     expect(JSON.stringify(body)).not.toContain(TOKEN);
   });
 });

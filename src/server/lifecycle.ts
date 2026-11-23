@@ -7,6 +7,13 @@ import { randomBytes } from "node:crypto";
 import { closeSync, openSync, readFileSync, renameSync, rmSync, writeFileSync, writeSync } from "node:fs";
 import { createServer } from "node:net";
 import type { Paths } from "./paths";
+import { pidCommand } from "./proc";
+
+const isRunwellServer = (pid: number) => {
+  const cmd = pidCommand(pid);
+  // Unknown (no /proc, no ps): keep the old, cautious answer.
+  return cmd === null ? true : /server\.js|runwell|vitest|playwright/.test(cmd);
+};
 
 export interface ServerInfo {
   pid: number;
@@ -27,12 +34,14 @@ export function readServerInfo(p: Paths): ServerInfo | null {
   return null;
 }
 
+/** The server server.json names, if it answers. A server on that port with another pid (someone else's, after a port was reused) is not ours. */
 export async function probe(info: ServerInfo, timeoutMs = 500): Promise<{ ok: boolean; version: string; activeRuns: number } | null> {
   try {
     const r = await fetch(`http://127.0.0.1:${info.port}/health`, { signal: AbortSignal.timeout(timeoutMs) });
     if (!r.ok) return null;
-    const v = (await r.json()) as { ok?: unknown; version?: unknown; activeRuns?: unknown };
+    const v = (await r.json()) as { ok?: unknown; version?: unknown; activeRuns?: unknown; pid?: unknown };
     if (v.ok !== true || typeof v.version !== "string") return null;
+    if (typeof v.pid === "number" && v.pid !== info.pid) return null;
     return { ok: true, version: v.version, activeRuns: typeof v.activeRuns === "number" ? v.activeRuns : 0 };
   } catch {
     return null;
@@ -95,7 +104,9 @@ function takeLock(p: Paths): boolean {
       } catch {
         /* a half-written lock: treat as stale */
       }
-      if (holder && alive(holder)) return false;
+      // A live holder counts only if it is still a Runwell server: after a crash and a reboot its pid can
+      // belong to anything, and refusing then would keep Runwell from ever starting again.
+      if (holder && alive(holder) && isRunwellServer(holder)) return false;
       rmSync(p.lock, { force: true });
     }
   }

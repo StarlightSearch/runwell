@@ -183,8 +183,9 @@ describe("RunsService", () => {
     expect(runs.get("orphan1")).toMatchObject({ status: "failed", error: "Runwell restarted during this run" });
     expect(runs.events("orphan1")[0]).toMatchObject({ t: "text" });
     expect(runs.events("orphan1").at(-1)).toMatchObject({ t: "status", status: "failed" });
-    expect(kill).toHaveBeenCalledWith(111, "SIGTERM");
+    expect(kill).toHaveBeenCalledWith(process.platform === "win32" ? 111 : -111, "SIGTERM");
     expect(kill).not.toHaveBeenCalledWith(222, expect.anything());
+    expect(kill).not.toHaveBeenCalledWith(-222, expect.anything());
     kill.mockRestore();
   });
 

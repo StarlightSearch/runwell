@@ -3,8 +3,10 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { acquire, decide, idleWatch, readServerInfo } from "./lifecycle";
+import { acquire, decide, idleWatch, probe, readServerInfo } from "./lifecycle";
 import { paths } from "./paths";
+import { spawn } from "node:child_process";
+import { createServer as createHttpServer } from "node:http";
 
 const home = () => paths(mkdtempSync(join(tmpdir(), "runwell-life-")));
 
@@ -33,6 +35,28 @@ describe("acquire", () => {
     const got = await acquire(p, 0);
     expect(got).not.toBeNull();
     got!.release();
+  });
+
+  it("takes over a lock whose pid now belongs to an unrelated live process", async () => {
+    const p = home();
+    const other = spawn("sleep", ["30"], { stdio: "ignore" });
+    try {
+      writeFileSync(p.lock, JSON.stringify({ pid: other.pid }));
+      const got = await acquire(p, 0);
+      expect(got).not.toBeNull();
+      got!.release();
+    } finally {
+      other.kill();
+    }
+  });
+
+  it("probe ignores a server on that port with a different pid", async () => {
+    const srv = createHttpServer((_q, r) => r.end(JSON.stringify({ ok: true, version: "0.1.0", activeRuns: 0, pid: 424242 })));
+    await new Promise<void>((r) => srv.listen(0, "127.0.0.1", r));
+    const port = (srv.address() as { port: number }).port;
+    expect(await probe({ pid: 1, port, token: "t", version: "0.1.0" })).toBeNull();
+    expect(await probe({ pid: 424242, port, token: "t", version: "0.1.0" })).toMatchObject({ ok: true });
+    srv.close();
   });
 
   it("picks another port when the wanted one is taken, and writes server.json mode 600 with a token", async () => {

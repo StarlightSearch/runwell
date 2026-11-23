@@ -40,6 +40,16 @@ export interface RunHandle {
   done: Promise<{ exitCode: number | null; sawResult: boolean; skippedLines: number }>;
 }
 
+/** Signals a child's whole process group (it was spawned detached), falling back to the child alone. */
+function killGroup(child: { pid?: number; kill(s: NodeJS.Signals): boolean }, sig: NodeJS.Signals): void {
+  try {
+    if (child.pid && process.platform !== "win32") process.kill(-child.pid, sig);
+    else child.kill(sig);
+  } catch {
+    child.kill(sig);
+  }
+}
+
 export interface AgentDriver {
   start(spec: RunSpec): RunHandle;
   /** No-ops for the permission-tool route: answers travel back through the MCP tool's long poll. */
@@ -135,6 +145,9 @@ export function createClaudeDriver(opts: { bin: string; home: string; extraEnv?:
         cwd: spec.cwd,
         env: { ...process.env, ...opts.extraEnv, ...d.toolTimeoutEnv, RUNWELL_RUN_ID: spec.runId, RUNWELL_HOME: opts.home },
         stdio: ["pipe", "pipe", "pipe"],
+        // Its own process group, so a stop that has to force it also ends what it started (Bash children,
+        // the MCP server). Not on Windows, where a detached child gets its own console window.
+        detached: process.platform !== "win32",
       });
       const queue = eventQueue();
       const norm = createNormaliser(now);
@@ -183,8 +196,8 @@ export function createClaudeDriver(opts: { bin: string; home: string; extraEnv?:
           const exited = new Promise<void>((r) => child.once("exit", () => r()));
           const after = (ms: number) => new Promise<"timeout">((r) => setTimeout(() => r("timeout"), ms));
           if ((await Promise.race([exited, after(grace)])) === "timeout") {
-            child.kill("SIGTERM");
-            if ((await Promise.race([exited, after(2000)])) === "timeout") child.kill("SIGKILL");
+            killGroup(child, "SIGTERM");
+            if ((await Promise.race([exited, after(2000)])) === "timeout") killGroup(child, "SIGKILL");
           }
           await exited;
         })());

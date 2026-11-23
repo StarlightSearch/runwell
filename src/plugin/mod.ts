@@ -19,7 +19,8 @@ type On = (event: string, ...rest: unknown[]) => void;
 
 const NODE_HINT = "Runwell needs Node 20 or newer to run. Install it from https://nodejs.org. Claude Code is not affected.";
 
-const root = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
+// pathname is percent-encoded: a plugin folder with a space or an accent must be decoded.
+const root = decodeURIComponent(new URL("..", import.meta.url).pathname).replace(/\/$/, "");
 const cli = `${root}/dist/cli.js`;
 const launcher = `${root}/dist/launcher.js`;
 let node = "node";
