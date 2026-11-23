@@ -72,6 +72,8 @@ export async function startServer(opts: { home?: string; port?: number; services
   server.headersTimeout = 60_000;
 
   services.skills.start();
+  // History from past chats, after the server is listening and the skills are known.
+  services.backfill.start();
 
   let closed = false;
   const close = async () => {
@@ -79,6 +81,7 @@ export async function startServer(opts: { home?: string; port?: number; services
     closed = true;
     watch.stop();
     services.skills.stop();
+    services.backfill.stop();
     await new Promise<void>((r) => server.close(() => r()));
     lock.release();
     db.close();

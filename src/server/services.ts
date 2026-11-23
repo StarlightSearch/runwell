@@ -5,12 +5,14 @@ import { homedir, platform } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createAskBroker } from "./asks";
+import { createBackfill } from "./backfill";
 import { claudeState, locateClaude } from "./claude/auth";
 import { createClaudeDriver, type AgentDriver } from "./claude/driver";
 import type { App, Ctx } from "./http";
 import { createOutputsService } from "./outputs";
 import { scanProjects } from "./projects";
 import { asksRoutes } from "./routes/asks";
+import { backfillRoutes } from "./routes/backfill";
 import { claudeRoutes } from "./routes/claude";
 import { outputsRoutes } from "./routes/outputs";
 import { projectsRoutes } from "./routes/projects";
@@ -94,7 +96,13 @@ export function buildServices(ctx: Ctx, opts: ServiceOptions = {}) {
     now: ctx.now,
   });
 
+  const backfill = createBackfill({
+    paths: ctx.paths, db: ctx.db, hub: ctx.hub, config: ctx.config, now: ctx.now,
+    skillKeyOf: (ref) => ctx.db.get<{ key: string }>("SELECT key FROM skills WHERE ref = ? AND removed_at IS NULL ORDER BY source LIMIT 1", ref)?.key ?? null,
+  });
+
   const routes: ((app: App, ctx: Ctx) => void)[] = [
+    backfillRoutes(backfill),
     claudeRoutes,
     projectsRoutes,
     skillsRoutes(skills),
@@ -106,6 +114,6 @@ export function buildServices(ctx: Ctx, opts: ServiceOptions = {}) {
     runsRoutes({ runs, skills, workflow, broker, outputs }),
     settingsRoutes({ claudeBin, claudeHome }),
   ];
-  return { skills, workflow, outputs, runs, broker, routes, claudeBin };
+  return { skills, workflow, outputs, runs, broker, backfill, routes, claudeBin };
 }
 

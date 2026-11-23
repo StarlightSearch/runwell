@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AddressInfo } from "node:net";
@@ -11,6 +11,13 @@ import { paths } from "./paths";
 import { createHub } from "./sse";
 
 const TOKEN = "a".repeat(64);
+
+/** A Runwell home whose config points at an empty Claude folder, so tests never read the real ~/.claude. */
+function isolatedHome(): string {
+  const home = mkdtempSync(join(tmpdir(), "runwell-main-"));
+  writeFileSync(join(home, "config.json"), JSON.stringify({ claudeHome: mkdtempSync(join(tmpdir(), "runwell-emptyclaude-")) }));
+  return home;
+}
 const PORT = 47999;
 const H = `127.0.0.1:${PORT}`;
 const ORIGIN = `http://127.0.0.1:${PORT}`;
@@ -117,7 +124,7 @@ describe("health", () => {
 
 describe("startServer", () => {
   it("binds 127.0.0.1 only", async () => {
-    vi.stubEnv("RUNWELL_HOME", mkdtempSync(join(tmpdir(), "runwell-main-")));
+    vi.stubEnv("RUNWELL_HOME", isolatedHome());
     const s = await startServer({ port: 0 });
     expect((s.server.address() as AddressInfo).address).toBe("127.0.0.1");
     const r = await fetch(`http://127.0.0.1:${s.info.port}/health`);
@@ -129,7 +136,7 @@ describe("startServer", () => {
 
 describe("long-held requests", () => {
   it("the server does not cut requests at Node's default 5 minutes", async () => {
-    vi.stubEnv("RUNWELL_HOME", mkdtempSync(join(tmpdir(), "runwell-main2-")));
+    vi.stubEnv("RUNWELL_HOME", isolatedHome());
     const s = await startServer({ port: 0 });
     expect(s.server.requestTimeout).toBe(0);
     await s.close();

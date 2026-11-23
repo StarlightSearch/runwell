@@ -94,7 +94,7 @@ const MAX_BRIEF = 20_000;
 const ACTIVE: RunStatus[] = ["queued", "running", "waiting"];
 const B32 = "abcdefghijklmnopqrstuvwxyz234567";
 
-function newId(): string {
+export function newRunId(): string {
   const bytes = randomBytes(12);
   let s = "";
   for (const b of bytes) s += B32[b & 31];
@@ -310,7 +310,7 @@ export function createRunsService(deps: RunsDeps): RunsService {
         projectPath = path;
       } else projectPath = input.place.contextProject;
 
-      const id = newId();
+      const id = newRunId();
       const n = (deps.db.get<{ m: number | null }>("SELECT MAX(n) AS m FROM runs WHERE skill_key = ?", skill.key)?.m ?? 0) + 1;
       const cwd = input.place.kind === "project" ? input.place.path : deps.paths.work(id);
       mkdirSync(deps.paths.work(id), { recursive: true });
