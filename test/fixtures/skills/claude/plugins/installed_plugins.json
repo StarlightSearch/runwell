@@ -1,0 +1,1 @@
+{ "version": 2, "plugins": { "toolkit@mkt": [ { "scope": "user", "installPath": "__CLAUDE__/plugins/cache/mkt/toolkit/1.2.0", "version": "1.2.0" } ] } }
