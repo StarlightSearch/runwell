@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { dialogOpen, isTyping } from "../lib/keys";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { formatAgo, formatDateTime, formatDuration } from "../../../src/shared/format";
 import type { RunRow } from "../../../src/server/runs";
@@ -35,6 +36,17 @@ export function RunsPage() {
   const all = runs.data?.runs ?? [];
   const shown = useMemo(() => all.filter(FILTERS[filter]!), [all, filter]);
   const now = Date.now();
+  const [focus, setFocus] = useState(-1);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (isTyping(e.target) || dialogOpen() || e.metaKey || e.ctrlKey) return;
+      if (e.key === "ArrowDown") (e.preventDefault(), setFocus((f) => Math.min(f + 1, shown.length - 1)));
+      else if (e.key === "ArrowUp") (e.preventDefault(), setFocus((f) => Math.max(f - 1, 0)));
+      else if (e.key === "Enter" && shown[focus]) (e.preventDefault(), navigate(`/runs/${shown[focus]!.id}`));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [shown, focus, navigate]);
   const chips = [
     { id: "all", label: "All", count: all.length },
     { id: "live", label: "Live", count: all.filter(FILTERS.live!).length },
@@ -78,10 +90,10 @@ export function RunsPage() {
               </tr>
             </thead>
             <tbody>
-              {shown.map((r) => {
+              {shown.map((r, i) => {
                 const started = r.startedAt ?? r.createdAt;
                 return (
-                  <tr key={r.id} className="clickable" data-testid="run-row" data-status={r.status} onClick={() => navigate(`/runs/${r.id}`)}>
+                  <tr key={r.id} className={`clickable${i === focus ? " focused" : ""}`} data-testid="run-row" data-status={r.status} onClick={() => navigate(`/runs/${r.id}`)}>
                     <td>
                       <span className={`dot ${r.status}`} aria-label={r.status} /> <b>{r.skillRef}</b> #{r.n}
                     </td>

@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { api, ApiError } from "./lib/api";
 import { Sidebar } from "./components/sidebar";
 import { RunDialogProvider } from "./components/run-dialog";
+import { CommandPalette } from "./components/command-palette";
 import { SkillsPage } from "./pages/skills";
 import { RunsPage } from "./pages/runs";
 import { RunPage } from "./pages/run";
@@ -49,6 +50,7 @@ export function App() {
           </Routes>
         </main>
       </div>
+      <CommandPalette />
       </RunDialogProvider>
     </BrowserRouter>
   );

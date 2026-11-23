@@ -4,6 +4,7 @@ import type { SkillListItem } from "../../../src/server/skills";
 import { formatAgo } from "../../../src/shared/format";
 import { Empty } from "../components/empty";
 import { FilterChips, type Chip } from "../components/filter-chips";
+import { dialogOpen, isTyping } from "../lib/keys";
 import { PageHeader } from "../components/page-header";
 import { SourceTag } from "../components/source-tag";
 import { Sparkline } from "../components/sparkline";
@@ -87,12 +88,10 @@ export function SkillsPage() {
     [all, filter, hideIgnored],
   );
 
-  // R opens the Run dialog for the focused row; arrows move the focus (Task 37 adds the rest).
+  // R opens the Run dialog for the focused row; arrows move the focus.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement;
-      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
-      if (document.querySelector("[role=dialog]")) return;
+      if (isTyping(e.target) || dialogOpen()) return;
       if (e.key === "ArrowDown") (setFocus((f) => Math.min(f + 1, shown.length - 1)), e.preventDefault());
       else if (e.key === "ArrowUp") (setFocus((f) => Math.max(f - 1, 0)), e.preventDefault());
       else if ((e.key === "r" || e.key === "R" || e.key === "Enter") && !e.metaKey && !e.ctrlKey && shown[focus]) {

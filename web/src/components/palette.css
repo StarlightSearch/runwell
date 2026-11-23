@@ -1,0 +1,52 @@
+.dialog.palette {
+  width: min(620px, calc(100vw - 32px));
+  align-self: flex-start;
+  margin-top: 12vh;
+}
+.dialog.palette > input {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 14px 16px;
+  font-size: 15px;
+  background: transparent;
+}
+.presults {
+  max-height: 50vh;
+  overflow: auto;
+  padding: 6px;
+}
+.pitem {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.pitem .desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pitem.on {
+  background: var(--raise);
+}
+.pk {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--tx3);
+  width: 34px;
+  flex-shrink: 0;
+}
+.krow {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 4px 0;
+}
+.krow .kbd {
+  min-width: 120px;
+}
