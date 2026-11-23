@@ -16,7 +16,7 @@ export interface CliDeps {
   nodeVersion?: string;
 }
 
-type Skill = { key: string; ref: string; name: string };
+type Skill = { key: string; ref: string; name: string; source?: string; plugin?: string | null; projectPath?: string | null; ignored?: boolean };
 type Run = { id: string; n: number; skillRef: string };
 
 async function call<T>(info: ServerInfo, path: string, init: { method?: string; body?: unknown } = {}): Promise<{ status: number; body: T }> {
@@ -34,6 +34,28 @@ function flag(args: string[], name: string): string | null {
   const v = args[i + 1] ?? null;
   args.splice(i, 2);
   return v;
+}
+
+/** Every skill you can run, grouped by where it comes from, names only (for a chat reply or a terminal). */
+export function listSkills(skills: Skill[]): string {
+  const live = skills.filter((s) => !s.ignored);
+  if (!live.length) return "No skills found. Runwell looks in ~/.claude/skills, your plugins and your projects' .claude/skills.";
+  const groups = new Map<string, string[]>();
+  const add = (k: string, ref: string) => groups.set(k, [...(groups.get(k) ?? []), ref]);
+  for (const s of live) {
+    if (s.source === "plugin") add(`plugin ${s.plugin ?? ""}`.trim(), s.ref);
+    else if (s.source === "project") add(`project ${(s.projectPath ?? "").split("/").filter(Boolean).pop() ?? ""}`, s.ref);
+    else add("personal", s.ref);
+  }
+  const order = [...groups.keys()].sort((a, b) => (a === "personal" ? -1 : b === "personal" ? 1 : a.localeCompare(b)));
+  const lines = order.map((k) => `${k}: ${[...new Set(groups.get(k)!)].sort().join(", ")}`);
+  return [`Skills you can run (${live.length}). Use /runwell run <skill> [brief]`, ...lines].join("\n");
+}
+
+/** Up to five skills whose name contains the query, or starts like it. */
+export function closeMatches(skills: Skill[], q: string): Skill[] {
+  const t = q.toLowerCase().replace(/^\//, "");
+  return skills.filter((s) => !s.ignored && (s.ref.toLowerCase().includes(t) || t.includes(s.name.toLowerCase()) || s.name.toLowerCase().startsWith(t.slice(0, 3)))).slice(0, 5);
 }
 
 /** Resolves a skill by exact ref, then by a unique name. */
@@ -100,14 +122,19 @@ export async function main(argv: string[], deps: CliDeps): Promise<number> {
   }
   if (cmd === "run") {
     const q = args.shift();
-    if (!q) {
-      deps.err("Usage: runwell run <skill> [brief]");
-      return 1;
-    }
     const { body } = await call<{ skills: Skill[] }>(info, "/api/skills");
-    const { skill, candidates } = resolveSkill(body.skills ?? [], q);
+    const all = body.skills ?? [];
+    if (!q) {
+      deps.out(listSkills(all));
+      return 0;
+    }
+    const { skill, candidates } = resolveSkill(all, q);
     if (!skill) {
-      deps.err(candidates.length ? `More than one skill matches "${q}": ${candidates.map((s) => s.ref).join(", ")}` : `No skill named "${q}".`);
+      if (candidates.length) deps.err(`More than one skill matches "${q}": ${candidates.map((s) => s.ref).join(", ")}`);
+      else {
+        const near = closeMatches(all, q);
+        deps.err(`No skill named "${q}".${near.length ? ` Did you mean: ${near.map((s) => s.ref).join(", ")}?` : ""} /runwell run with no name lists them all.`);
+      }
       return 1;
     }
     const projects = (await call<{ projects: { path: string; trusted: boolean }[] }>(info, "/api/projects")).body.projects ?? [];

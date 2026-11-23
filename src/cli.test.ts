@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { FAKE_CLAUDE, fakeEnv } from "../test/fake-claude";
 import { seed } from "../test/ui/seed";
-import { main, resolveSkill } from "./cli";
+import { closeMatches, listSkills, main, resolveSkill } from "./cli";
 import { readServerInfo } from "./server/lifecycle";
 import { paths } from "./server/paths";
 
@@ -41,6 +41,29 @@ async function setup(opts: { empty?: boolean } = {}) {
   return { s, out, err, urls, run };
 }
 
+describe("listSkills and closeMatches", () => {
+  const skills = [
+    { key: "personal:motion-ad", ref: "motion-ad", name: "motion-ad", source: "personal" },
+    { key: "plugin:superpowers:brainstorming", ref: "superpowers:brainstorming", name: "brainstorming", source: "plugin", plugin: "superpowers" },
+    { key: "plugin:superpowers:writing-plans", ref: "superpowers:writing-plans", name: "writing-plans", source: "plugin", plugin: "superpowers" },
+    { key: "project:/w/site:deploy", ref: "deploy", name: "deploy", source: "project", projectPath: "/w/site" },
+    { key: "personal:old", ref: "old", name: "old", source: "personal", ignored: true },
+  ];
+  it("lists every tracked skill grouped by source, personal first", () => {
+    expect(listSkills(skills).split("\n")).toEqual([
+      "Skills you can run (4). Use /runwell run <skill> [brief]",
+      "personal: motion-ad",
+      "plugin superpowers: superpowers:brainstorming, superpowers:writing-plans",
+      "project site: deploy",
+    ]);
+  });
+  it("suggests skills whose name contains the query", () => {
+    expect(closeMatches(skills, "plans").map((s) => s.ref)).toEqual(["superpowers:writing-plans"]);
+    expect(closeMatches(skills, "motion").map((s) => s.ref)).toEqual(["motion-ad"]);
+    expect(closeMatches(skills, "zzz")).toEqual([]);
+  });
+});
+
 describe("resolveSkill", () => {
   const skills = [
     { key: "personal:motion-ad", ref: "motion-ad", name: "motion-ad" },
@@ -74,7 +97,9 @@ describe.skipIf(!existsSync(ENTRY))("the CLI against a started server (needs npm
     process.env.FAKE_CLAUDE_FIXTURE = fakeEnv({ fixture: "happy" }).FAKE_CLAUDE_FIXTURE;
     const t = await setup();
     expect(await t.run("run", "nope")).toBe(1);
-    expect(t.err[0]).toBe('No skill named "nope".');
+    expect(t.err[0]).toBe('No skill named "nope". /runwell run with no name lists them all.');
+    expect(await t.run("run")).toBe(0);
+    expect(t.out.at(-1)).toMatch(/^Skills you can run \(\d+\)\. Use \/runwell run <skill> \[brief\]\npersonal: .*motion-ad/);
     expect(await t.run("run", "motion-ad", "hello", "there")).toBe(0);
     expect(t.out.at(-1)).toMatch(/^Started motion-ad #\d+$/);
     expect(t.urls.at(-1)).toMatch(/\/auth\?n=.*to=%2Fruns%2F/);

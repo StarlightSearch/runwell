@@ -1,4 +1,4 @@
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -32,6 +32,16 @@ describe("scanSkills", () => {
     expect(byKey[`project:${t.project}:deploy`]).toMatchObject({ source: "project", ref: "deploy", projectPath: t.project });
     expect(byKey["personal:motion-ad"]).toMatchObject({ ref: "motion-ad", hasWorkflow: true, workflowNote: null });
     expect(byKey["plugin:toolkit:format"]).toMatchObject({ hasWorkflow: false, workflowNote: "Workflow map ignored: the map is not valid JSON" });
+  });
+
+  it("does not list your personal skills again for a project that is your home folder", () => {
+    const t = tree();
+    const home = join(t.claudeHome, "..", "home");
+    mkdirSync(home);
+    symlinkSync(t.claudeHome, join(home, ".claude"));
+    const rows = scanSkills({ claudeHome: t.claudeHome, projects: [home, t.project] });
+    expect(rows.filter((r) => r.source === "project").map((r) => r.key)).toEqual([`project:${t.project}:deploy`]);
+    expect(rows.filter((r) => r.name === "motion-ad")).toHaveLength(1);
   });
 
   it("lists an unreadable skill under its folder name with a warning", () => {

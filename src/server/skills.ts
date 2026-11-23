@@ -4,7 +4,7 @@
  * are undocumented, so every read is defensive: a bad file costs one entry, never the list.
  */
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, readdirSync, statSync, watch, type FSWatcher } from "node:fs";
+import { existsSync, readFileSync, readdirSync, realpathSync, statSync, watch, type FSWatcher } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import { isIgnored } from "../shared/ignore";
@@ -137,8 +137,18 @@ export function scanSkills(opts: { claudeHome: string; projects: string[] }): Sc
       if (s) out.push(s);
     }
   }
+  const same = (a: string, b: string) => {
+    try {
+      return realpathSync(a) === realpathSync(b);
+    } catch {
+      return false;
+    }
+  };
   for (const project of opts.projects) {
     const skillsDir = join(project, ".claude/skills");
+    // Your home folder can be a project too (Claude Code was used there), and then its .claude/skills is
+    // ~/.claude/skills: those are your personal skills, already listed once.
+    if (same(skillsDir, personal)) continue;
     for (const d of dirs(skillsDir)) {
       const s = readSkill(join(skillsDir, d), { source: "project", plugin: null, marketplace: null, projectPath: project, keyPrefix: `project:${project}:`, refPrefix: "" });
       if (s) out.push(s);

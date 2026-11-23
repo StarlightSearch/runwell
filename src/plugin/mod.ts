@@ -76,13 +76,16 @@ export function register(on: On): void {
       if (!words.length || words[0] === "open") argv = [cli, "open"];
       else if (words[0] === "last") argv = [cli, "last", "--cwd", cwd];
       else if (words[0] === "run" && words[1]) argv = [cli, "run", words[1], words.slice(2).join(" "), "--cwd", cwd];
+      else if (words[0] === "run") argv = [cli, "run"];
       else return { text: "Usage: /runwell, /runwell last, or /runwell run <skill> [brief]", isTextDisplayOnly: true };
       const r = await runNode($, argv);
       if (!r) {
         await hintOnce($);
         return { text: NODE_HINT, isTextDisplayOnly: true };
       }
-      return { text: (r.stdout.trim() || r.stderr.trim() || "Runwell could not start.").split("\n")[0], isTextDisplayOnly: true };
+      // The whole answer: one line for open, last and run, the list of skills for a bare `run`.
+      const text = r.stdout.trim() || r.stderr.trim() || "Runwell could not start.";
+      return { text: text.length > 6000 ? `${text.slice(0, 6000)}…` : text, isTextDisplayOnly: true };
     } catch {
       return { text: "Runwell could not start. Try npx runwell in a terminal.", isTextDisplayOnly: true };
     }

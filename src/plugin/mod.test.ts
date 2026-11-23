@@ -47,6 +47,7 @@ describe("the built mod", () => {
 
   it("/runwell runs the CLI: open, last with the session folder, and run with the brief", async () => {
     const { hooks, $ } = await load({ run: async () => ({ exitCode: 0, stdout: "Started motion-ad #3\n", stderr: "" }) });
+    // (a multi-line answer, like the list of skills, is shown whole: see the next test)
     const cmd = hooks.get("command.run")!;
     await cmd($, { args: "" });
     expect(($.process.run.mock.calls[0]![0] as string[]).slice(2)).toEqual(["open"]);
@@ -56,6 +57,8 @@ describe("the built mod", () => {
     expect(($.process.run.mock.calls[2]![0] as string[]).slice(2)).toEqual(["run", "motion-ad", "make a 15s ad", "--cwd", "/home/me/project"]);
     expect(r).toEqual({ text: "Started motion-ad #3", isTextDisplayOnly: true });
     expect(await cmd($, { args: "improve" })).toMatchObject({ text: expect.stringContaining("Usage") });
+    await cmd($, { args: "run" });
+    expect(($.process.run.mock.calls.at(-1)![0] as string[]).slice(2)).toEqual(["run"]);
   });
 
   it("finds its own files from a plugin folder whose path has a space and an accent", async () => {
@@ -72,6 +75,12 @@ describe("the built mod", () => {
     const $ = { process: { run }, command: { register: async () => ({}) }, store: { get: async () => true, set: async () => {} }, ui: { toast: () => {} } };
     await hooks.get("session.start")!($, {}, async () => "done");
     expect((run.mock.calls[0] as unknown as [string[]])[0][1]).toBe(join(root, "dist", "launcher.js"));
+  });
+
+  it("shows a multi-line answer whole", async () => {
+    const list = "Skills you can run (2). Use /runwell run <skill> [brief]\npersonal: motion-ad\nplugin toolkit: toolkit:lint";
+    const { hooks, $ } = await load({ run: async () => ({ exitCode: 0, stdout: `${list}\n`, stderr: "" }) });
+    expect(await hooks.get("command.run")!($, { args: "run" })).toEqual({ text: list, isTextDisplayOnly: true });
   });
 
   it("stays small, has no imports, logs nothing and fetches nothing", () => {
