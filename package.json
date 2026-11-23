@@ -1,0 +1,30 @@
+{
+  "name": "runwell",
+  "version": "0.1.0",
+  "description": "Run any agent skill from a button, watch it work as a live workflow, and keep every run.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "runwell": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "plugin",
+    ".claude-plugin",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
+  }
+}
