@@ -10,6 +10,10 @@ import { AskCard } from "../components/ask-card";
 import { GraphCanvas } from "../components/graph/graph-canvas";
 import { useGraph } from "../components/graph/use-graph";
 import { NodePanel } from "../components/node-panel";
+import { OutputList } from "../components/output-list";
+import type { OutputItem } from "../components/output-preview";
+import { Timeline } from "../components/timeline";
+import { Transcript } from "../components/transcript";
 import { PageHeader } from "../components/page-header";
 import { ProgressLine } from "../components/progress-line";
 import { StatusPill } from "../components/status-pill";
@@ -65,6 +69,7 @@ export function placeLine(run: RunRow, skill: SkillRow | null): string {
 export function RunPage() {
   const { id } = useParams();
   const detail = useResource<RunDetail>(id ? `/api/runs/${id}` : null);
+  const outs = useResource<{ outputs: OutputItem[]; grant: string }>(id ? `/api/runs/${id}/outputs` : null);
   const { events, ended } = useEvents(id);
   const [tab, setTab] = useState("graph");
   const [selected, setSelected] = useState<string | null>(null);
@@ -82,8 +87,11 @@ export function RunPage() {
     }
   }, [events, detail.reload]);
   useEffect(() => {
-    if (ended) detail.reload();
-  }, [ended, detail.reload]);
+    if (ended) (detail.reload(), outs.reload());
+  }, [ended, detail.reload, outs.reload]);
+  useEffect(() => {
+    if (tab === "outputs") outs.reload();
+  }, [tab, outs.reload]);
 
   const d = detail.data;
   const run = d?.run;
@@ -118,7 +126,13 @@ export function RunPage() {
 
   const started = run.startedAt ?? run.createdAt;
   const elapsed = (run.endedAt ?? now) - started;
-  const tabs: { id: string; label: string; render(): ReactNode }[] = [{ id: "graph", label: "Graph", render: () => null }];
+  const outputList = outs.data?.outputs ?? [];
+  const tabs: { id: string; label: string; render(): ReactNode }[] = [
+    { id: "graph", label: "Graph", render: () => null },
+    { id: "timeline", label: "Timeline", render: () => <Timeline model={model} events={events} start={started} end={run.endedAt ?? now} /> },
+    { id: "transcript", label: "Transcript", render: () => <Transcript events={events} runBrief={run.brief} /> },
+    { id: "outputs", label: `Outputs · ${outputList.length}`, render: () => <OutputList outputs={outputList} grant={outs.data?.grant ?? d.grant} /> },
+  ];
 
   return (
     <>

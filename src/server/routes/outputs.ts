@@ -1,4 +1,5 @@
 import { createReadStream, statSync } from "node:fs";
+import { isAbsolute, join } from "node:path";
 import { Readable } from "node:stream";
 import { mimeOf } from "../../shared/outputs";
 import type { App, Ctx } from "../http";
@@ -36,10 +37,13 @@ export function outputsRoutes(outputs: OutputsService, runOf: (id: string) => Ru
       return c.body(Readable.toWeb(createReadStream(file)) as ReadableStream, 200, { ...headers, "Content-Length": String(size) });
     });
 
+    // `absolute` is where the file lives (or lived) on disk, for "Copy path".
     app.get("/api/runs/:id/outputs", (c) => {
       const id = c.req.param("id");
-      if (!runOf(id)) return c.json({ error: "No run with that id." }, 404);
-      return c.json({ outputs: outputs.list(id), grant: outputs.grant(id) });
+      const run = runOf(id);
+      if (!run) return c.json({ error: "No run with that id." }, 404);
+      const where = (rel: string) => (isAbsolute(rel) ? rel : join(run.place === "folder" ? run.cwd : (run.projectPath ?? run.cwd), rel));
+      return c.json({ outputs: outputs.list(id).map((o) => ({ ...o, absolute: where(o.path) })), grant: outputs.grant(id) });
     });
 
     app.get("/api/outputs", (c) => {
