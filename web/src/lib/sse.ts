@@ -32,13 +32,35 @@ export function useEvents(runId: string | undefined): { events: RunEvent[]; ende
   return state;
 }
 
-/** Calls `onMessage` for each message on a hub topic (runs, skills, backfill). */
-export function useStream(topic: "runs" | "skills" | "backfill", onMessage: (data: unknown) => void): void {
+type Topic = "runs" | "skills" | "backfill";
+const TOPICS: Topic[] = ["runs", "skills", "backfill"];
+const listeners = new Map<Topic, Set<(data: unknown) => void>>(TOPICS.map((t) => [t, new Set()]));
+let shared: EventSource | null = null;
+let users = 0;
+
+/**
+ * Calls `onMessage` for each message on a hub topic. Every subscriber in the page shares one
+ * EventSource: browsers allow only six connections per host across all tabs.
+ */
+export function useStream(topic: Topic, onMessage: (data: unknown) => void): void {
   const cb = useRef(onMessage);
   cb.current = onMessage;
   useEffect(() => {
-    const es = new EventSource(`/api/stream?topics=${topic}`);
-    es.addEventListener(topic, (m) => cb.current(JSON.parse((m as MessageEvent).data)));
-    return () => es.close();
+    const fn = (d: unknown) => cb.current(d);
+    listeners.get(topic)!.add(fn);
+    if (users++ === 0) {
+      shared = new EventSource(`/api/stream?topics=${TOPICS.join(",")}`);
+      for (const t of TOPICS) shared.addEventListener(t, (m) => {
+        const data = JSON.parse((m as MessageEvent).data);
+        for (const l of listeners.get(t)!) l(data);
+      });
+    }
+    return () => {
+      listeners.get(topic)!.delete(fn);
+      if (--users === 0) {
+        shared?.close();
+        shared = null;
+      }
+    };
   }, [topic]);
 }

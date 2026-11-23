@@ -6,6 +6,7 @@ import { formatDuration } from "../../../src/shared/format";
 import { askNodeId } from "../../../src/shared/graph/from-events";
 import type { RunRow } from "../../../src/server/runs";
 import type { SkillRow } from "../../../src/server/skills";
+import { AskCard } from "../components/ask-card";
 import { GraphCanvas } from "../components/graph/graph-canvas";
 import { useGraph } from "../components/graph/use-graph";
 import { NodePanel } from "../components/node-panel";
@@ -68,6 +69,7 @@ export function RunPage() {
   const [tab, setTab] = useState("graph");
   const [selected, setSelected] = useState<string | null>(null);
   const [noteHidden, setNoteHidden] = useState(false);
+  const [answered, setAnswered] = useState<{ id: string; line: string }[]>([]);
   const [wrapRef, width] = useWidth();
 
   // Status lives on the run row; refresh it when a status or ask event arrives.
@@ -94,6 +96,16 @@ export function RunPage() {
   const fallback = [...askIds][0] ?? model.nodes.filter((n) => n.state === "running").at(-1)?.id ?? model.order[0] ?? null;
   const selId = selected && model.nodes.some((n) => n.id === selected) ? selected : fallback;
   const node = model.nodes.find((n) => n.id === selId) ?? null;
+
+  // The tab title counts open cards.
+  const askCount = d?.asks.length ?? 0;
+  useEffect(() => {
+    const base = document.title.replace(/^\(\d+\) /, "");
+    document.title = askCount ? `(${askCount}) ${base}` : base;
+    return () => {
+      document.title = document.title.replace(/^\(\d+\) /, "");
+    };
+  }, [askCount]);
 
   const stop = useCallback(async () => {
     if (!run || !window.confirm("Stop this run?")) return;
@@ -162,7 +174,35 @@ export function RunPage() {
               <GraphCanvas model={model} layout={layout} selectedId={selId} onSelect={setSelected} askNodeIds={askIds} />
             </div>
           </div>
-          <NodePanel node={node} model={model} runStart={started} now={now} />
+          <NodePanel
+            node={node}
+            model={model}
+            runStart={started}
+            now={now}
+            askSlot={[
+              ...answered.map((a) => (
+                <div key={`done-${a.id}`} className="ask-done" data-testid="ask-done">
+                  {a.line}
+                </div>
+              )),
+              ...d.asks
+              .filter((a) => {
+                const at = askNodeId(model, a, events);
+                return at === selId || at === null;
+              })
+              .map((a) => (
+                <AskCard
+                  key={a.id}
+                  runId={run.id}
+                  ask={a}
+                  onAnswered={(line) => {
+                    setAnswered((l) => [...l.filter((x) => x.id !== a.id), { id: a.id, line }]);
+                    detail.reload();
+                  }}
+                />
+              )),
+            ]}
+          />
         </div>
       ) : (
         <div className="page">{tabs.find((t) => t.id === tab)?.render()}</div>

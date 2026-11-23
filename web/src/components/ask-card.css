@@ -1,0 +1,64 @@
+.ask {
+  border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent);
+  background: var(--amber-bg);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ask .q {
+  font-weight: 500;
+  color: var(--tx);
+}
+.ask .qh {
+  font-size: 11px;
+  color: var(--amber);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.ask .choices {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ask .choice {
+  border: 1px solid var(--line2);
+  background: var(--panel);
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.ask .choice:hover,
+.ask .choice.on {
+  border-color: var(--amber);
+}
+.ask .target {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 7px 9px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  max-height: 220px;
+  overflow: auto;
+}
+.ask .row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.ask .row input {
+  flex: 1;
+  min-width: 0;
+}
+.ask-done {
+  font-size: 12px;
+  color: var(--tx2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+}
