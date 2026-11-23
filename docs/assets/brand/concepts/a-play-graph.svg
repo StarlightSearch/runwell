@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="t"><title id="t">Runwell</title>
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d8cff"/><stop offset="1" stop-color="#9a6bff"/></linearGradient></defs>
-  <rect width="64" height="64" rx="15" fill="url(#g)"/>
-  <!-- A play button drawn as a workflow graph: three steps, joined. -->
-  <g stroke="#fff" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.9">
-    <path d="M22 19 L22 45 M22 19 L45 32 M22 45 L45 32"/>
-  </g>
-  <g fill="#fff"><circle cx="22" cy="19" r="5.5"/><circle cx="22" cy="45" r="5.5"/><circle cx="45" cy="32" r="7"/></g>
-</svg>

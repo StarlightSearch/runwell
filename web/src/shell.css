@@ -21,6 +21,12 @@
   font-weight: 600;
   font-size: 14px;
 }
+.ws-name {
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.03em;
+}
 .logo {
   flex-shrink: 0;
   display: block;
