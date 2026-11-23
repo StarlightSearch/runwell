@@ -232,3 +232,8 @@
   text-align: center;
   color: var(--tx2);
 }
+.video-note {
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+}

@@ -165,8 +165,11 @@ describe("running", () => {
     const bin = join(root, "stubborn.sh");
     writeFileSync(bin, `#!/bin/sh\nsleep 300 &\necho $! > "${pidFile}"\ntrap '' INT\nwhile true; do sleep 1; done\n`, { mode: 0o755 });
     const h = createClaudeDriver({ bin, home: root, graceMs: 100 }).start(spec);
-    for (let i = 0; i < 100 && !existsSync(pidFile); i++) await new Promise((r) => setTimeout(r, 50));
-    const child = Number(readFileSync(pidFile, "utf8"));
+    // The file exists a moment before the pid is in it; an empty read would be pid 0 (our own group).
+    const pidIn = () => (existsSync(pidFile) ? Number(readFileSync(pidFile, "utf8").trim()) : 0);
+    for (let i = 0; i < 100 && !pidIn(); i++) await new Promise((r) => setTimeout(r, 50));
+    const child = pidIn();
+    expect(child).toBeGreaterThan(1);
     await h.stop();
     const alive = () => {
       try {
