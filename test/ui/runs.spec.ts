@@ -1,14 +1,16 @@
 import { expect, test } from "./fixtures";
 
-test("the runs list shows seeded runs newest first, the failed one with a red dot", async ({ app }) => {
+test("the runs list shows seeded runs newest first, only the failed one marked, in red", async ({ app }) => {
   await app.open("/runs");
   const rows = app.page.getByTestId("run-row");
   await expect(rows).toHaveCount(6);
   await expect(rows.nth(0)).toContainText("motion-ad #4");
   await expect(rows.nth(0)).toHaveAttribute("data-status", "failed");
-  const red = await rows.nth(0).locator(".dot").evaluate((e) => getComputedStyle(e).backgroundColor);
-  const green = await rows.nth(1).locator(".dot").evaluate((e) => getComputedStyle(e).backgroundColor);
-  expect(red).not.toBe(green);
+  // Only runs that need a look are labelled: the failed one says so in red, a finished one is plain.
+  await expect(rows.nth(0).locator(".run-state")).toHaveText("failed");
+  const red = await rows.nth(0).locator(".run-state").evaluate((e) => getComputedStyle(e).color);
+  expect(red).not.toBe(await rows.nth(0).locator("td").nth(1).evaluate((e) => getComputedStyle(e).color));
+  await expect(rows.nth(1).locator(".run-state")).toHaveCount(0);
   await expect(rows.nth(1)).toContainText("motion-ad #3");
   await expect(rows.nth(1)).toContainText("👎");
   await expect(rows.filter({ hasText: "old-skill" })).toContainText("chat in website");

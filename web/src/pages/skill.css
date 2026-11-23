@@ -23,7 +23,7 @@
 }
 .skill-graph {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   border: 1px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
@@ -34,6 +34,9 @@
 }
 .skill-graph .panel {
   border-left: 1px solid var(--line);
+  /* graph.css fixes the run page's panel at 360px; here the grid column sets the width. */
+  width: auto;
+  min-width: 0;
 }
 .skill-graph .panel h3 {
   margin: 0 0 6px;

@@ -209,6 +209,9 @@
 }
 .panel {
   width: 360px;
+  /* Long words (paths, flags like --target-pages) wrap instead of running out of the panel. */
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
   border-left: 1px solid var(--line);
   background: var(--panel);
   display: flex;

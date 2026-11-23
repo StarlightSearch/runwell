@@ -7,6 +7,8 @@ import "../pages/skills.css";
 import "../pages/lists.css";
 
 const LIVE = new Set(["queued", "running", "waiting"]);
+/** Only runs that need a look are labelled; a finished run is plain. */
+const STATE: Record<string, string> = { queued: "queued", running: "running", waiting: "waiting for you", failed: "failed", stopped: "stopped" };
 const base = (p: string | null) => (p ?? "").split("/").filter(Boolean).pop() ?? "";
 
 export function whereOf(r: RunRow): string {
@@ -48,7 +50,8 @@ export function RunsTable({ runs, keys = true, showSkill = true }: { runs: RunRo
           return (
             <tr key={r.id} className={`clickable${i === focus ? " focused" : ""}`} data-testid="run-row" data-status={r.status} onClick={() => navigate(`/runs/${r.id}`)}>
               <td>
-                <span className={`dot ${r.status}`} aria-label={r.status} /> {showSkill ? <b>{r.skillRef}</b> : null} #{r.n}
+                {showSkill ? <b>{r.skillRef}</b> : null} <span className="run-n">#{r.n}</span>
+                {r.status !== "finished" ? <span className={`run-state ${r.status}`}>{STATE[r.status]}</span> : null}
               </td>
               <td className="brief-cell">{r.brief || <span className="desc">(no brief)</span>}</td>
               <td className="desc">{whereOf(r)}</td>

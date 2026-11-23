@@ -2,12 +2,16 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "./fixtures";
 
-test("seeded skills render with source tags, the warning and the rating", async ({ app }) => {
+test("seeded skills render with their source, the warning and the rating", async ({ app }) => {
   await app.open("/skills");
   const row = (ref: string) => app.page.locator(`tr[data-skill="${ref}"]`);
-  await expect(row("motion-ad")).toContainText("personal");
-  await expect(row("toolkit:lint")).toContainText("plugin");
-  await expect(row("deploy")).toContainText("project · website");
+  await expect(row("motion-ad").locator(".src")).toHaveText("Personal");
+  await expect(row("toolkit:lint").locator(".src")).toHaveText(/plugin\s*toolkit/i);
+  await expect(row("deploy").locator(".src")).toHaveText("website");
+  // A project's skills carry that project's own colour, the same one its sidebar entry has.
+  const dot = await row("deploy").locator(".pdot").evaluate((e) => getComputedStyle(e).backgroundColor);
+  const side = await app.page.getByRole("complementary", { name: "Sidebar" }).locator("a", { hasText: "website" }).locator(".pdot").evaluate((e) => getComputedStyle(e).backgroundColor);
+  expect(dot).toBe(side);
   await expect(row("broken").locator(".warn-mark")).toHaveAttribute("title", "Could not read this skill's header");
   await expect(row("motion-ad")).toContainText("67% of 3");
 });

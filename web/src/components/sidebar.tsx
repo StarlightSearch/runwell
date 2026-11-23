@@ -7,6 +7,7 @@ import type { SkillListItem } from "../../../src/server/skills";
 import { useStream } from "../lib/sse";
 import { useResource } from "../lib/use-resource";
 import { useTheme } from "../lib/theme";
+import { projectColor, shortAgo } from "../lib/colors";
 
 const LIVE = new Set(["queued", "running", "waiting"]);
 
@@ -56,7 +57,7 @@ export function Sidebar({ onSearch }: { onSearch: () => void }) {
       <div className="sec">Projects from Claude</div>
       {(projects.data?.projects ?? []).slice(0, 8).map((p) => (
         <a key={p.path} className="nav" title={p.path} onClick={() => navigate(`/skills?project=${encodeURIComponent(p.path)}`)}>
-          <span className="dot" style={{ background: "var(--blue)" }} />
+          <i className="pdot" style={{ background: projectColor(p.path) }} />
           <span className="label">{p.name}</span>
           <span className="n">{p.skillCount || ""}</span>
         </a>
@@ -69,10 +70,18 @@ export function Sidebar({ onSearch }: { onSearch: () => void }) {
       <div className="sec">Recent runs</div>
       {all.slice(0, 8).map((r) => (
         <NavLink key={r.id} to={`/runs/${r.id}`} className={({ isActive }) => `nav${isActive ? " on" : ""}`} data-testid="recent-run">
-          <span className={`dot ${r.status}`} />
           <span className="label">
-            {r.skillRef} #{r.n}
+            {r.skillRef.split(":").pop()} <span className="run-n">#{r.n}</span>
           </span>
+          {LIVE.has(r.status) ? (
+            <span className="n live-mark" aria-label={r.status === "waiting" ? "waiting for you" : "running"}>
+              <i className={`pulse${r.status === "waiting" ? " wait" : ""}`} />
+            </span>
+          ) : r.status === "failed" ? (
+            <span className="n fail-mark">failed</span>
+          ) : (
+            <span className="n">{shortAgo(r.startedAt ?? r.createdAt)}</span>
+          )}
         </NavLink>
       ))}
       {!all.length && runs.data ? <div className="backfill-line">No runs yet</div> : null}

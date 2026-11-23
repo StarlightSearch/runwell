@@ -4,6 +4,12 @@ import type { GraphNode, WorkflowGraphModel } from "../../../../src/shared/graph
 const MARK: Partial<Record<GraphNode["state"], string>> = { done: "✓", failed: "!" };
 const STATE_WORD: Record<GraphNode["state"], string> = { waiting: "Not started", running: "Working", done: "Finished", skipped: "Skipped", failed: "Failed", not_run: "Not run", stopped: "Stopped here" };
 
+/** "1. Read the brief" with tile "1" reads "Read the brief": the tile already shows the number. */
+export function withoutNumber(label: string, tile: string): string {
+  const m = /^(\d+(?:\.\d+)*)[.)]?\s+(.+)$/.exec(label);
+  return m && m[1] === tile ? m[2]! : label;
+}
+
 export function GraphCanvas({ model, layout, selectedId, onSelect, askNodeIds }: { model: WorkflowGraphModel; layout: GraphLayout; selectedId: string | null; onSelect(id: string): void; askNodeIds: Set<string> }) {
   const byId = new Map(model.nodes.map((n) => [n.id, n]));
   return (
@@ -46,7 +52,7 @@ export function GraphCanvas({ model, layout, selectedId, onSelect, askNodeIds }:
           >
             <span className="tile">{n.tile ?? ""}</span>
             <span className="txt">
-              <span className="lb" style={{ display: "block" }}>{n.label}</span>
+              <span className="lb" style={{ display: "block" }}>{n.tile ? withoutNumber(n.label, n.tile) : n.label}</span>
               <span className="ln" style={{ display: "block" }}>{asking ? "Waiting for you" : (n.line ?? (n.kind === "agent" ? STATE_WORD[n.state] : ""))}</span>
             </span>
             <span className="mark">{MARK[n.state] ?? ""}</span>

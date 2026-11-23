@@ -67,64 +67,87 @@ table.tbl {
   gap: 10px;
   min-width: 0;
 }
-.sic {
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-  font-weight: 600;
-  flex-shrink: 0;
-}
 .sname .nm {
-  font-weight: 500;
+  font-weight: 550;
+  font-size: 13.5px;
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
+  color: var(--tx);
 }
 .sname .ds {
   color: var(--tx3);
-  font-size: 12px;
-  max-width: 520px;
+  font-size: 12.5px;
+  margin-top: 2px;
+  max-width: 620px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .src {
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
   color: var(--tx2);
-  border: 1px solid var(--line2);
-  border-radius: 5px;
-  padding: 1px 6px;
   white-space: nowrap;
 }
+.src-personal {
+  color: var(--tx3);
+}
+.src-kind {
+  font-size: 10.5px;
+  color: var(--tx3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pdot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
 .tag {
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 5px;
+  font-size: 10.5px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--violet) 14%, transparent);
+  color: var(--violet);
+  font-weight: 500;
+}
+.tbl tr.ignored .tag {
   background: var(--raise);
   color: var(--tx3);
-  font-weight: 500;
 }
 .warn-mark {
   color: var(--amber);
   font-weight: 700;
   cursor: help;
 }
+.spark-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
 .spark {
   display: inline-flex;
   align-items: flex-end;
   gap: 2px;
-  height: 18px;
+  height: 16px;
 }
 .spark i {
   width: 4px;
-  background: var(--line2);
-  border-radius: 1px;
+  background: var(--line);
+  border-radius: 2px;
 }
 .spark i.on {
   background: var(--blue);
+}
+.spark-n {
+  font-size: 12px;
+  color: var(--tx3);
+  font-variant-numeric: tabular-nums;
 }
 .rate-up {
   color: var(--green);
@@ -175,4 +198,28 @@ table.tbl {
 }
 .skill-link:hover {
   text-decoration: underline;
+}
+
+/* Row actions stay out of the way until the row is pointed at or focused. */
+.tbl .row-actions .btn {
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.tbl tr:hover .row-actions .btn,
+.tbl tr.focused .row-actions .btn,
+.tbl .row-actions .btn:focus-visible {
+  opacity: 1;
+}
+.tbl td {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.tbl tbody tr {
+  transition: background 0.1s;
+}
+.skills-tbl td:nth-child(n + 2) {
+  white-space: nowrap;
+}
+.skills-tbl td:first-child {
+  width: 100%;
 }

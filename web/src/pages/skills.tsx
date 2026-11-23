@@ -14,13 +14,12 @@ import { useStream } from "../lib/sse";
 import { useResource } from "../lib/use-resource";
 import "./skills.css";
 import { pickSkill } from "../lib/run-dialog-context";
+import { projectColor } from "../lib/colors";
 
-const HUES = ["var(--blue)", "var(--violet)", "var(--green)", "var(--amber)", "var(--red)"];
-const hue = (s: string) => HUES[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % HUES.length]!;
 const folderName = (p: string | null) => (p ?? "").split("/").filter(Boolean).pop() ?? "";
 
 function Rating({ s }: { s: SkillListItem }) {
-  if (!s.rated) return <span className="desc">no ratings</span>;
+  if (!s.rated) return null;
   const pct = Math.round((s.up / s.rated) * 100);
   return (
     <span>
@@ -31,7 +30,7 @@ function Rating({ s }: { s: SkillListItem }) {
 
 function LastRun({ s }: { s: SkillListItem }) {
   if (s.liveRunId) return <Link className="live-link" to={`/runs/${s.liveRunId}`}>running now</Link>;
-  if (!s.lastRunAt) return <span className="desc">never</span>;
+  if (!s.lastRunAt) return null;
   return <span className="desc">{formatAgo(s.lastRunAt, Date.now())}</span>;
 }
 
@@ -75,7 +74,7 @@ export function SkillsPage() {
     { id: "all", label: "All", count: all.length },
     { id: "personal", label: "Personal", count: all.filter((s) => s.source === "personal").length },
     { id: "plugin", label: "Plugins", count: all.filter((s) => s.source === "plugin").length },
-    ...projects.map((p) => ({ id: `project:${p}`, label: `Project: ${folderName(p)}`, count: all.filter((s) => s.projectPath === p).length })),
+    ...projects.map((p) => ({ id: `project:${p}`, label: folderName(p), color: projectColor(p), count: all.filter((s) => s.projectPath === p).length })),
     { id: "workflow", label: "With workflow", count: all.filter((s) => s.hasWorkflow).length },
   ];
   const shown = useMemo(
@@ -140,12 +139,12 @@ export function SkillsPage() {
         {res.data && !all.length ? (
           <Empty title="No skills found">Runwell looks in ~/.claude/skills, your plugins and your projects' .claude/skills folders.</Empty>
         ) : (
-          <table className="tbl">
+          <table className="tbl skills-tbl">
             <thead>
               <tr>
                 <th>Skill</th>
                 <th>Source</th>
-                <th>Runs (14 days)</th>
+                <th>Last 14 days</th>
                 <th>Rating</th>
                 <th>Last run</th>
                 <th />
@@ -156,9 +155,6 @@ export function SkillsPage() {
                 <tr key={s.key} className={`${s.ignored ? "ignored" : ""} ${i === focus ? "focused" : ""}`} data-skill={s.ref} onMouseEnter={() => setFocus(i)}>
                   <td>
                     <div className="sname">
-                      <div className="sic" style={{ background: `color-mix(in srgb, ${hue(s.name)} 15%, transparent)`, color: hue(s.name) }}>
-                        {s.name.slice(0, 2).toUpperCase()}
-                      </div>
                       <div style={{ minWidth: 0 }}>
                         <div className="nm">
                           <Link to={`/skills/${encodeURIComponent(s.key)}`} className="skill-link">
@@ -190,7 +186,7 @@ export function SkillsPage() {
                   </td>
                   <td>
                     <div className="row-actions">
-                      <button className="btn" type="button" onClick={() => openRunDialog(s.key)}>
+                      <button className="btn run-btn" type="button" onClick={() => openRunDialog(s.key)}>
                         Run
                       </button>
                       <RowMenu s={s} onToggle={() => void toggle(s)} />
