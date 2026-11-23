@@ -5,3 +5,6 @@ plugin/hooks/register.js
 test-results
 playwright-report
 .superpowers
+
+# Internal design notes: kept locally, not published
+docs/superpowers
