@@ -33,3 +33,15 @@ No spike landed on the Agent SDK fallback: button runs use `claude -p` throughou
 | `MOD_COMMANDS` | `$.command.register({name: "runwell", description, argumentHint, immediate: true})` in `session.start`; `on("command.run", {command: "runwell"}, ...)` returns `{text, isTextDisplayOnly: true}`. A plugin command file `commands/runwell.md` is listed as `/runwell:runwell` (no clash). | 39 |
 | `OPEN_URL` | `$.process.run(["xdg-open", url])` on Linux, `["open", url]` on macOS (no URL helper in the mods API). | 39 |
 | `MOD_START_MS` | About 150 ms for the `session.start` hook including the launcher. | 39 |
+
+## Plugin check
+
+23/11/2026, Claude Code 2.1.330, Linux.
+
+- `claude plugin validate ./plugin`: passes (hooks `session.start` and `command.run{command=runwell}`, the `SessionStart` hook, the fallback command `runwell:runwell`). Warning only: no icon.
+- Loaded with `--plugin-dir ./plugin` (not installed from the marketplace; that is in the release check list) against a temp `RUNWELL_HOME`, a fake `xdg-open` and the fake `claude` for the run itself:
+  - `/runwell` answered "Runwell is open at http://127.0.0.1:4790" with no model turn, and opened a one-time link.
+  - `/runwell run motion-ad hello there` answered "Started motion-ad #1"; the run finished with that brief.
+  - `/runwell last` answered "Opened motion-ad #1".
+  - All three sessions used the same server (one process, same pid), which kept running after each `claude -p` exited. Each whole `claude -p` call took about 3.7 s.
+- Not checked here: install from the marketplace, a real `claude` run started from `/runwell run`, macOS, and a session with mods off (the hook path is covered by `test/plugin/hook.test.ts`).

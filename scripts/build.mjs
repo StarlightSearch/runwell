@@ -38,4 +38,9 @@ for (const outdir of outDirs) {
   cpSync(join(root, "node_modules/node-sqlite3-wasm"), join(outdir, "node_modules/node-sqlite3-wasm"), { recursive: true });
 }
 cpSync(join(root, "plugin/dist/web"), join(root, "dist/web"), { recursive: true });
-console.log(`built runwell ${pkg.version}: ${Object.keys(entries).join(", ")} + web`);
+
+// The mod: one readable file with no imports (mods may import only their own files and claude-code).
+const mod = join(root, "plugin/hooks/register.js");
+await build({ entryPoints: [join(root, "src/plugin/mod.ts")], outfile: mod, bundle: true, format: "esm", platform: "neutral", target: "es2022", minify: false, logLevel: "warning" });
+if (/^\s*import\s|\brequire\(/m.test(readFileSync(mod, "utf8"))) throw new Error("The mod must not import anything.");
+console.log(`built runwell ${pkg.version}: ${Object.keys(entries).join(", ")}, mod + web`);
