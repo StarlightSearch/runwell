@@ -49,8 +49,16 @@ test("By source groups skills under projects and marketplaces; a whole plugin or
   await expect(page).toHaveURL(/group=source/);
   await expect(page.locator('tr[data-group="personal"]')).toContainText("3 skills");
   await expect(page.locator('tr[data-group="market:mkt"]')).toContainText("2 skills");
+  // Groups start closed: headers only, and a marketplace's plugins appear when it is opened.
+  await expect(page.locator("tr[data-skill]")).toHaveCount(0);
   const plugin = page.locator('tr[data-group="plugin:toolkit"]');
+  await expect(plugin).toHaveCount(0);
+  await page.locator('tr[data-group="market:mkt"]').click();
   await expect(plugin).toContainText("toolkit");
+  await plugin.click();
+  await expect(page.locator("tr[data-skill^='toolkit:']")).toHaveCount(2);
+  await page.locator('tr[data-group="personal"]').click();
+  await expect(page.locator('tr[data-skill="motion-ad"]')).toBeVisible();
   await plugin.getByRole("button", { name: "Don't track plugin toolkit" }).click();
   await expect(plugin).toContainText("not tracked");
   await expect(page.locator("tr[data-skill^='toolkit:']")).toHaveCount(0);
@@ -61,7 +69,7 @@ test("By source groups skills under projects and marketplaces; a whole plugin or
   const market = page.locator('tr[data-group="market:mkt"]');
   await market.getByRole("button", { name: "Don't track marketplace mkt" }).click();
   await expect(plugin).toContainText("not tracked (marketplace)");
-  await expect(plugin.getByRole("button")).toHaveCount(0);
+  await expect(plugin.locator(".grp-btn")).toHaveCount(0);
   await expect(page.locator("tr[data-skill^='toolkit:']")).toHaveCount(0);
   expect(JSON.parse(readFileSync(join(app.seeded.home, "config.json"), "utf8")).ignored).toContain("@mkt");
 });

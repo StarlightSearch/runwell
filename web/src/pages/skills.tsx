@@ -87,7 +87,18 @@ interface Group {
   /** The ignore pattern for the whole group, and its marketplace's. */
   pattern?: string;
   parentPattern?: string;
+  /** A plugin's marketplace group: closing the marketplace hides its plugins. */
+  parent?: string;
 }
+
+const OPEN_KEY = "runwell:skills-open";
+const readOpen = (): Set<string> => {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(OPEN_KEY) ?? "[]") as string[]);
+  } catch {
+    return new Set();
+  }
+};
 
 /** Personal skills, then each project, then each marketplace with its plugins under it. */
 function groupBySource(items: Item[]): Group[] {
@@ -104,7 +115,7 @@ function groupBySource(items: Item[]): Group[] {
     for (const pl of [...new Set(inMarket.map((s) => s.plugin!))].sort()) {
       out.push({
         key: `plugin:${pl}`, kind: "plugin", label: pl, level: m ? 1 : 0, leaf: true, skills: inMarket.filter((s) => s.plugin === pl),
-        pattern: pluginPattern(pl), parentPattern: m ? marketplacePattern(m) : undefined,
+        pattern: pluginPattern(pl), parentPattern: m ? marketplacePattern(m) : undefined, parent: m ? `market:${m}` : undefined,
       });
     }
   }
@@ -143,10 +154,26 @@ export function SkillsPage() {
   );
   const groups = useMemo(() => (grouped ? groupBySource(matching) : null), [grouped, matching]);
   const visible = (s: Item) => !(hideIgnored && s.ignored);
+  // Groups start closed, so By source opens as a short list of headers; what you open is remembered.
+  const [expanded, setExpanded] = useState<Set<string>>(readOpen);
+  const toggleOpen = (key: string) =>
+    setExpanded((cur) => {
+      const next = new Set(cur);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      try {
+        localStorage.setItem(OPEN_KEY, JSON.stringify([...next]));
+      } catch {
+        /* private window: still works for this visit */
+      }
+      return next;
+    });
+  const headerShown = (g: Group) => !g.parent || expanded.has(g.parent);
+  const rowsOf = (g: Group) => (g.leaf && expanded.has(g.key) && headerShown(g) ? g.skills.filter(visible) : []);
   // The rows in the order they are drawn, for the arrow keys.
   const shown = useMemo(
-    () => (groups ? groups.flatMap((g) => (g.leaf ? g.skills.filter(visible) : [])) : matching.filter(visible)),
-    [groups, matching, hideIgnored],
+    () => (groups ? groups.flatMap(rowsOf) : matching.filter(visible)),
+    [groups, matching, hideIgnored, expanded],
   );
 
   // R opens the Run dialog for the focused row, Enter opens its page; arrows move the focus.
@@ -284,19 +311,26 @@ export function SkillsPage() {
             <tbody>
               {groups
                 ? groups.map((g) => {
+                    if (!headerShown(g)) return null;
                     let offset = 0;
                     for (const h of groups) {
                       if (h === g) break;
-                      if (h.leaf) offset += h.skills.filter(visible).length;
+                      offset += rowsOf(h).length;
                     }
+                    const open = expanded.has(g.key);
                     const ignoredBy = g.pattern && patterns.includes(g.pattern);
                     const viaMarket = g.parentPattern && patterns.includes(g.parentPattern);
-                    const rows = g.leaf ? g.skills.filter(visible) : [];
+                    const rows = rowsOf(g);
                     return (
                       <Fragment key={g.key}>
-                        <tr className={`grp lvl${g.level}${ignoredBy || viaMarket ? " off" : ""}`} data-group={g.key}>
+                        <tr className={`grp lvl${g.level}${ignoredBy || viaMarket ? " off" : ""}`} data-group={g.key} onClick={(e) => !(e.target as HTMLElement).closest(".grp-btn") && toggleOpen(g.key)}>
                           <td colSpan={5}>
                             <div className="grp-h">
+                              <button type="button" className="grp-caret" aria-expanded={open} aria-label={`${open ? "Close" : "Open"} ${g.label}`}>
+                                <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden style={{ transform: open ? "rotate(90deg)" : "none" }}>
+                                  <path d="M3 1.5 7 5 3 8.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </button>
                               {g.color ? <i className="pdot" style={{ background: g.color }} /> : null}
                               <span className="grp-name">{g.label}</span>
                               <span className="grp-meta">
@@ -310,7 +344,7 @@ export function SkillsPage() {
                                   className={`icon-btn grp-btn${ignoredBy ? " on" : ""}`}
                                   aria-label={ignoredBy ? `Track ${g.kind} ${g.label} again` : `Don't track ${g.kind} ${g.label}`}
                                   title={ignoredBy ? `Track this ${g.kind} again` : `Don't track this ${g.kind}: its skills are hidden and not recorded from past chats`}
-                                  onClick={() => void toggleGroup(g.pattern!)}
+                                  onClick={(e) => (e.stopPropagation(), void toggleGroup(g.pattern!))}
                                 >
                                   {ignoredBy ? <EyeOff /> : <Eye />}
                                 </button>

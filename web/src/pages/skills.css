@@ -318,3 +318,25 @@ table.tbl {
 .grp-btn.on {
   opacity: 1;
 }
+
+.tbl tr.grp {
+  cursor: pointer;
+}
+.grp-caret {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--tx3);
+  padding: 0;
+  margin-left: -4px;
+  cursor: pointer;
+}
+.grp-caret svg {
+  transition: transform 0.12s;
+}
+.tbl tr.grp:hover .grp-caret {
+  color: var(--tx);
+}
