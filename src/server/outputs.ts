@@ -75,6 +75,8 @@ function walk(root: string, visit: (rel: string, abs: string) => void, opts: { s
         if (opts.ignored?.(rel, true)) continue;
         stack.push(rel);
       } else if (e.isFile()) {
+        // In a project, hidden files (.env and the like) are never kept.
+        if (opts.skipDirs && e.name.startsWith(".")) continue;
         if (opts.ignored?.(rel, false)) continue;
         visit(rel, join(root, rel));
       }
@@ -106,7 +108,8 @@ const NAMED_FILE = /(?:~|\/)[^\s"'`<>()|;&*?\\]+?\.(?:mp4|mov|webm|gif|png|jpe?g
 /**
  * Files outside the run's own folder that the run pointed to by path (a skill that saves its result to
  * ~/Downloads, say) and that were written during the run. Only under the home folder, never in a temp
- * folder (intermediate files) or Runwell's own data. Stored as `~/<path>`.
+ * folder (intermediate files), Runwell's own data, or anything hidden (a dot file or dot folder). Stored as
+ * `~/<path>`.
  */
 export function pointedFiles(events: RunEvent[], window: { from: number; to: number }, skip: string[], home: string): { rel: string; abs: string }[] {
   const texts: string[] = [];
@@ -123,6 +126,8 @@ export function pointedFiles(events: RunEvent[], window: { from: number; to: num
       const raw = m[0];
       const abs = resolve(raw.startsWith("~/") ? join(home, raw.slice(2)) : raw);
       if (seen.has(abs) || !abs.startsWith(home + sep)) continue;
+      // Never anything hidden: ~/.claude.json, ~/.claude/, ~/.ssh/, ~/.config/ hold settings and credentials.
+      if (relative(home, abs).split(sep).some((part) => part.startsWith("."))) continue;
       if ([...skip, ...temp].some((d) => abs === d || abs.startsWith(d + sep))) continue;
       try {
         const st = lstatSync(abs);

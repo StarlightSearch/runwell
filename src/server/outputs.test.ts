@@ -74,6 +74,17 @@ describe("collectOutputs", () => {
   });
 });
 
+describe("hidden files in a project", () => {
+  it("a .env changed during a project run is never kept", () => {
+    const p = paths(mkdtempSync(join(tmpdir(), "runwell-out-")));
+    const proj = mkdtempSync(join(tmpdir(), "runwell-proj-"));
+    put(join(proj, ".env"), "SECRET=1");
+    put(join(proj, "notes.md"), "hi");
+    const rows = collectOutputs(run({ place: "project", cwd: proj, projectPath: proj }), [], DEFAULT_CONFIG, p);
+    expect(rows.map((r) => r.path)).toEqual(["notes.md"]);
+  });
+});
+
 describe("files a run points to outside its folder", () => {
   const said = (text: string): RunEvent[] => [{ t: "text", at: T0 + 5, agentId: null, text }];
   it("keeps a file under home that the run named and wrote during the run, for both run kinds", () => {
@@ -82,9 +93,12 @@ describe("files a run points to outside its folder", () => {
     put(join(home, "Downloads", "ad-4x5.mp4"), "video");
     put(join(home, "Downloads", "old.mp4"), "old", T0 - 3_600_000);
     put(join(home, ".runwell", "runs", "x", "work", "inner.png"), "mine");
+    put(join(home, ".claude.json"), "{}");
+    put(join(home, ".config", "app", "notes.md"), "secret");
     const events = [
       ...said("Done. Saved to ~/Downloads/ad-4x5.mp4 (the 4:5 cut)."),
       ...said(`Also see ${join(home, "Downloads", "old.mp4")} and ${join(home, ".runwell", "runs", "x", "work", "inner.png")}`),
+      ...said("Settings are in ~/.claude.json and ~/.config/app/notes.md"),
       { t: "tool.start", at: T0 + 6, id: "b1", agentId: null, name: "Bash", input: { command: "ffmpeg -i /tmp/frames/%04d.png ~/Downloads/missing.mp4" } } as RunEvent,
     ];
     const proj = mkdtempSync(join(tmpdir(), "runwell-proj-"));

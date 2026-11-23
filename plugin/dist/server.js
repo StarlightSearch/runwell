@@ -1387,7 +1387,7 @@ var serve = (options, listeningListener) => {
 };
 
 // src/shared/version.ts
-var VERSION = true ? "0.1.1" : "0.0.0-dev";
+var VERSION = true ? "0.1.2" : "0.0.0-dev";
 
 // src/shared/outputs.ts
 var MIME = {
@@ -4127,6 +4127,7 @@ function walk(root, visit, opts) {
         if (opts.ignored?.(rel, true)) continue;
         stack.push(rel);
       } else if (e.isFile()) {
+        if (opts.skipDirs && e.name.startsWith(".")) continue;
         if (opts.ignored?.(rel, false)) continue;
         visit(rel, join2(root, rel));
       }
@@ -4162,6 +4163,7 @@ function pointedFiles(events, window, skip, home) {
       const raw2 = m[0];
       const abs = resolve(raw2.startsWith("~/") ? join2(home, raw2.slice(2)) : raw2);
       if (seen.has(abs) || !abs.startsWith(home + sep)) continue;
+      if (relative(home, abs).split(sep).some((part) => part.startsWith("."))) continue;
       if ([...skip, ...temp].some((d) => abs === d || abs.startsWith(d + sep))) continue;
       try {
         const st = lstatSync(abs);
