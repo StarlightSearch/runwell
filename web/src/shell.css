@@ -11,7 +11,18 @@
   flex-direction: column;
   gap: 1px;
   flex-shrink: 0;
+  overflow: hidden;
+}
+/* The lists scroll; the logo and search stay on top and Settings and theme stay pinned at the bottom. */
+.side-scroll {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0 -10px;
+  padding: 0 10px;
 }
 .ws {
   display: flex;
@@ -103,7 +114,9 @@
 }
 .side-foot {
   margin-top: auto;
+  flex-shrink: 0;
   padding-top: 10px;
+  border-top: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   gap: 1px;

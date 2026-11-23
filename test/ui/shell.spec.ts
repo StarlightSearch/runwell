@@ -33,3 +33,20 @@ test("the theme toggle switches and is remembered", async ({ app }) => {
   await app.page.reload();
   expect(await app.page.evaluate(() => document.documentElement.dataset.theme)).toBe(after);
 });
+
+test("in a short window Settings and the theme switch stay pinned at the bottom while the lists scroll", async ({ app }) => {
+  await app.page.setViewportSize({ width: 1200, height: 420 });
+  await app.open("/skills");
+  const side = app.page.getByRole("complementary", { name: "Sidebar" });
+  const settings = side.getByRole("link", { name: "Settings" });
+  const theme = side.getByRole("button", { name: /theme/ });
+  await expect(settings).toBeInViewport();
+  await expect(theme).toBeInViewport();
+  const box = await theme.boundingBox();
+  expect(box!.y + box!.height).toBeLessThanOrEqual(420);
+  const scroll = side.locator(".side-scroll");
+  expect(await scroll.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+  await scroll.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  await expect(settings).toBeInViewport();
+  await expect(side.getByTestId("recent-run").last()).toBeInViewport();
+});
