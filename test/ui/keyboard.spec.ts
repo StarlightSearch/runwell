@@ -20,7 +20,10 @@ test("Ctrl+K finds a skill and Enter opens its Run dialog; esc closes; r in the 
 
 test("Ctrl+K finds a run by its brief and opens it", async ({ app }) => {
   await app.open("/skills");
+  // Wait for the page (and its keys) before pressing them.
+  await expect(app.page.locator("tr[data-skill]").first()).toBeVisible();
   await app.page.keyboard.press("Control+K");
+  await expect(app.page.getByRole("dialog", { name: "Search" })).toBeVisible();
   await app.page.keyboard.type("launch post");
   await expect(app.page.getByRole("option").first()).toContainText("review-loop #1");
   await app.page.keyboard.press("Enter");
