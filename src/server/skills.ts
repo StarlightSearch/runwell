@@ -25,6 +25,8 @@ export interface ScannedSkill {
   description: string;
   path: string;
   plugin: string | null;
+  /** The marketplace a plugin skill was installed from (the part after @ in installed_plugins.json). */
+  marketplace: string | null;
   projectPath: string | null;
   warning: string | null;
   hash: string;
@@ -73,6 +75,7 @@ function readSkill(dir: string, base: Omit<ScannedSkill, "name" | "ref" | "descr
     description: header.description ?? "",
     path: dir,
     plugin: base.plugin,
+    marketplace: base.marketplace,
     projectPath: base.projectPath,
     warning: header.warning,
     hash: createHash("sha256").update(text).digest("hex"),
@@ -81,17 +84,17 @@ function readSkill(dir: string, base: Omit<ScannedSkill, "name" | "ref" | "descr
   };
 }
 
-/** Plugin install folders: name -> path, from installed_plugins.json, else the newest version in the cache. */
-function pluginRoots(claudeHome: string): Map<string, string> {
-  const out = new Map<string, string>();
+/** Plugin install folders: name -> path and marketplace, from installed_plugins.json, else the newest version in the cache. */
+function pluginRoots(claudeHome: string): Map<string, { path: string; marketplace: string | null }> {
+  const out = new Map<string, { path: string; marketplace: string | null }>();
   try {
     const rec = JSON.parse(readFileSync(join(claudeHome, "plugins/installed_plugins.json"), "utf8")) as { plugins?: Record<string, unknown> };
     for (const [id, entries] of Object.entries(rec.plugins ?? {})) {
-      const name = id.split("@")[0] ?? id;
+      const [name = id, marketplace = null] = id.split("@") as [string?, string?];
       const list = Array.isArray(entries) ? entries : [entries];
       for (const e of list) {
         const p = (e as { installPath?: unknown })?.installPath;
-        if (typeof p === "string" && existsSync(p) && !out.has(name)) out.set(name, p);
+        if (typeof p === "string" && existsSync(p) && !out.has(name)) out.set(name, { path: p, marketplace });
       }
     }
     if (out.size) return out;
@@ -104,7 +107,7 @@ function pluginRoots(claudeHome: string): Map<string, string> {
       const versions = dirs(join(cache, market, plugin))
         .map((v) => ({ v, at: statSync(join(cache, market, plugin, v)).mtimeMs }))
         .sort((a, b) => cmpVersion(b.v, a.v) || b.at - a.at);
-      if (versions[0] && !out.has(plugin)) out.set(plugin, join(cache, market, plugin, versions[0].v));
+      if (versions[0] && !out.has(plugin)) out.set(plugin, { path: join(cache, market, plugin, versions[0].v), marketplace: market });
     }
   }
   return out;
@@ -124,20 +127,20 @@ export function scanSkills(opts: { claudeHome: string; projects: string[] }): Sc
   const out: ScannedSkill[] = [];
   const personal = join(opts.claudeHome, "skills");
   for (const d of dirs(personal)) {
-    const s = readSkill(join(personal, d), { source: "personal", plugin: null, projectPath: null, keyPrefix: "personal:", refPrefix: "" });
+    const s = readSkill(join(personal, d), { source: "personal", plugin: null, marketplace: null, projectPath: null, keyPrefix: "personal:", refPrefix: "" });
     if (s) out.push(s);
   }
-  for (const [plugin, root] of pluginRoots(opts.claudeHome)) {
+  for (const [plugin, { path: root, marketplace }] of pluginRoots(opts.claudeHome)) {
     const skillsDir = join(root, "skills");
     for (const d of dirs(skillsDir)) {
-      const s = readSkill(join(skillsDir, d), { source: "plugin", plugin, projectPath: null, keyPrefix: `plugin:${plugin}:`, refPrefix: `${plugin}:` });
+      const s = readSkill(join(skillsDir, d), { source: "plugin", plugin, marketplace, projectPath: null, keyPrefix: `plugin:${plugin}:`, refPrefix: `${plugin}:` });
       if (s) out.push(s);
     }
   }
   for (const project of opts.projects) {
     const skillsDir = join(project, ".claude/skills");
     for (const d of dirs(skillsDir)) {
-      const s = readSkill(join(skillsDir, d), { source: "project", plugin: null, projectPath: project, keyPrefix: `project:${project}:`, refPrefix: "" });
+      const s = readSkill(join(skillsDir, d), { source: "project", plugin: null, marketplace: null, projectPath: project, keyPrefix: `project:${project}:`, refPrefix: "" });
       if (s) out.push(s);
     }
   }
@@ -177,7 +180,7 @@ export function createSkillsService(deps: { paths: Paths; db: Db; hub: Hub; conf
 
   const rows = (): SkillRow[] => {
     const ignored = deps.config().ignored;
-    return scanned.map((s) => ({ ...s, version: versionOf(s.key, s.hash), ignored: isIgnored(s.ref, ignored) }));
+    return scanned.map((s) => ({ ...s, version: versionOf(s.key, s.hash), ignored: isIgnored(s.ref, ignored, s.marketplace) }));
   };
 
   const rescan = () => {
@@ -186,12 +189,12 @@ export function createSkillsService(deps: { paths: Paths; db: Db; hub: Hub; conf
     deps.db.tx(() => {
       for (const s of scanned) {
         deps.db.run(
-          `INSERT INTO skills (key, source, name, ref, description, path, plugin, project_path, warning, hash, has_workflow, seen_at, removed_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+          `INSERT INTO skills (key, source, name, ref, description, path, plugin, project_path, warning, hash, has_workflow, seen_at, removed_at, marketplace)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
            ON CONFLICT(key) DO UPDATE SET source=excluded.source, name=excluded.name, ref=excluded.ref, description=excluded.description,
              path=excluded.path, plugin=excluded.plugin, project_path=excluded.project_path, warning=excluded.warning, hash=excluded.hash,
-             has_workflow=excluded.has_workflow, seen_at=excluded.seen_at, removed_at=NULL`,
-          s.key, s.source, s.name, s.ref, s.description, s.path, s.plugin, s.projectPath, s.warning, s.hash, s.hasWorkflow ? 1 : 0, now,
+             has_workflow=excluded.has_workflow, seen_at=excluded.seen_at, removed_at=NULL, marketplace=excluded.marketplace`,
+          s.key, s.source, s.name, s.ref, s.description, s.path, s.plugin, s.projectPath, s.warning, s.hash, s.hasWorkflow ? 1 : 0, now, s.marketplace,
         );
         versionOf(s.key, s.hash);
       }

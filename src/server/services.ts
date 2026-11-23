@@ -26,7 +26,7 @@ import { continueRoutes } from "./routes/continue";
 import { systemLaunch, type Launch } from "./continue";
 import { createRunsService } from "./runs";
 import { createSkillsService } from "./skills";
-import { createWorkflowService } from "./workflow";
+import { createWorkflowService, hasDrawing } from "./workflow";
 
 export interface ServiceOptions {
   /** Overrides for tests: the `claude` to run, extra child env (the fake's variables), stop grace. */
@@ -97,13 +97,14 @@ export function buildServices(ctx: Ctx, opts: ServiceOptions = {}) {
   const backfill = createBackfill({
     paths: ctx.paths, db: ctx.db, hub: ctx.hub, config: ctx.config, now: ctx.now,
     skillKeyOf: (ref) => ctx.db.get<{ key: string }>("SELECT key FROM skills WHERE ref = ? AND removed_at IS NULL ORDER BY source LIMIT 1", ref)?.key ?? null,
+    marketplaceOf: (ref) => ctx.db.get<{ marketplace: string | null }>("SELECT marketplace FROM skills WHERE ref = ? AND marketplace IS NOT NULL LIMIT 1", ref)?.marketplace ?? null,
   });
 
   const routes: ((app: App, ctx: Ctx) => void)[] = [
     backfillRoutes(backfill),
     claudeRoutes(claudeCheck),
     projectsRoutes,
-    skillsRoutes(skills),
+    skillsRoutes(skills, (s) => s.hasWorkflow || hasDrawing(s, ctx.paths)),
     workflowRoutes(skills, workflow),
     stepsRoutes(runs),
     asksRoutes(broker, runs),

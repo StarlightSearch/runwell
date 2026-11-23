@@ -28,7 +28,7 @@ describe("scanSkills", () => {
     expect(Object.keys(byKey).sort()).toEqual([
       "personal:broken", "personal:motion-ad", "plugin:toolkit:format", "plugin:toolkit:lint", `project:${t.project}:deploy`,
     ].sort());
-    expect(byKey["plugin:toolkit:lint"]).toMatchObject({ source: "plugin", ref: "toolkit:lint", plugin: "toolkit", description: "Lints code (1.2.0)." });
+    expect(byKey["plugin:toolkit:lint"]).toMatchObject({ source: "plugin", ref: "toolkit:lint", plugin: "toolkit", marketplace: "mkt", description: "Lints code (1.2.0)." });
     expect(byKey[`project:${t.project}:deploy`]).toMatchObject({ source: "project", ref: "deploy", projectPath: t.project });
     expect(byKey["personal:motion-ad"]).toMatchObject({ ref: "motion-ad", hasWorkflow: true, workflowNote: null });
     expect(byKey["plugin:toolkit:format"]).toMatchObject({ hasWorkflow: false, workflowNote: "Workflow map ignored: the map is not valid JSON" });

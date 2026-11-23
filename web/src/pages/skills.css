@@ -24,8 +24,27 @@
 .f .fc {
   color: var(--tx3);
 }
-.toggle-line {
+.viewseg {
   margin-left: auto;
+  display: inline-flex;
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.viewseg button {
+  border: 0;
+  background: transparent;
+  color: var(--tx2);
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.viewseg button.on {
+  background: var(--raise);
+  color: var(--tx);
+}
+.toggle-line {
+  margin-left: 12px;
   display: inline-flex;
   gap: 6px;
   align-items: center;
@@ -222,4 +241,39 @@ table.tbl {
 }
 .skills-tbl td:first-child {
   width: 100%;
+}
+
+/* Group headers in the By source view. */
+.tbl tr.grp td {
+  padding: 18px 10px 8px;
+  border-bottom: 1px solid var(--line2);
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.tbl tr.grp.lvl1 td {
+  padding: 12px 10px 6px 24px;
+  border-bottom-color: var(--line);
+}
+.grp-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.grp.lvl0 .grp-h b {
+  font-size: 14px;
+}
+.grp-kind {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tx3);
+}
+.grp-n {
+  color: var(--tx3);
+  font-size: 12px;
+}
+.grp-btn {
+  font-size: 12px;
+  padding: 3px 9px;
 }

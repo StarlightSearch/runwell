@@ -5,7 +5,7 @@
  * Nothing is ever written into the skill's folder.
  */
 import { spawn } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { WorkflowSource } from "../shared/api";
@@ -28,6 +28,11 @@ function readSkillMd(skill: SkillRow): string | null {
 }
 
 const cacheFile = (p: Paths, hash: string) => join(p.workflows, `${hash.replace(/[^0-9a-zA-Z]/g, "")}.json`);
+
+/** Whether Claude has drawn this version of the skill (a cheap file check, for lists). */
+export function hasDrawing(skill: { hash: string }, p: Paths): boolean {
+  return existsSync(cacheFile(p, skill.hash));
+}
 
 /** The block, or a cached drawing, or none. Never spawns anything. */
 export function cachedWorkflow(skill: SkillRow, p: Paths): WorkflowSource {

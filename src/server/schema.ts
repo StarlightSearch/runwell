@@ -1,5 +1,5 @@
 /** The SQLite schema, applied by `PRAGMA user_version`. Times are epoch ms. Steps live in events.jsonl, not here. */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const MIGRATIONS: Record<number, string> = {
   1: `
@@ -31,4 +31,6 @@ CREATE TABLE auth_sessions (id TEXT PRIMARY KEY, created_at INTEGER NOT NULL);
 `,
   // Claude's own session id for a run, so it can be continued with claude --resume.
   2: `ALTER TABLE runs ADD COLUMN session_id TEXT;`,
+  // Which marketplace a plugin skill came from, so a whole marketplace can be ignored (@name).
+  3: `ALTER TABLE skills ADD COLUMN marketplace TEXT;`,
 };

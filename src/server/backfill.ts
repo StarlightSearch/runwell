@@ -65,7 +65,7 @@ function listLogs(claudeHome: string, sinceMs: number): { file: string; size: nu
   return out.sort((a, b) => b.mtime - a.mtime);
 }
 
-export function createBackfill(deps: { paths: Paths; db: Db; hub: Hub; config(): Config; skillKeyOf(ref: string): string | null; now(): number }): Backfill {
+export function createBackfill(deps: { paths: Paths; db: Db; hub: Hub; config(): Config; skillKeyOf(ref: string): string | null; marketplaceOf?(ref: string): string | null; now(): number }): Backfill {
   let st: BackfillState = { status: "idle", filesDone: 0, filesTotal: 0, runsFound: 0, skippedLines: 0 };
   let cancelled = false;
   let running: Promise<void> | null = null;
@@ -122,7 +122,7 @@ export function createBackfill(deps: { paths: Paths; db: Db; hub: Hub; config():
     const ignored = deps.config().ignored;
     let found = 0;
     for (const use of findSkillUses(log)) {
-      if (isIgnored(use.skillRef, ignored)) continue;
+      if (isIgnored(use.skillRef, ignored, deps.marketplaceOf?.(use.skillRef) ?? null)) continue;
       const sourceRef = `${file}:${use.startLine}-${use.endLine}`;
       // A grown file re-read: the same use keeps its start line, and its end may have moved.
       const existing = deps.db.get<{ id: string; source_ref: string }>("SELECT id, source_ref FROM runs WHERE kind = 'history' AND (source_ref = ? OR source_ref LIKE ?)", sourceRef, `${file}:${use.startLine}-%`);

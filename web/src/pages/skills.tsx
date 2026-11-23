@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type { SkillListItem } from "../../../src/server/skills";
 import { formatAgo } from "../../../src/shared/format";
@@ -8,7 +8,8 @@ import { dialogOpen, isTyping } from "../lib/keys";
 import { PageHeader } from "../components/page-header";
 import { SourceTag } from "../components/source-tag";
 import { Sparkline } from "../components/sparkline";
-import { post } from "../lib/api";
+import { patch, post } from "../lib/api";
+import { marketplacePattern, pluginPattern } from "../../../src/shared/ignore";
 import { useRunDialog } from "../lib/run-dialog-context";
 import { useStream } from "../lib/sse";
 import { useResource } from "../lib/use-resource";
@@ -58,8 +59,45 @@ function RowMenu({ s, onToggle }: { s: SkillListItem; onToggle(): void }) {
   );
 }
 
+type Item = SkillListItem & { hasGraph: boolean };
+interface Group {
+  key: string;
+  kind: "personal" | "project" | "marketplace" | "plugin";
+  label: string;
+  level: 0 | 1;
+  /** Groups whose rows are drawn under them (a marketplace only heads its plugins). */
+  leaf: boolean;
+  skills: Item[];
+  color?: string;
+  /** The ignore pattern for the whole group, and its marketplace's. */
+  pattern?: string;
+  parentPattern?: string;
+}
+
+/** Personal skills, then each project, then each marketplace with its plugins under it. */
+function groupBySource(items: Item[]): Group[] {
+  const out: Group[] = [];
+  const personal = items.filter((s) => s.source === "personal");
+  if (personal.length) out.push({ key: "personal", kind: "personal", label: "Personal", level: 0, leaf: true, skills: personal });
+  const projects = [...new Set(items.filter((s) => s.source === "project").map((s) => s.projectPath!))].sort((a, b) => folderName(a).localeCompare(folderName(b)));
+  for (const p of projects) out.push({ key: `project:${p}`, kind: "project", label: folderName(p), level: 0, leaf: true, color: projectColor(p), skills: items.filter((s) => s.projectPath === p) });
+  const plugins = items.filter((s) => s.source === "plugin");
+  const markets = [...new Set(plugins.map((s) => s.marketplace ?? ""))].sort();
+  for (const m of markets) {
+    const inMarket = plugins.filter((s) => (s.marketplace ?? "") === m);
+    if (m) out.push({ key: `market:${m}`, kind: "marketplace", label: m, level: 0, leaf: false, skills: inMarket, pattern: marketplacePattern(m) });
+    for (const pl of [...new Set(inMarket.map((s) => s.plugin!))].sort()) {
+      out.push({
+        key: `plugin:${pl}`, kind: "plugin", label: pl, level: m ? 1 : 0, leaf: true, skills: inMarket.filter((s) => s.plugin === pl),
+        pattern: pluginPattern(pl), parentPattern: m ? marketplacePattern(m) : undefined,
+      });
+    }
+  }
+  return out;
+}
+
 export function SkillsPage() {
-  const res = useResource<{ skills: SkillListItem[] }>("/api/skills");
+  const res = useResource<{ skills: Item[]; ignored: string[] }>("/api/skills");
   const [params, setParams] = useSearchParams();
   const [hideIgnored, setHideIgnored] = useState(true);
   const [focus, setFocus] = useState(0);
@@ -69,23 +107,31 @@ export function SkillsPage() {
 
   const filter = params.get("filter") ?? (params.get("project") ? `project:${params.get("project")}` : "all");
   const all = res.data?.skills ?? [];
+  const patterns = res.data?.ignored ?? [];
+  const grouped = params.get("group") === "source";
   const projects = [...new Set(all.filter((s) => s.projectPath).map((s) => s.projectPath!))];
   const chips: Chip[] = [
     { id: "all", label: "All", count: all.length },
     { id: "personal", label: "Personal", count: all.filter((s) => s.source === "personal").length },
     { id: "plugin", label: "Plugins", count: all.filter((s) => s.source === "plugin").length },
     ...projects.map((p) => ({ id: `project:${p}`, label: folderName(p), color: projectColor(p), count: all.filter((s) => s.projectPath === p).length })),
-    { id: "workflow", label: "With workflow", count: all.filter((s) => s.hasWorkflow).length },
+    { id: "workflow", label: "With a graph", count: all.filter((s) => s.hasGraph).length, title: "Skills Runwell can show as steps: from a workflow map in their SKILL.md, or a graph Claude has drawn on the skill's page." },
   ];
-  const shown = useMemo(
+  const matching = useMemo(
     () =>
       all
         .filter((s) =>
-          filter === "all" ? true : filter === "personal" || filter === "plugin" ? s.source === filter : filter === "workflow" ? s.hasWorkflow : s.projectPath === filter.slice(8),
+          filter === "all" ? true : filter === "personal" || filter === "plugin" ? s.source === filter : filter === "workflow" ? s.hasGraph : s.projectPath === filter.slice(8),
         )
-        .filter((s) => !(hideIgnored && s.ignored))
         .sort((a, b) => (b.lastRunAt ?? 0) - (a.lastRunAt ?? 0) || a.name.localeCompare(b.name)),
-    [all, filter, hideIgnored],
+    [all, filter],
+  );
+  const groups = useMemo(() => (grouped ? groupBySource(matching) : null), [grouped, matching]);
+  const visible = (s: Item) => !(hideIgnored && s.ignored);
+  // The rows in the order they are drawn, for the arrow keys.
+  const shown = useMemo(
+    () => (groups ? groups.flatMap((g) => (g.leaf ? g.skills.filter(visible) : [])) : matching.filter(visible)),
+    [groups, matching, hideIgnored],
   );
 
   // R opens the Run dialog for the focused row, Enter opens its page; arrows move the focus.
@@ -111,6 +157,58 @@ export function SkillsPage() {
     await post(`/api/skills/${encodeURIComponent(s.key)}/ignore`, { ignored: !s.ignored });
     res.reload();
   };
+  /** Adds or removes a whole-plugin (`name:*`) or whole-marketplace (`@name`) pattern. */
+  const toggleGroup = async (pattern: string) => {
+    const next = patterns.includes(pattern) ? patterns.filter((p) => p !== pattern) : [...patterns, pattern];
+    await patch("/api/settings", { ignored: next });
+    res.reload();
+  };
+
+  const row = (s: Item, i: number) => (
+                <tr key={s.key} className={`${s.ignored ? "ignored" : ""} ${i === focus ? "focused" : ""}`} data-skill={s.ref} onMouseEnter={() => setFocus(i)}>
+                  <td>
+                    <div className="sname">
+                      <div style={{ minWidth: 0 }}>
+                        <div className="nm">
+                          <Link to={`/skills/${encodeURIComponent(s.key)}`} className="skill-link">
+                            {s.name}
+                          </Link>
+                          {s.warning ? (
+                            <span className="warn-mark" title={s.warning} aria-label={s.warning}>
+                              !
+                            </span>
+                          ) : null}
+                          {s.ignored ? <span className="tag">ignored</span> : null}
+                          {s.hasGraph ? <span className="tag" title={s.hasWorkflow ? "Its steps come from a workflow map in SKILL.md" : "Claude drew its steps"}>graph</span> : null}
+                        </div>
+                        <div className="ds">{s.description || (s.warning ? s.warning : "")}</div>
+                      </div>
+                    </div>
+                  </td>
+                  {groups ? null : (
+                    <td>
+                      <SourceTag skill={s} />
+                    </td>
+                  )}
+                  <td>
+                    <Sparkline values={s.runs14} />
+                  </td>
+                  <td>
+                    <Rating s={s} />
+                  </td>
+                  <td>
+                    <LastRun s={s} />
+                  </td>
+                  <td>
+                    <div className="row-actions">
+                      <button className="btn run-btn" type="button" onClick={() => openRunDialog(s.key)}>
+                        Run
+                      </button>
+                      <RowMenu s={s} onToggle={() => void toggle(s)} />
+                    </div>
+                  </td>
+                </tr>
+  );
 
   return (
     <>
@@ -131,9 +229,19 @@ export function SkillsPage() {
           value={filter}
           onChange={(id) => setParams(id === "all" ? {} : { filter: id })}
           extra={
+            <>
+            <span className="viewseg" role="group" aria-label="Show skills">
+              <button type="button" className={grouped ? "" : "on"} aria-pressed={!grouped} onClick={() => (params.delete("group"), setParams(params, { replace: true }))}>
+                List
+              </button>
+              <button type="button" className={grouped ? "on" : ""} aria-pressed={grouped} onClick={() => (params.set("group", "source"), setParams(params, { replace: true }))}>
+                By source
+              </button>
+            </span>
             <label className="toggle-line">
               <input type="checkbox" checked={hideIgnored} onChange={(e) => setHideIgnored(e.target.checked)} /> Hide ignored
             </label>
+            </>
           }
         />
         {res.data && !all.length ? (
@@ -143,7 +251,7 @@ export function SkillsPage() {
             <thead>
               <tr>
                 <th>Skill</th>
-                <th>Source</th>
+                {groups ? null : <th>Source</th>}
                 <th>Last 14 days</th>
                 <th>Rating</th>
                 <th>Last run</th>
@@ -151,49 +259,40 @@ export function SkillsPage() {
               </tr>
             </thead>
             <tbody>
-              {shown.map((s, i) => (
-                <tr key={s.key} className={`${s.ignored ? "ignored" : ""} ${i === focus ? "focused" : ""}`} data-skill={s.ref} onMouseEnter={() => setFocus(i)}>
-                  <td>
-                    <div className="sname">
-                      <div style={{ minWidth: 0 }}>
-                        <div className="nm">
-                          <Link to={`/skills/${encodeURIComponent(s.key)}`} className="skill-link">
-                            {s.name}
-                          </Link>
-                          {s.warning ? (
-                            <span className="warn-mark" title={s.warning} aria-label={s.warning}>
-                              !
-                            </span>
-                          ) : null}
-                          {s.ignored ? <span className="tag">ignored</span> : null}
-                          {s.hasWorkflow ? <span className="tag" title="This skill has a workflow map">workflow</span> : null}
-                        </div>
-                        <div className="ds">{s.description || (s.warning ? s.warning : "")}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <SourceTag skill={s} />
-                  </td>
-                  <td>
-                    <Sparkline values={s.runs14} />
-                  </td>
-                  <td>
-                    <Rating s={s} />
-                  </td>
-                  <td>
-                    <LastRun s={s} />
-                  </td>
-                  <td>
-                    <div className="row-actions">
-                      <button className="btn run-btn" type="button" onClick={() => openRunDialog(s.key)}>
-                        Run
-                      </button>
-                      <RowMenu s={s} onToggle={() => void toggle(s)} />
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {groups
+                ? groups.map((g) => {
+                    let offset = 0;
+                    for (const h of groups) {
+                      if (h === g) break;
+                      if (h.leaf) offset += h.skills.filter(visible).length;
+                    }
+                    const ignoredBy = g.pattern && patterns.includes(g.pattern);
+                    const viaMarket = g.parentPattern && patterns.includes(g.parentPattern);
+                    const rows = g.leaf ? g.skills.filter(visible) : [];
+                    return (
+                      <Fragment key={g.key}>
+                        <tr className={`grp lvl${g.level}`} data-group={g.key}>
+                          <td colSpan={5}>
+                            <div className="grp-h">
+                              {g.color ? <i className="pdot" style={{ background: g.color }} /> : null}
+                              {g.kind !== "personal" ? <span className="grp-kind">{g.kind}</span> : null}
+                              <b>{g.label}</b>
+                              <span className="grp-n">{g.skills.length} {g.skills.length === 1 ? "skill" : "skills"}</span>
+                              {ignoredBy || viaMarket ? <span className="tag">{viaMarket && !ignoredBy ? "ignored with its marketplace" : "not tracked"}</span> : null}
+                              <span className="sp" />
+                              {g.pattern && !viaMarket ? (
+                                <button className="btn ghost grp-btn" type="button" onClick={() => void toggleGroup(g.pattern!)}>
+                                  {ignoredBy ? "Track again" : g.kind === "marketplace" ? "Don't track this marketplace" : "Don't track this plugin"}
+                                </button>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                        {rows.map((s, j) => row(s, offset + j))}
+                      </Fragment>
+                    );
+                  })
+                : shown.map((s, i) => row(s, i))}
             </tbody>
           </table>
         )}

@@ -12,6 +12,9 @@ test("look", async ({ app }) => {
   await expect(page.locator("tr[data-skill]").first()).toBeVisible();
   await page.locator("tr[data-skill]").nth(1).hover();
   await page.screenshot({ path: join(OUT!, "skills.png") });
+  await page.getByRole("button", { name: "By source" }).click();
+  await page.locator('tr[data-group="plugin:toolkit"]').hover();
+  await page.screenshot({ path: join(OUT!, "skills-grouped.png") });
   await page.goto(`${app.base}/skills/${encodeURIComponent("personal:review-loop")}`);
   await expect(page.getByTestId("skill-graph")).toBeVisible();
   await page.locator(".gnode", { hasText: "Draft" }).first().click();

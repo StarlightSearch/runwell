@@ -13,7 +13,7 @@ import type { SkillRow } from "./skills";
 import { createHub } from "./sse";
 
 const skill = (key: string, ref = key.split(":").pop()!): SkillRow => ({
-  key, source: "personal", name: ref, ref, description: "", path: "/skills/" + ref, plugin: null, projectPath: null,
+  key, source: "personal", name: ref, ref, description: "", path: "/skills/" + ref, plugin: null, marketplace: null, projectPath: null,
   warning: null, hash: "h", hasWorkflow: false, workflowNote: null, version: 1, ignored: false,
 });
 

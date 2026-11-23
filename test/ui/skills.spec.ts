@@ -41,3 +41,31 @@ test("editing a SKILL.md updates the row without a reload", async ({ app }) => {
   writeFileSync(file, readFileSync(file, "utf8").replace("Makes short motion-graphics video ads.", "Now makes vertical ads too."));
   await expect(app.page.locator('tr[data-skill="motion-ad"]')).toContainText("Now makes vertical ads too.", { timeout: 3000 });
 });
+
+test("By source groups skills under projects and marketplaces; a whole plugin or marketplace can be left untracked", async ({ app }) => {
+  await app.open("/skills");
+  const page = app.page;
+  await page.getByRole("button", { name: "By source" }).click();
+  await expect(page).toHaveURL(/group=source/);
+  await expect(page.locator('tr[data-group="personal"]')).toContainText("3 skills");
+  await expect(page.locator('tr[data-group="market:mkt"]')).toContainText("2 skills");
+  const plugin = page.locator('tr[data-group="plugin:toolkit"]');
+  await expect(plugin).toContainText("toolkit");
+  await plugin.getByRole("button", { name: "Don't track this plugin" }).click();
+  await expect(plugin).toContainText("not tracked");
+  await expect(page.locator("tr[data-skill^='toolkit:']")).toHaveCount(0);
+  expect(JSON.parse(readFileSync(join(app.seeded.home, "config.json"), "utf8")).ignored).toContain("toolkit:*");
+  await plugin.getByRole("button", { name: "Track again" }).click();
+  await expect(page.locator("tr[data-skill^='toolkit:']")).toHaveCount(2);
+
+  const market = page.locator('tr[data-group="market:mkt"]');
+  await market.getByRole("button", { name: "Don't track this marketplace" }).click();
+  await expect(plugin).toContainText("ignored with its marketplace");
+  await expect(page.locator("tr[data-skill^='toolkit:']")).toHaveCount(0);
+  expect(JSON.parse(readFileSync(join(app.seeded.home, "config.json"), "utf8")).ignored).toContain("@mkt");
+});
+
+test("the With a graph chip explains itself", async ({ app }) => {
+  await app.open("/skills");
+  await expect(app.page.getByRole("button", { name: /^With a graph/ })).toHaveAttribute("title", /workflow map .* drawn/);
+});

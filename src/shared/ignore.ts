@@ -1,10 +1,17 @@
 /** Skills the person chose not to track: names or patterns, `*` matching any run of characters. */
 export const DEFAULT_IGNORED = ["runwell:*"];
 
-/** `skillRef` is `name` or `plugin:name`. Whole-string, case-sensitive. */
-export function isIgnored(skillRef: string, patterns: string[]): boolean {
-  return patterns.some((p) => matches(skillRef, p));
+/**
+ * `skillRef` is `name` or `plugin:name`. Whole-string, case-sensitive. A pattern starting with `@` names a
+ * marketplace (`@claude-plugins-official`, `@my-*`) and matches every skill of every plugin installed from it.
+ */
+export function isIgnored(skillRef: string, patterns: string[], marketplace: string | null = null): boolean {
+  return patterns.some((p) => (p.startsWith("@") ? marketplace !== null && matches(marketplace, p.slice(1)) : matches(skillRef, p)));
 }
+
+/** The pattern that ignores a whole plugin, and the one that ignores a whole marketplace. */
+export const pluginPattern = (plugin: string) => `${plugin}:*`;
+export const marketplacePattern = (marketplace: string) => `@${marketplace}`;
 
 function matches(s: string, pattern: string): boolean {
   const parts = pattern.split("*");

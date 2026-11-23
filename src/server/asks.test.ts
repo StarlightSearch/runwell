@@ -71,7 +71,7 @@ describe("AskBroker", () => {
   });
 });
 
-const skill: SkillRow = { key: "personal:x", source: "personal", name: "x", ref: "x", description: "", path: "/x", plugin: null, projectPath: null, warning: null, hash: "h", hasWorkflow: false, workflowNote: null, version: 1, ignored: false };
+const skill: SkillRow = { key: "personal:x", source: "personal", name: "x", ref: "x", description: "", path: "/x", plugin: null, marketplace: null, projectPath: null, warning: null, hash: "h", hasWorkflow: false, workflowNote: null, version: 1, ignored: false };
 
 /** A real server on a port with server.json written, so the fake's ask lines reach the routes. */
 async function stack(fixture: string) {

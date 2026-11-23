@@ -10,7 +10,7 @@ import { cachedWorkflow, createWorkflowService, DRAW_PROMPT } from "./workflow";
 const SKILLS = join(__dirname, "../../test/fixtures/skills/claude/skills");
 
 function skillAt(dir: string, over: Partial<SkillRow> = {}): SkillRow {
-  return { key: "personal:x", source: "personal", name: "x", ref: "x", description: "", path: dir, plugin: null, projectPath: null, warning: null, hash: "h" + Math.random().toString(16).slice(2), hasWorkflow: false, workflowNote: null, version: 1, ignored: false, ...over };
+  return { key: "personal:x", source: "personal", name: "x", ref: "x", description: "", path: dir, plugin: null, marketplace: null, projectPath: null, warning: null, hash: "h" + Math.random().toString(16).slice(2), hasWorkflow: false, workflowNote: null, version: 1, ignored: false, ...over };
 }
 function plainSkill() {
   const dir = mkdtempSync(join(tmpdir(), "runwell-wfskill-"));
