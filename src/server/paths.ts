@@ -19,6 +19,16 @@ export interface Paths {
   workflowJson(id: string): string;
 }
 
+/**
+ * Folders Runwell itself made Claude work in: its data folder (button runs' work folders) and the
+ * temporary folders of "Draw the workflow". Claude Code records them like any folder; Runwell never
+ * lists them as projects or reads their sessions back as history.
+ */
+export function isRunwellFolder(path: string, root: string): boolean {
+  const p = path.replace(/\/+$/, "");
+  return p === root || p.startsWith(`${root}/`) || /(^|\/)runwell-draw-[^/]*$/.test(p);
+}
+
 export function paths(home?: string): Paths {
   const root = home ?? process.env.RUNWELL_HOME ?? join(homedir(), ".runwell");
   mkdirSync(root, { recursive: true, mode: 0o700 });

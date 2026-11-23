@@ -6,7 +6,7 @@ import { checkProject, scanProjects } from "../projects";
 export function projectsRoutes(app: App, ctx: Ctx): void {
   const scan = () => {
     const claudeHome = ctx.config().claudeHome ?? join(homedir(), ".claude");
-    return scanProjects(claudeHome, join(claudeHome, "..", ".claude.json"));
+    return scanProjects(claudeHome, join(claudeHome, "..", ".claude.json"), ctx.paths.root);
   };
   app.get("/api/projects", (c) => c.json(scan()));
   app.post("/api/projects/check", async (c) => {

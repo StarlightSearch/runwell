@@ -12,7 +12,7 @@ import { isIgnored } from "../shared/ignore";
 import { outputKind } from "../shared/outputs";
 import type { Config } from "./config";
 import type { Db } from "./db";
-import type { Paths } from "./paths";
+import { isRunwellFolder, type Paths } from "./paths";
 import { newRunId } from "./runs";
 import { findSkillUses, readSessionLog } from "./sessions";
 import type { Hub } from "./sse";
@@ -111,6 +111,8 @@ export function createBackfill(deps: { paths: Paths; db: Db; hub: Hub; config():
   function importFile(file: string): number {
     const log = readSessionLog(file);
     st.skippedLines += log.skipped;
+    // Runwell's own runs are already runs; their logs are not history.
+    if (log.cwd && isRunwellFolder(log.cwd, deps.paths.root)) return 0;
     const ignored = deps.config().ignored;
     let found = 0;
     for (const use of findSkillUses(log)) {

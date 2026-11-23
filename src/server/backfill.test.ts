@@ -51,6 +51,17 @@ describe("backfill", () => {
     expect((r as { session_id?: string }).session_id).toBeTruthy();
   });
 
+  it("a session that ran in Runwell's own run folder is not read back as history", async () => {
+    const s = await setup();
+    cpSync(FIXTURES, join(s.claudeHome, "projects"), { recursive: true });
+    const f = join(s.claudeHome, "projects/-home-user-project/00000000-0000-4000-8000-000000000001.jsonl");
+    const own = join(s.p.root, "runs", "abc", "work");
+    writeFileSync(f, readFileSync(f, "utf8").replaceAll('"cwd":"/home/user/project"', `"cwd":${JSON.stringify(own)}`).replaceAll('"cwd": "/home/user/project"', `"cwd": ${JSON.stringify(own)}`));
+    utimesSync(f, new Date(), new Date());
+    expect(await finish(s.bf)).toMatchObject({ status: "done", filesDone: 1, runsFound: 0 });
+    expect(s.runs()).toEqual([]);
+  });
+
   it("a history run recorded before session ids were kept gets its id from the log's file name", async () => {
     const s = await setup();
     s.db.run(

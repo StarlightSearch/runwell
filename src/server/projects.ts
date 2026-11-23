@@ -8,6 +8,7 @@
  */
 import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
+import { isRunwellFolder } from "./paths";
 
 export interface ProjectRow {
   path: string;
@@ -96,7 +97,7 @@ function skillCount(path: string): number {
   }
 }
 
-export function scanProjects(claudeHome: string, claudeJson: string): { projects: ProjectRow[]; readable: boolean } {
+export function scanProjects(claudeHome: string, claudeJson: string, runwellRoot?: string): { projects: ProjectRow[]; readable: boolean } {
   const trust = readTrust(claudeJson);
   const logs = readLogs(claudeHome);
   if (!trust && !logs) return { projects: [], readable: false };
@@ -104,6 +105,7 @@ export function scanProjects(claudeHome: string, claudeJson: string): { projects
   const projects: ProjectRow[] = [];
   for (const path of paths) {
     if (path.includes("/.claude/worktrees/")) continue;
+    if (runwellRoot && isRunwellFolder(path, runwellRoot)) continue;
     try {
       if (!statSync(path).isDirectory()) continue;
     } catch {

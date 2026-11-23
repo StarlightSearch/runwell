@@ -61,7 +61,7 @@ function defaultReveal(file: string): void {
 
 export function buildServices(ctx: Ctx, opts: ServiceOptions = {}) {
   const claudeHome = () => ctx.config().claudeHome ?? join(homedir(), ".claude");
-  const projectsScan = () => scanProjects(claudeHome(), join(claudeHome(), "..", ".claude.json"));
+  const projectsScan = () => scanProjects(claudeHome(), join(claudeHome(), "..", ".claude.json"), ctx.paths.root);
   const claudeBin = () => opts.claudeBin ?? locateClaude({ configured: ctx.config().claudePath, env: process.env, home: homedir() });
 
   const claudeCheck = () => claudeState({ configured: opts.claudeBin ?? ctx.config().claudePath, env: { ...process.env, ...opts.extraEnv } });
