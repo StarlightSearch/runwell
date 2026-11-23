@@ -13,6 +13,7 @@ import { useRunDialog } from "../lib/run-dialog-context";
 import { useStream } from "../lib/sse";
 import { useResource } from "../lib/use-resource";
 import "./skills.css";
+import { pickSkill } from "../lib/run-dialog-context";
 
 const HUES = ["var(--blue)", "var(--violet)", "var(--green)", "var(--amber)", "var(--red)"];
 const hue = (s: string) => HUES[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % HUES.length]!;
@@ -116,7 +117,7 @@ export function SkillsPage() {
     <>
       <PageHeader
         actions={
-          <button className="btn primary" type="button" onClick={() => shown[focus] && openRunDialog(shown[focus]!.key)} disabled={!shown.length}>
+          <button className="btn primary" type="button" onClick={() => pickSkill()}>
             ▶ Run a skill <span className="kbd" style={{ borderColor: "transparent", color: "inherit", opacity: 0.6 }}>R</span>
           </button>
         }

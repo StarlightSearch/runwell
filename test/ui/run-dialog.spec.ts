@@ -80,3 +80,23 @@ test.describe("signed out", () => {
     await expect(dialog.getByRole("button", { name: "Start run ⌘↵" })).toBeDisabled();
   });
 });
+
+test("Run a skill opens a skill picker; Change skill switches skill and keeps the brief", async ({ app }) => {
+  await app.open("/skills");
+  const page = app.page;
+  await page.getByRole("button", { name: /Run a skill/ }).click();
+  const picker = page.getByRole("dialog", { name: "Pick a skill to run" });
+  await expect(picker).toBeVisible();
+  await page.keyboard.type("motion");
+  await expect(picker.getByRole("option").first()).toContainText("motion-ad");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog", { name: "Run motion-ad" })).toBeVisible();
+  await page.getByLabel("Brief").fill("keep this brief");
+  await page.getByRole("button", { name: "Change skill" }).click();
+  await expect(page.getByRole("dialog", { name: "Pick a skill to run" })).toBeVisible();
+  await page.keyboard.type("review");
+  await expect(page.getByRole("option").first()).toContainText("review-loop");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog", { name: "Run review-loop" })).toBeVisible();
+  await expect(page.getByLabel("Brief")).toHaveValue("keep this brief");
+});

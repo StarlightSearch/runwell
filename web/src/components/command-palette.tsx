@@ -10,7 +10,7 @@ import "./palette.css";
 
 type Item = { kind: "skill"; skill: SkillListItem } | { kind: "run"; run: RunRow };
 
-function Palette({ skillsOnly, onClose }: { skillsOnly: boolean; onClose(): void }) {
+function Palette({ skillsOnly, brief, onClose }: { skillsOnly: boolean; brief?: string; onClose(): void }) {
   const [q, setQ] = useState("");
   const [sel, setSel] = useState(0);
   const [skills, setSkills] = useState<SkillListItem[]>([]);
@@ -32,7 +32,7 @@ function Palette({ skillsOnly, onClose }: { skillsOnly: boolean; onClose(): void
   const choose = (it: Item | undefined) => {
     if (!it) return;
     onClose();
-    if (it.kind === "skill") openRunDialog(it.skill.key);
+    if (it.kind === "skill") openRunDialog(it.skill.key, brief ? { brief } : undefined);
     else navigate(`/runs/${it.run.id}`);
   };
   return (
@@ -108,13 +108,22 @@ function KeysHelp({ onClose }: { onClose(): void }) {
 /** The global keys and the command palette. */
 export function CommandPalette() {
   const [open, setOpen] = useState<null | "search" | "pick" | "help">(null);
+  const [pickBrief, setPickBrief] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
   const close = useCallback(() => setOpen(null), []);
   useEffect(() => {
     const onOpen = () => setOpen("search");
+    const onPick = (e: Event) => {
+      setPickBrief((e as CustomEvent<{ brief?: string }>).detail?.brief ?? "");
+      setOpen("pick");
+    };
     window.addEventListener("runwell:palette", onOpen);
-    return () => window.removeEventListener("runwell:palette", onOpen);
+    window.addEventListener("runwell:pick", onPick);
+    return () => {
+      window.removeEventListener("runwell:palette", onOpen);
+      window.removeEventListener("runwell:pick", onPick);
+    };
   }, []);
   useEffect(() => {
     let g = 0;
@@ -138,12 +147,12 @@ export function CommandPalette() {
       }
       if (e.key === "g" || e.key === "G") g = Date.now();
       else if (e.key === "?") (e.preventDefault(), setOpen("help"));
-      else if ((e.key === "r" || e.key === "R") && location.pathname !== "/skills") (e.preventDefault(), setOpen("pick"));
+      else if ((e.key === "r" || e.key === "R") && location.pathname !== "/skills") (e.preventDefault(), setPickBrief(""), setOpen("pick"));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, navigate, location.pathname]);
   if (open === "help") return <KeysHelp onClose={close} />;
-  if (open === "search" || open === "pick") return <Palette key={open} skillsOnly={open === "pick"} onClose={close} />;
+  if (open === "search" || open === "pick") return <Palette key={open} skillsOnly={open === "pick"} brief={open === "pick" ? pickBrief : undefined} onClose={close} />;
   return null;
 }

@@ -7,7 +7,7 @@ import type { ProjectRow } from "../../../src/server/projects";
 import type { RunRow } from "../../../src/server/runs";
 import type { SkillListItem } from "../../../src/server/skills";
 import { api, ApiError, post } from "../lib/api";
-import { RunDialogContext } from "../lib/run-dialog-context";
+import { pickSkill, RunDialogContext } from "../lib/run-dialog-context";
 import "./run-dialog.css";
 
 type Where = { kind: "folder" } | { kind: "project"; path: string } | { kind: "custom" };
@@ -35,14 +35,14 @@ function trustMessage(c: Check): string {
     : "Claude Code has not been trusted in this folder. Running here uses this folder's settings.";
 }
 
-function RunDialog({ skillKey, fromRun, onClose }: { skillKey: string; fromRun?: string; onClose(): void }) {
+function RunDialog({ skillKey, fromRun, initialBrief, onClose }: { skillKey: string; fromRun?: string; initialBrief?: string; onClose(): void }) {
   const navigate = useNavigate();
   const [skill, setSkill] = useState<SkillListItem | null>(null);
   const [workflow, setWorkflow] = useState<WorkflowSource | null>(null);
   const [claude, setClaude] = useState<ClaudeState | null>(null);
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [runs, setRuns] = useState<RunRow[]>([]);
-  const [brief, setBrief] = useState("");
+  const [brief, setBrief] = useState(initialBrief ?? "");
   const [where, setWhere] = useState<Where>({ kind: "folder" });
   const [customPath, setCustomPath] = useState("");
   const [model, setModel] = useState("");
@@ -150,7 +150,19 @@ function RunDialog({ skillKey, fromRun, onClose }: { skillKey: string; fromRun?:
       >
         <div className="dh">
           <div>
-            <div className="t">Run {name}</div>
+            <div className="t">
+              Run {name}
+              <button
+                type="button"
+                className="change-skill"
+                onClick={() => {
+                  onClose();
+                  pickSkill(brief);
+                }}
+              >
+                Change skill
+              </button>
+            </div>
             {subline ? <div className="desc">{subline}</div> : null}
           </div>
           <span className="sp" />
@@ -274,12 +286,12 @@ function RunDialog({ skillKey, fromRun, onClose }: { skillKey: string; fromRun?:
 }
 
 export function RunDialogProvider({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState<{ skillKey: string; fromRun?: string; nonce: number } | null>(null);
-  const value = useMemo(() => ({ openRunDialog: (skillKey: string, opts?: { fromRun?: string }) => setOpen({ skillKey, fromRun: opts?.fromRun, nonce: Date.now() }) }), []);
+  const [open, setOpen] = useState<{ skillKey: string; fromRun?: string; brief?: string; nonce: number } | null>(null);
+  const value = useMemo(() => ({ openRunDialog: (skillKey: string, opts?: { fromRun?: string; brief?: string }) => setOpen({ skillKey, fromRun: opts?.fromRun, brief: opts?.brief, nonce: Date.now() }) }), []);
   return (
     <RunDialogContext.Provider value={value}>
       {children}
-      {open ? <RunDialog key={open.nonce} skillKey={open.skillKey} fromRun={open.fromRun} onClose={() => setOpen(null)} /> : null}
+      {open ? <RunDialog key={open.nonce} skillKey={open.skillKey} fromRun={open.fromRun} initialBrief={open.brief} onClose={() => setOpen(null)} /> : null}
     </RunDialogContext.Provider>
   );
 }

@@ -130,3 +130,15 @@
   outline: 2px dashed var(--blue);
   outline-offset: -6px;
 }
+.change-skill {
+  margin-left: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--blue);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+.change-skill:hover {
+  text-decoration: underline;
+}
