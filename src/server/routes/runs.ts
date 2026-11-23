@@ -57,6 +57,14 @@ export function runsRoutes(s: { runs: RunsService; skills: Pick<SkillsService, "
       return c.json({ runs: s.runs.list({ skillKey: c.req.query("skill") || undefined, status: status && STATUSES.has(status) ? status : undefined, limit: Number.isFinite(limit) && limit > 0 ? limit : undefined }) });
     });
 
+    // The newest run in a folder (as its working folder or its project), else the newest of all.
+    app.get("/api/runs/latest", (c) => {
+      const cwd = c.req.query("cwd");
+      const all = s.runs.list({ limit: 500 });
+      const run = (cwd ? all.find((r) => r.cwd === cwd || r.projectPath === cwd) : undefined) ?? all[0] ?? null;
+      return c.json({ run });
+    });
+
     app.get("/api/runs/:id", (c) => {
       const run = s.runs.get(c.req.param("id"));
       if (!run) return c.json({ error: "No run with that id." }, 404);

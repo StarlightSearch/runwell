@@ -2,7 +2,7 @@
 // plugin/dist (the plugin ships these) and dist (the npm package's bin). node-sqlite3-wasm stays external
 // and is copied beside the bundles with its .wasm file.
 import { build } from "esbuild";
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { chmodSync, cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as viteBuild } from "vite";
@@ -15,8 +15,7 @@ for (const d of outDirs) rmSync(d, { recursive: true, force: true });
 
 await viteBuild({ configFile: join(root, "web/vite.config.ts"), logLevel: "warn" });
 
-const entries = { server: "src/server/entry.ts", mcp: "src/mcp/entry.ts" };
-if (existsSync(join(root, "src/cli.ts"))) entries.cli = "src/cli.ts";
+const entries = { server: "src/server/entry.ts", mcp: "src/mcp/entry.ts", cli: "src/bin.ts", launcher: "src/launcher-entry.ts" };
 
 for (const outdir of outDirs) {
   await build({
@@ -31,6 +30,10 @@ for (const outdir of outDirs) {
     banner: { js: "import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);" },
     logLevel: "warning",
   });
+  // The bin needs a shebang to run as `runwell`.
+  const cli = join(outdir, "cli.js");
+  writeFileSync(cli, `#!/usr/bin/env node\n${readFileSync(cli, "utf8")}`);
+  chmodSync(cli, 0o755);
   mkdirSync(join(outdir, "node_modules"), { recursive: true });
   cpSync(join(root, "node_modules/node-sqlite3-wasm"), join(outdir, "node_modules/node-sqlite3-wasm"), { recursive: true });
 }

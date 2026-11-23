@@ -44,7 +44,11 @@ function serveUi(app: App, root: string): void {
   });
 }
 
-export async function startServer(opts: { home?: string; port?: number; services?: ServiceOptions } = {}): Promise<{ info: ServerInfo; server: Server; close(): Promise<void>; services: ReturnType<typeof buildServices> }> {
+/**
+ * `onShutdown` runs after `POST /api/shutdown` has closed the server (the launcher replacing an older,
+ * idle server); by default the process exits.
+ */
+export async function startServer(opts: { home?: string; port?: number; services?: ServiceOptions; onShutdown?: () => void } = {}): Promise<{ info: ServerInfo; server: Server; close(): Promise<void>; services: ReturnType<typeof buildServices> }> {
   const p = paths(opts.home);
   const config = () => loadConfig(p);
   const db = await openDb(p.db);
@@ -61,6 +65,13 @@ export async function startServer(opts: { home?: string; port?: number; services
   activeRuns = () => services.runs.activeCount();
   services.runs.recoverOrphans();
   const app = createApp(ctx, services.routes);
+  // The launcher replaces an older idle server this way: bearer only, and never during a run.
+  app.post("/api/shutdown", (c) => {
+    if (c.get("via") !== "bearer") return c.json({ error: "Unauthorized" }, 401);
+    if (ctx.activeRuns() > 0) return c.json({ error: "A run is in progress." }, 409);
+    setTimeout(() => void close().then(opts.onShutdown ?? (() => process.exit(0))), 50);
+    return c.json({ ok: true });
+  });
   serveUi(app, webRoot());
 
   let lastRequest = Date.now();
