@@ -8,6 +8,7 @@ import { useStream } from "../lib/sse";
 import { useResource } from "../lib/use-resource";
 import { useTheme } from "../lib/theme";
 import { projectColor, shortAgo } from "../lib/colors";
+import { Logo } from "./logo";
 
 const LIVE = new Set(["queued", "running", "waiting"]);
 
@@ -32,7 +33,7 @@ export function Sidebar({ onSearch }: { onSearch: () => void }) {
   return (
     <aside className="side" aria-label="Sidebar">
       <div className="ws">
-        <div className="logo" aria-hidden />
+        <Logo size={22} className="logo" />
         Runwell
       </div>
       <button className="search" onClick={onSearch} type="button">

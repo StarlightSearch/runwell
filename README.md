@@ -1,4 +1,9 @@
-# Runwell
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/runwell-lockup-dark.svg">
+    <img alt="Runwell" src="docs/assets/brand/runwell-lockup-light.svg" width="260">
+  </picture>
+</p>
 
 Run your skills from a button, watch them work, keep every run. Works with Claude Code.
 

@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import type { WorkflowSource } from "../../../src/shared/api";
 import type { OverviewStep } from "../../../src/shared/graph/source-types";
 import { formatAgo } from "../../../src/shared/format";
@@ -49,6 +49,10 @@ export function SkillPage() {
   useStream("runs", useCallback(() => runs.reload(), [runs.reload]));
   const { openRunDialog } = useRunDialog();
   const [selected, setSelected] = useState<string | null>(null);
+  // The tab is in the address (?tab=runs), so a reload or a shared link keeps it.
+  const [params, setParams] = useSearchParams();
+  const tab = params.get("tab") === "runs" ? "runs" : "how";
+  const setTab = (t: "how" | "runs") => setParams(t === "runs" ? { tab: "runs" } : {}, { replace: true });
   const [drawing, setDrawing] = useState(false);
   const [drawError, setDrawError] = useState<string | null>(null);
   const [wrapRef, width] = useWidth();
@@ -110,8 +114,17 @@ export function SkillPage() {
           </div>
         </div>
 
+        <div className="tabs skill-tabs" role="tablist">
+          <button type="button" role="tab" aria-selected={tab === "how"} className={`tab${tab === "how" ? " on" : ""}`} onClick={() => setTab("how")}>
+            How it works
+          </button>
+          <button type="button" role="tab" aria-selected={tab === "runs"} className={`tab${tab === "runs" ? " on" : ""}`} onClick={() => setTab("runs")}>
+            Runs · {all.length}
+          </button>
+        </div>
+
+        {tab === "how" ? (
         <section>
-          <h2>How it works</h2>
           {wf.data?.note ? <div className="note-line">{wf.data.note}</div> : null}
           {steps && steps.length ? (
             <div className="skill-graph">
@@ -156,15 +169,15 @@ export function SkillPage() {
             </div>
           ) : null}
         </section>
-
+        ) : (
         <section>
-          <h2>Runs</h2>
           {!runs.data ? null : all.length ? (
             <RunsTable runs={all} showSkill={false} />
           ) : (
             <Empty title="No runs yet.">Press Run to start one, or use this skill in a chat.</Empty>
           )}
         </section>
+        )}
       </div>
     </>
   );

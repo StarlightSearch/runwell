@@ -10,6 +10,7 @@ import { RunsPage } from "./pages/runs";
 import { RunPage } from "./pages/run";
 import { OutputsPage } from "./pages/outputs";
 import { SettingsPage } from "./pages/settings";
+import { Logo } from "./components/logo";
 
 export const SIGN_IN_GATE = "Open Runwell with /runwell in Claude Code or npx runwell in a terminal.";
 
@@ -17,7 +18,7 @@ function Gate({ message }: { message: string }) {
   return (
     <div className="gate">
       <div className="box">
-        <div className="logo" />
+        <Logo size={40} className="logo" />
         <p>{message}</p>
       </div>
     </div>

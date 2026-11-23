@@ -22,11 +22,8 @@
   font-size: 14px;
 }
 .logo {
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #5b8cff, #a78bfa);
   flex-shrink: 0;
+  display: block;
 }
 .search {
   margin: 8px 0 10px;
@@ -249,9 +246,6 @@
   color: var(--tx2);
 }
 .gate .logo {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
   margin: 0 auto 14px;
 }
 .err {

@@ -1,7 +1,11 @@
 .skill-page {
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  gap: 18px;
+}
+.skill-tabs {
+  padding: 0;
+  margin-bottom: -4px;
 }
 .skill-page h2 {
   font-size: 13px;
@@ -28,6 +32,7 @@
   border-radius: 12px;
   overflow: hidden;
   min-height: 260px;
+  height: calc(100vh - 290px);
 }
 .skill-graph .canvas-wrap {
   overflow: auto;

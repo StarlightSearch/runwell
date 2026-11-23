@@ -1,6 +1,6 @@
 import { expect, test } from "./fixtures";
 
-test("a skill's page shows its workflow graph, a step's detail, and its runs", async ({ app }) => {
+test("a skill's page shows its workflow graph and a step's detail, and its runs in a tab", async ({ app }) => {
   await app.open("/skills");
   const page = app.page;
   await page.locator("tr[data-skill='review-loop']").getByRole("link", { name: "review-loop" }).click();
@@ -11,6 +11,9 @@ test("a skill's page shows its workflow graph, a step's detail, and its runs", a
   for (const s of await graph.locator(".gnode").evaluateAll((els) => els.map((e) => e.getAttribute("data-state")))) expect(s).toBe("waiting");
   await graph.locator(".gnode", { hasText: "Read the brief" }).click();
   await expect(page.getByTestId("step-detail")).toHaveText("Read it.");
+  await page.getByRole("tab", { name: "Runs · 1" }).click();
+  await expect(page).toHaveURL(/\?tab=runs$/);
+  await expect(page.getByTestId("skill-graph")).toHaveCount(0);
   const rows = page.getByTestId("run-row");
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText("Review the launch post");

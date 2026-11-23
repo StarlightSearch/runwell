@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="12 10 40 44" role="img" aria-labelledby="t"><title id="t">Runwell</title>
+  <!-- The mark alone, in the current text colour: for monochrome use on any background. -->
+  <g color="currentColor" stroke="currentColor"><g fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 48V16h12.5c8.5 0 10.5 15 0 15.5H22"/><path d="M32.5 31.5 44 48"/></g></g>
+  <g fill="currentColor"><circle cx="22" cy="48" r="4.5"/><circle cx="44" cy="48" r="6"/></g>
+</svg>
