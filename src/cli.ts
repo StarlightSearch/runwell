@@ -9,7 +9,8 @@ import type { ServerInfo } from "./server/lifecycle";
 export interface CliDeps {
   out(s: string): void;
   err(s: string): void;
-  openUrl(url: string): void;
+  /** Resolves whether a browser was opened. */
+  openUrl(url: string): Promise<boolean> | boolean | void;
   cwd: string;
   ensure?: EnsureOptions;
   nodeVersion?: string;
@@ -69,14 +70,21 @@ export async function main(argv: string[], deps: CliDeps): Promise<number> {
     deps.err("Runwell could not start. Run npx runwell again, or see ~/.runwell for details.");
     return 1;
   }
+  /** Opens a one-time sign-in link; when no browser could be opened, prints it to paste. */
   const open = async (to: string) => {
     const { body } = await call<{ url: string }>(info, "/api/auth/link", { method: "POST", body: { to } });
-    deps.openUrl(body.url);
+    if ((await deps.openUrl(body.url)) === false) deps.err(`Could not open a browser. Paste this link into one within a minute (it works once):\n${body.url}`);
   };
 
   if (cmd === "open") {
+    if (args.includes("--print")) {
+      // A sign-in link for a browser other than the default one.
+      const { body } = await call<{ url: string }>(info, "/api/auth/link", { method: "POST", body: { to: args.find((a) => a.startsWith("/")) ?? "/" } });
+      deps.out(`Paste this into your browser within a minute (it works once):\n${body.url}`);
+      return 0;
+    }
     await open(args[0] ?? "/");
-    deps.out(`Runwell is open at http://127.0.0.1:${info.port}`);
+    deps.out(`Runwell is open at http://127.0.0.1:${info.port}. In another browser, run: runwell open --print`);
     return 0;
   }
   if (cmd === "last") {

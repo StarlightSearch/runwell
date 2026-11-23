@@ -31,7 +31,7 @@ async function setup(opts: { empty?: boolean } = {}) {
   const out: string[] = [];
   const err: string[] = [];
   const urls: string[] = [];
-  const deps = { out: (x: string) => out.push(x), err: (x: string) => err.push(x), openUrl: (u: string) => urls.push(u), cwd: s.trusted, ensure: { home: s.home, serverEntry: ENTRY } };
+  const deps = { out: (x: string) => out.push(x), err: (x: string) => err.push(x), openUrl: (u: string) => void urls.push(u), cwd: s.trusted, ensure: { home: s.home, serverEntry: ENTRY } };
   const run = async (...argv: string[]) => {
     const code = await main(argv, deps);
     const info = readServerInfo(p);
@@ -67,7 +67,7 @@ describe.skipIf(!existsSync(ENTRY))("the CLI against a started server (needs npm
     const t = await setup();
     expect(await t.run("open")).toBe(0);
     expect(t.urls[0]).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/auth\?n=/);
-    expect(t.out[0]).toMatch(/^Runwell is open at http:\/\/127\.0\.0\.1:\d+$/);
+    expect(t.out[0]).toMatch(/^Runwell is open at http:\/\/127\.0\.0\.1:\d+\. In another browser, run: runwell open --print$/);
   });
 
   it("run nope exits 1 with no candidates; run motion-ad hello there starts a run with that brief", async () => {
@@ -92,6 +92,21 @@ describe.skipIf(!existsSync(ENTRY))("the CLI against a started server (needs npm
     expect(await e.run("last")).toBe(0);
     expect(e.out[0]).toBe("No runs yet.");
     expect(e.urls[0]).toMatch(/to=%2Fruns$/);
+  });
+
+  it("open --print prints a sign-in link instead of opening a browser", async () => {
+    const t = await setup();
+    expect(await t.run("open", "--print")).toBe(0);
+    expect(t.urls).toEqual([]);
+    expect(t.out[0]).toMatch(/^Paste this into your browser within a minute \(it works once\):\nhttp:\/\/127\.0\.0\.1:\d+\/auth\?n=/);
+  });
+
+  it("when no browser can be opened, the sign-in link is printed", async () => {
+    const t = await setup();
+    const code = await main(["open"], { out: (x) => t.out.push(x), err: (x) => t.err.push(x), openUrl: () => false, cwd: t.s.trusted, ensure: { home: t.s.home, serverEntry: ENTRY } });
+    pids.push(readServerInfo(paths(t.s.home))!.pid);
+    expect(code).toBe(0);
+    expect(t.err[0]).toMatch(/^Could not open a browser\. Paste this link .*\nhttp:\/\/127\.0\.0\.1:\d+\/auth\?n=/s);
   });
 
   it("ensure exits 0 at once", async () => {

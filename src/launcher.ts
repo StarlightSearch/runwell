@@ -58,14 +58,20 @@ export async function ensureServer(opts: EnsureOptions = {}): Promise<ServerInfo
   return waitFor(p.root, 5000, (live) => live !== null && live.pid !== info?.pid);
 }
 
-/** Opens a URL in the person's browser; prints it when no opener works. */
-export function openUrl(url: string, print: (s: string) => void = (s) => process.stdout.write(`${s}\n`)): void {
+/**
+ * Opens a URL in the person's browser. Resolves true once the opener has handed it over (it exits 0),
+ * false when no opener ran or it failed; waits at most 5 s, so the CLI never exits before the hand-off.
+ */
+export function openUrl(url: string): Promise<boolean> {
   const cmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "explorer" : "xdg-open";
-  try {
-    const c = spawn(cmd, [url], { detached: true, stdio: "ignore" });
-    c.on("error", () => print(`Open this link: ${url}`));
-    c.unref();
-  } catch {
-    print(`Open this link: ${url}`);
-  }
+  return new Promise((resolve) => {
+    try {
+      const c = spawn(cmd, [url], { detached: true, stdio: "ignore" });
+      const t = setTimeout(() => (c.unref(), resolve(true)), 5000);
+      c.once("error", () => (clearTimeout(t), resolve(false)));
+      c.once("exit", (code) => (clearTimeout(t), resolve(code === 0)));
+    } catch {
+      resolve(false);
+    }
+  });
 }
