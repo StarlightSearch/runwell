@@ -17,7 +17,7 @@ function setup(fixture: string, extra: Record<string, string | boolean | number>
   const log = join(root, "fake.log");
   const spec: RunSpec = {
     runId: "r1", runDir, cwd: work, skillRef: "motion-ad", brief: "A 15 second ad", inputs: [join(runDir, "inputs", "logo.png")],
-    editFolder: work, addDir: null, model: null, allowAll: false,
+    editFolder: work, addDir: null, model: null, allowAll: false, mode: "ask",
     steps: [{ id: "s1", title: "Brief and landing page", detail: "", kind: "action" }], mcpConfigPath: join(runDir, "mcp.json"),
   };
   const env = fakeEnv({ fixture, log, ignoreSigint: extra.ignoreSigint === true, holdMs: typeof extra.holdMs === "number" ? extra.holdMs : undefined });
@@ -71,6 +71,19 @@ describe("argv and prompt", () => {
     const argv = buildArgv({ ...spec, allowAll: true }, DECISIONS);
     expect(argv).toEqual(expect.arrayContaining(DECISIONS.bypassFlag));
     expect(argv).not.toContain("--permission-prompt-tool");
+  });
+
+  it("Auto mode adds --permission-mode auto and keeps the permission tool; ask adds no mode; allowAll wins over auto", () => {
+    const { spec } = setup("happy");
+    const auto = buildArgv({ ...spec, mode: "auto" }, DECISIONS);
+    expect(auto[auto.indexOf("--permission-mode") + 1]).toBe("auto");
+    expect(auto).toContain("--permission-prompt-tool");
+    const ask = buildArgv({ ...spec, mode: "ask" }, DECISIONS);
+    expect(ask).not.toContain("--permission-mode");
+    expect(ask).toContain("--permission-prompt-tool");
+    const all = buildArgv({ ...spec, mode: "auto", allowAll: true }, DECISIONS);
+    expect(all.filter((a) => a === "--permission-mode")).toHaveLength(1);
+    expect(all[all.indexOf("--permission-mode") + 1]).toBe("bypassPermissions");
   });
 
   it("a project run adds no folder rule; addDir and model pass through", () => {

@@ -12,6 +12,8 @@ import type { OverviewStep } from "../../shared/graph/source-types";
 import { DECISIONS, type Decisions } from "./decisions";
 import { createNormaliser } from "./normalise";
 
+export type RunMode = "auto" | "ask";
+
 export interface RunSpec {
   runId: string;
   /** runs/<id>: where settings.json for the folder rule is written. */
@@ -27,6 +29,8 @@ export interface RunSpec {
   addDir: string | null;
   model: string | null;
   allowAll: boolean;
+  /** "auto": Claude Code's Auto mode; "ask": the person's own settings decide (the old default). Ignored with allowAll. */
+  mode: RunMode;
   steps: OverviewStep[] | null;
   mcpConfigPath: string;
 }
@@ -101,7 +105,8 @@ export function buildArgv(spec: RunSpec, d: Decisions): string[] {
     argv.push("--settings", file);
   }
   if (spec.allowAll) argv.push(...d.bypassFlag);
-  else if (d.askRoute === "permission-tool" || d.askRoute === "mixed") argv.push("--permission-prompt-tool", "mcp__runwell__runwell_permission");
+  else if (spec.mode === "auto") argv.push(...d.autoFlag);
+  if (!spec.allowAll && (d.askRoute === "permission-tool" || d.askRoute === "mixed")) argv.push("--permission-prompt-tool", "mcp__runwell__runwell_permission");
   return argv;
 }
 

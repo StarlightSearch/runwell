@@ -6,6 +6,8 @@ export interface Decisions {
   /** The --settings JSON that pre-allows edits inside one folder (double slash: an absolute path rule). */
   folderRule(folder: string): unknown;
   bypassFlag: string[];
+  /** Claude Code's Auto mode: it decides which actions need asking (verified under -p on 2.1.330). */
+  autoFlag: string[];
   stopSignal: NodeJS.Signals;
   /** Env that lifts the MCP tool timeout, so a card can wait for the person. */
   toolTimeoutEnv: Record<string, string>;
@@ -16,6 +18,7 @@ export const DECISIONS: Decisions = {
   skillInvocation: (ref, brief) => `/${ref}${brief.trim() ? ` ${brief.trim()}` : ""}`,
   folderRule: (folder) => ({ permissions: { allow: [`Edit(/${folder.replace(/\/+$/, "")}/**)`] } }),
   bypassFlag: ["--permission-mode", "bypassPermissions"],
+  autoFlag: ["--permission-mode", "auto"],
   stopSignal: "SIGINT",
   toolTimeoutEnv: { MCP_TOOL_TIMEOUT: String(24 * 60 * 60 * 1000) },
 };

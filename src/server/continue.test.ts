@@ -10,7 +10,7 @@ const dir = mkdtempSync(join(tmpdir(), "runwell-it's-"));
 const run = (over: Partial<RunRow> = {}): RunRow => ({
   id: "r1", skillKey: "personal:x", skillRef: "x", n: 1, kind: "button", status: "finished", brief: "", cwd: dir, place: "folder",
   projectPath: null, model: null, allowAll: false, skillVersion: 1, createdAt: 1, startedAt: 1, endedAt: 2, waitingMs: 0,
-  rating: null, note: null, error: null, sessionId: SID, ...over,
+  rating: null, note: null, error: null, sessionId: SID, mode: "auto", ...over,
 });
 function recorder(platform: NodeJS.Platform, opts: { has?: string[]; runResult?: { code: number | null; out: string }; detachedOk?: boolean } = {}) {
   const calls: { kind: string; cmd: string; args: string[]; cwd: string }[] = [];

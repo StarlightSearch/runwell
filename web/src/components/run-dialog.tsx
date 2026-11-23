@@ -18,6 +18,11 @@ interface Upload {
 }
 type Check = { exists: boolean; trusted: boolean; hooks: boolean; mcp: boolean };
 
+const MODE_HINT = {
+  auto: "Auto mode: Claude Code decides which actions need your OK; those come to the run page.",
+  ask: "Ask first: your own Claude Code permission settings decide; questions come to the run page.",
+} as const;
+
 const MODELS = [
   { label: "Default", value: "" },
   { label: "Sonnet", value: "sonnet" },
@@ -48,6 +53,7 @@ function RunDialog({ skillKey, fromRun, initialBrief, onClose }: { skillKey: str
   const [model, setModel] = useState("");
   const [from, setFrom] = useState(fromRun ?? "");
   const [allowAll, setAllowAll] = useState(false);
+  const [mode, setMode] = useState<"auto" | "ask">("auto");
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [uploading, setUploading] = useState(0);
   const [confirm, setConfirm] = useState<{ path: string; check: Check } | null>(null);
@@ -112,7 +118,7 @@ function RunDialog({ skillKey, fromRun, initialBrief, onClose }: { skillKey: str
     setBusy(true);
     try {
       const place = projectPath !== null ? { kind: "project", path: projectPath, confirmedUntrusted: confirmedFor === projectPath } : { kind: "folder", contextProject: null };
-      const r = await post<{ run: RunRow }>("/api/runs", { skillKey, brief, place, model: model || null, allowAll, uploadIds: uploads.map((u) => u.id), fromRun: from || null });
+      const r = await post<{ run: RunRow }>("/api/runs", { skillKey, brief, place, model: model || null, allowAll, mode, uploadIds: uploads.map((u) => u.id), fromRun: from || null });
       onClose();
       navigate(`/runs/${r.run.id}`);
     } catch (e) {
@@ -120,7 +126,7 @@ function RunDialog({ skillKey, fromRun, initialBrief, onClose }: { skillKey: str
     } finally {
       setBusy(false);
     }
-  }, [busy, gate, projectPath, confirmedFor, skillKey, brief, model, allowAll, uploads, from, onClose, navigate]);
+  }, [busy, gate, projectPath, confirmedFor, skillKey, brief, model, allowAll, mode, uploads, from, onClose, navigate]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -203,6 +209,14 @@ function RunDialog({ skillKey, fromRun, initialBrief, onClose }: { skillKey: str
               📎 Attach files
               <input ref={fileInput} type="file" multiple hidden onChange={(e) => e.target.files && void addFiles(e.target.files)} />
             </label>
+            <label className="opt" title={MODE_HINT[mode]}>
+              <span>⛨</span>
+              <select aria-label="Permission mode" value={allowAll ? "all" : mode} disabled={allowAll} onChange={(e) => setMode(e.target.value as "auto" | "ask")}>
+                <option value="auto">Auto mode</option>
+                <option value="ask">Ask first</option>
+                {allowAll ? <option value="all">Everything allowed</option> : null}
+              </select>
+            </label>
             <label className="opt">
               <span>◑</span>
               <select aria-label="Model" value={model} onChange={(e) => setModel(e.target.value)}>
@@ -229,7 +243,8 @@ function RunDialog({ skillKey, fromRun, initialBrief, onClose }: { skillKey: str
           </div>
           {where.kind === "custom" ? <input aria-label="Folder path" placeholder="/full/path/to/folder" value={customPath} onChange={(e) => setCustomPath(e.target.value)} /> : null}
           <div className="hint">
-            {where.kind === "folder" ? "Edits are allowed inside the run folder. Shell commands can still write elsewhere." : "Runs in this folder, the way a chat there would."}
+            {where.kind === "folder" ? "Edits are allowed inside the run folder. Shell commands can still write elsewhere." : "Runs in this folder, the way a chat there would."}{" "}
+            {allowAll ? null : MODE_HINT[mode]}
           </div>
           {uploads.length || uploading ? (
             <div className="chips">

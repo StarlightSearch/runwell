@@ -72,6 +72,8 @@ export function placeLine(run: RunRow, skill: SkillRow | null, past = false): st
   else parts.push("from Run button", run.place === "project" ? `in ${base(run.projectPath)}` : "new run folder");
   parts.push(`v${run.skillVersion ?? skill?.version ?? 1}`);
   if (run.allowAll) parts.push("everything allowed");
+  else if (run.mode === "auto") parts.push("auto mode");
+  else if (run.mode === "ask") parts.push("asks first");
   return parts.join(" · ");
 }
 

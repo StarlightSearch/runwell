@@ -31,6 +31,7 @@ function parseStart(v: unknown): StartRunInput | null {
     place,
     model: typeof b.model === "string" && b.model ? b.model : null,
     allowAll: b.allowAll === true,
+    mode: b.mode === "ask" ? "ask" : "auto",
     uploadIds: Array.isArray(b.uploadIds) ? b.uploadIds.filter((x): x is string => typeof x === "string") : [],
     fromRun: typeof b.fromRun === "string" ? b.fromRun : null,
   };

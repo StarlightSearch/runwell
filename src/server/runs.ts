@@ -10,7 +10,7 @@ import type { WorkflowSource } from "../shared/api";
 import type { RunEvent, RunKind, RunStatus } from "../shared/events";
 import { graphOf } from "../shared/graph/from-events";
 import { SIGNED_OUT, NOT_FOUND } from "./claude/auth";
-import type { AgentDriver, RunHandle } from "./claude/driver";
+import type { AgentDriver, RunHandle, RunMode } from "./claude/driver";
 import type { Config } from "./config";
 import type { Db } from "./db";
 import type { Paths } from "./paths";
@@ -26,6 +26,8 @@ export interface StartRunInput {
   place: Place;
   model: string | null;
   allowAll: boolean;
+  /** Defaults to "auto". */
+  mode?: RunMode;
   uploadIds: string[];
   fromRun: string | null;
 }
@@ -44,6 +46,8 @@ export interface RunRow {
   projectPath: string | null;
   model: string | null;
   allowAll: boolean;
+  /** null for history runs and runs from before modes were kept. */
+  mode: RunMode | null;
   skillVersion: number;
   createdAt: number;
   startedAt: number | null;
@@ -107,13 +111,13 @@ export function newRunId(): string {
 
 type DbRun = {
   id: string; skill_key: string; skill_ref: string; n: number; kind: RunKind; status: RunStatus; brief: string | null; cwd: string | null;
-  place: string | null; project_path: string | null; model: string | null; allow_all: number; skill_version: number | null; pid: number | null; session_id?: string | null;
+  place: string | null; project_path: string | null; model: string | null; allow_all: number; skill_version: number | null; pid: number | null; session_id?: string | null; mode?: string | null;
   created_at: number; started_at: number | null; ended_at: number | null; waiting_ms: number | null; rating: number | null; note: string | null; error: string | null;
 };
 
 const toRow = (r: DbRun): RunRow => ({
   id: r.id, skillKey: r.skill_key, skillRef: r.skill_ref, n: r.n, kind: r.kind, status: r.status, brief: r.brief ?? "", cwd: r.cwd ?? "",
-  place: (r.place as RunRow["place"]) ?? "folder", projectPath: r.project_path, model: r.model, allowAll: !!r.allow_all,
+  place: (r.place as RunRow["place"]) ?? "folder", projectPath: r.project_path, model: r.model, allowAll: !!r.allow_all, mode: r.mode === "auto" || r.mode === "ask" ? (r.mode as RunMode) : null,
   skillVersion: r.skill_version ?? 1, createdAt: r.created_at, startedAt: r.started_at, endedAt: r.ended_at, waitingMs: r.waiting_ms ?? 0,
   rating: r.rating === 1 ? 1 : r.rating === -1 ? -1 : null, note: r.note, error: r.error, sessionId: r.session_id ?? null,
 });
@@ -231,7 +235,7 @@ export function createRunsService(deps: RunsDeps): RunsService {
     try {
       handle = deps.driver.start({
         runId: id, runDir: deps.paths.runDir(id), cwd: r.cwd, skillRef: r.skillRef, brief: r.brief, inputs,
-        editFolder: r.place === "folder" ? r.cwd : null, addDir: contextProject, model: r.model, allowAll: r.allowAll,
+        editFolder: r.place === "folder" ? r.cwd : null, addDir: contextProject, model: r.model, allowAll: r.allowAll, mode: r.mode ?? "ask",
         steps: wf.steps, mcpConfigPath,
       });
     } catch (err) {
@@ -333,9 +337,9 @@ export function createRunsService(deps: RunsDeps): RunsService {
         cpSync(deps.paths.inputs(from.id), deps.paths.inputs(id), { recursive: true });
       }
       deps.db.run(
-        `INSERT INTO runs (id, skill_key, skill_ref, n, kind, status, brief, cwd, place, project_path, model, allow_all, skill_version, created_at)
-         VALUES (?, ?, ?, ?, 'button', 'queued', ?, ?, ?, ?, ?, ?, ?, ?)`,
-        id, skill.key, skill.ref, n, brief, cwd, input.place.kind, projectPath, input.model, input.allowAll ? 1 : 0, skill.version, deps.now(),
+        `INSERT INTO runs (id, skill_key, skill_ref, n, kind, status, brief, cwd, place, project_path, model, allow_all, skill_version, created_at, mode)
+         VALUES (?, ?, ?, ?, 'button', 'queued', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, skill.key, skill.ref, n, brief, cwd, input.place.kind, projectPath, input.model, input.allowAll ? 1 : 0, skill.version, deps.now(), input.mode ?? "auto",
       );
       publishRuns(id);
       pump();

@@ -53,6 +53,32 @@ test.describe("run dialog", () => {
     await expect.poll(() => loggedLines(app.seeded.home).find((l) => l.argv)?.cwd).toBe(app.seeded.untrusted);
   });
 
+  test("runs start in Auto mode by default; Ask first leaves the mode to your settings", async ({ app }) => {
+    const argvOf = async () => {
+      let line: { argv: string[] } | undefined;
+      await expect.poll(() => (line = loggedLines(app.seeded.home).filter((l) => l.argv).at(-1))).toBeTruthy();
+      return line!.argv;
+    };
+    await app.open("/skills");
+    await app.page.locator('tr[data-skill="motion-ad"]').getByRole("button", { name: "Run" }).click();
+    const dialog = app.page.getByRole("dialog");
+    await expect(dialog.getByLabel("Permission mode")).toHaveValue("auto");
+    await dialog.getByRole("button", { name: /Start run/ }).click();
+    await expect(app.page).toHaveURL(/\/runs\/[a-z2-7]{12}$/);
+    await expect(app.page.getByTestId("place-line")).toContainText("auto mode");
+    let argv = await argvOf();
+    expect(argv[argv.indexOf("--permission-mode") + 1]).toBe("auto");
+
+    await app.open("/skills");
+    await app.page.locator('tr[data-skill="review-loop"]').getByRole("button", { name: "Run" }).click();
+    await app.page.getByRole("dialog").getByLabel("Permission mode").selectOption("ask");
+    await app.page.getByRole("dialog").getByRole("button", { name: /Start run/ }).click();
+    await expect(app.page.getByTestId("place-line")).toContainText("asks first");
+    await expect.poll(() => loggedLines(app.seeded.home).filter((l) => l.argv).length).toBe(2);
+    argv = await argvOf();
+    expect(argv).not.toContain("--permission-mode");
+  });
+
   test("Allow everything is off each time the dialog opens; From run prefills the brief", async ({ app }) => {
     await app.open("/skills");
     const openDialog = async () => {

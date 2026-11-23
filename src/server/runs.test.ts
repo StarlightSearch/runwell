@@ -59,6 +59,14 @@ async function waitFor(fn: () => boolean, ms = 8000) {
 }
 
 describe("RunsService", () => {
+  it("a run asked to ask first records mode ask", async () => {
+    const { runs } = await setup();
+    const r = await runs.start(input({ mode: "ask" }));
+    if (!r.ok) throw new Error(r.message);
+    expect(runs.get(r.run.id)!.mode).toBe("ask");
+    await runs.stop(r.run.id);
+  });
+
   it("a happy run goes running then finished; events.jsonl equals what was published", async () => {
     const { runs, hub, p, collected } = await setup();
     const seen: unknown[] = [];
@@ -67,6 +75,7 @@ describe("RunsService", () => {
     hub.subscribe([`run:${r.run.id}`], (_t, d) => seen.push(d));
     expect(r.run.id).toMatch(/^[a-z2-7]{12}$/);
     expect(r.run.cwd).toBe(p.work(r.run.id));
+    expect(r.run.mode).toBe("auto");
     await waitFor(() => runs.get(r.run.id)!.status === "finished");
     const stored = runs.events(r.run.id);
     expect(stored[0]).toMatchObject({ t: "status", status: "running" });
