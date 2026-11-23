@@ -127,6 +127,29 @@
   flex-shrink: 0;
   min-width: 0;
 }
+.top-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.top-main > * {
+  flex-shrink: 0;
+}
+.top-main > .crumb.mono {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
 .crumb {
   color: var(--tx3);
   white-space: nowrap;
