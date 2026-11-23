@@ -60,6 +60,21 @@ function RowMenu({ s, onToggle }: { s: SkillListItem; onToggle(): void }) {
 }
 
 type Item = SkillListItem & { hasGraph: boolean };
+
+/** Tracked: an open eye. Click it to stop tracking. */
+const Eye = () => (
+  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+    <path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8Z" />
+    <circle cx="8" cy="8" r="2" />
+  </svg>
+);
+/** Not tracked: a crossed-out eye. Click it to track again. */
+const EyeOff = () => (
+  <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+    <path d="M1.5 8s2.4-4.5 6.5-4.5c1.1 0 2.1.3 3 .8M14.5 8s-2.4 4.5-6.5 4.5c-1.1 0-2.1-.3-3-.8" />
+    <path d="M2.5 13.5 13.5 2.5" />
+  </svg>
+);
 interface Group {
   key: string;
   kind: "personal" | "project" | "marketplace" | "plugin";
@@ -164,8 +179,8 @@ export function SkillsPage() {
     res.reload();
   };
 
-  const row = (s: Item, i: number) => (
-                <tr key={s.key} className={`${s.ignored ? "ignored" : ""} ${i === focus ? "focused" : ""}`} data-skill={s.ref} onMouseEnter={() => setFocus(i)}>
+  const row = (s: Item, i: number, nested = false) => (
+                <tr key={s.key} className={`${s.ignored ? "ignored" : ""} ${i === focus ? "focused" : ""}${nested ? " nested" : ""}`} data-skill={s.ref} onMouseEnter={() => setFocus(i)}>
                   <td>
                     <div className="sname">
                       <div style={{ minWidth: 0 }}>
@@ -247,7 +262,15 @@ export function SkillsPage() {
         {res.data && !all.length ? (
           <Empty title="No skills found">Runwell looks in ~/.claude/skills, your plugins and your projects' .claude/skills folders.</Empty>
         ) : (
-          <table className="tbl skills-tbl">
+          <table className={`tbl skills-tbl${groups ? " grouped" : ""}`}>
+            <colgroup>
+              <col />
+              {groups ? null : <col style={{ width: 170 }} />}
+              <col style={{ width: 130 }} />
+              <col style={{ width: 96 }} />
+              <col style={{ width: 112 }} />
+              <col style={{ width: 104 }} />
+            </colgroup>
             <thead>
               <tr>
                 <th>Skill</th>
@@ -271,24 +294,31 @@ export function SkillsPage() {
                     const rows = g.leaf ? g.skills.filter(visible) : [];
                     return (
                       <Fragment key={g.key}>
-                        <tr className={`grp lvl${g.level}`} data-group={g.key}>
+                        <tr className={`grp lvl${g.level}${ignoredBy || viaMarket ? " off" : ""}`} data-group={g.key}>
                           <td colSpan={5}>
                             <div className="grp-h">
                               {g.color ? <i className="pdot" style={{ background: g.color }} /> : null}
-                              {g.kind !== "personal" ? <span className="grp-kind">{g.kind}</span> : null}
-                              <b>{g.label}</b>
-                              <span className="grp-n">{g.skills.length} {g.skills.length === 1 ? "skill" : "skills"}</span>
-                              {ignoredBy || viaMarket ? <span className="tag">{viaMarket && !ignoredBy ? "ignored with its marketplace" : "not tracked"}</span> : null}
-                              <span className="sp" />
+                              <span className="grp-name">{g.label}</span>
+                              <span className="grp-meta">
+                                {g.kind === "personal" ? "" : `${g.kind} · `}
+                                {g.skills.length} {g.skills.length === 1 ? "skill" : "skills"}
+                                {ignoredBy ? " · not tracked" : viaMarket ? " · not tracked (marketplace)" : ""}
+                              </span>
                               {g.pattern && !viaMarket ? (
-                                <button className="btn ghost grp-btn" type="button" onClick={() => void toggleGroup(g.pattern!)}>
-                                  {ignoredBy ? "Track again" : g.kind === "marketplace" ? "Don't track this marketplace" : "Don't track this plugin"}
+                                <button
+                                  type="button"
+                                  className={`icon-btn grp-btn${ignoredBy ? " on" : ""}`}
+                                  aria-label={ignoredBy ? `Track ${g.kind} ${g.label} again` : `Don't track ${g.kind} ${g.label}`}
+                                  title={ignoredBy ? `Track this ${g.kind} again` : `Don't track this ${g.kind}: its skills are hidden and not recorded from past chats`}
+                                  onClick={() => void toggleGroup(g.pattern!)}
+                                >
+                                  {ignoredBy ? <EyeOff /> : <Eye />}
                                 </button>
                               ) : null}
                             </div>
                           </td>
                         </tr>
-                        {rows.map((s, j) => row(s, offset + j))}
+                        {rows.map((s, j) => row(s, offset + j, g.level === 1))}
                       </Fragment>
                     );
                   })

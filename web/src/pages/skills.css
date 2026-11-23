@@ -146,8 +146,10 @@ table.tbl {
 }
 .spark-wrap {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-end;
+  gap: 7px;
+  height: 16px;
+  vertical-align: middle;
 }
 .spark {
   display: inline-flex;
@@ -165,6 +167,7 @@ table.tbl {
 }
 .spark-n {
   font-size: 12px;
+  line-height: 12px;
   color: var(--tx3);
   font-variant-numeric: tabular-nums;
 }
@@ -239,41 +242,79 @@ table.tbl {
 .skills-tbl td:nth-child(n + 2) {
   white-space: nowrap;
 }
-.skills-tbl td:first-child {
-  width: 100%;
+/* Fixed columns: every row and header lines up, and long descriptions end in … inside the first one. */
+.skills-tbl {
+  table-layout: fixed;
+}
+.skills-tbl .sname,
+.skills-tbl .sname > div {
+  min-width: 0;
+}
+.skills-tbl .sname .ds {
+  max-width: none;
 }
 
-/* Group headers in the By source view. */
+/* Group headers in the By source view: one line, on the same left edge as the skills under them. */
 .tbl tr.grp td {
-  padding: 18px 10px 8px;
+  padding: 22px 10px 8px;
   border-bottom: 1px solid var(--line2);
   background: transparent !important;
   box-shadow: none !important;
 }
+.tbl tr.grp:first-child td {
+  padding-top: 10px;
+}
 .tbl tr.grp.lvl1 td {
-  padding: 12px 10px 6px 24px;
+  padding: 14px 10px 6px 28px;
   border-bottom-color: var(--line);
+}
+.skills-tbl tr.nested td:first-child {
+  padding-left: 28px;
 }
 .grp-h {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  min-height: 26px;
 }
-.grp.lvl0 .grp-h b {
+.grp-name {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--tx);
+}
+.grp.lvl0 .grp-name {
   font-size: 14px;
 }
-.grp-kind {
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--tx3);
-}
-.grp-n {
+.grp-meta {
   color: var(--tx3);
   font-size: 12px;
 }
+.grp.off .grp-name {
+  color: var(--tx3);
+}
+.icon-btn {
+  width: 26px;
+  height: 26px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--tx3);
+  cursor: pointer;
+}
+.icon-btn:hover {
+  background: var(--raise);
+  color: var(--tx);
+}
+/* The track toggle shows on the header you point at, and stays visible while a group is not tracked. */
 .grp-btn {
-  font-size: 12px;
-  padding: 3px 9px;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.tbl tr.grp:hover .grp-btn,
+.grp-btn:focus-visible,
+.grp-btn.on {
+  opacity: 1;
 }
