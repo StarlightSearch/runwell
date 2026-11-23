@@ -14,6 +14,8 @@ export interface AppFixture {
   seeded: Seeded;
   /** Opens a path with the session cookie already set. */
   open(path: string): Promise<void>;
+  /** What "Continue in Claude" would have launched (nothing real is opened in tests). */
+  launched: { cmd: string; args: string[] }[];
   api<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T>;
 }
 
@@ -23,7 +25,14 @@ export const test = base.extend<{ fakeFixture: string; fakeAuth: "in" | "out"; a
   app: async ({ page, fakeFixture, fakeAuth }, use) => {
     const seeded = await seed();
     const log = join(seeded.home, "fake.log");
-    const server = await startServer({ home: seeded.home, port: 0, services: { claudeBin: FAKE_CLAUDE, extraEnv: fakeEnv({ fixture: fakeFixture, auth: fakeAuth, log }), graceMs: 200, reveal: () => {} } });
+    const launched: { cmd: string; args: string[] }[] = [];
+    const launch = {
+      platform: process.platform,
+      has: (c: string) => c === "xterm",
+      detached: async (cmd: string, args: string[]) => (launched.push({ cmd, args }), true),
+      run: async (cmd: string, args: string[]) => (launched.push({ cmd, args }), { code: 0, out: "" }),
+    };
+    const server = await startServer({ home: seeded.home, port: 0, services: { claudeBin: FAKE_CLAUDE, extraEnv: fakeEnv({ fixture: fakeFixture, auth: fakeAuth, log }), graceMs: 200, reveal: () => {}, launch } });
     const base = `http://127.0.0.1:${server.info.port}`;
     const api = async <T>(path: string, init: { method?: string; body?: unknown } = {}) => {
       const r = await fetch(base + path, { method: init.method ?? "GET", headers: { authorization: `Bearer ${server.info.token}`, "content-type": "application/json" }, body: init.body === undefined ? undefined : JSON.stringify(init.body) });
@@ -33,7 +42,7 @@ export const test = base.extend<{ fakeFixture: string; fakeAuth: "in" | "out"; a
       const { url } = await api<{ url: string }>("/api/auth/link", { method: "POST", body: { to: path } });
       await page.goto(url);
     };
-    await use({ page, base, token: server.info.token, seeded, open, api });
+    await use({ page, base, token: server.info.token, seeded, open, api, launched });
     await server.close();
   },
 });

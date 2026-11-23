@@ -127,9 +127,9 @@ export function createBackfill(deps: { paths: Paths; db: Db; hub: Hub; config():
       mkdirSync(deps.paths.runDir(id), { recursive: true });
       writeFileSync(deps.paths.events(id), events.map((e) => JSON.stringify(e)).join("\n") + "\n");
       deps.db.run(
-        `INSERT INTO runs (id, skill_key, skill_ref, n, kind, status, brief, cwd, place, project_path, created_at, started_at, ended_at, source_ref)
-         VALUES (?, ?, ?, ?, 'history', 'finished', ?, ?, 'chat', ?, ?, ?, ?, ?)`,
-        id, skillKey, use.skillRef, n, use.brief, log.cwd, log.cwd, use.startedAt, use.startedAt, use.endedAt, sourceRef,
+        `INSERT INTO runs (id, skill_key, skill_ref, n, kind, status, brief, cwd, place, project_path, created_at, started_at, ended_at, source_ref, session_id)
+         VALUES (?, ?, ?, ?, 'history', 'finished', ?, ?, 'chat', ?, ?, ?, ?, ?, ?)`,
+        id, skillKey, use.skillRef, n, use.brief, log.cwd, log.cwd, use.startedAt, use.startedAt, use.endedAt, sourceRef, log.sessionId,
       );
       recordOutputs(id, events, log.cwd);
       found++;
@@ -137,7 +137,17 @@ export function createBackfill(deps: { paths: Paths; db: Db; hub: Hub; config():
     return found;
   }
 
+  /** History runs recorded before session ids were kept: the log's file name is the session id. */
+  function fillSessionIds() {
+    const rows = deps.db.all<{ id: string; source_ref: string }>("SELECT id, source_ref FROM runs WHERE kind = 'history' AND session_id IS NULL AND source_ref IS NOT NULL");
+    for (const r of rows) {
+      const m = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl:\d+-\d+$/i.exec(r.source_ref);
+      if (m) deps.db.run("UPDATE runs SET session_id = ? WHERE id = ?", m[1], r.id);
+    }
+  }
+
   async function run() {
+    fillSessionIds();
     const cfg = deps.config();
     const claudeHome = cfg.claudeHome ?? join(homedir(), ".claude");
     const files = listLogs(claudeHome, deps.now() - cfg.backfillDays * DAY);

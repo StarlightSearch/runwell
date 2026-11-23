@@ -22,6 +22,8 @@ import { skillsRoutes } from "./routes/skills";
 import { stepsRoutes } from "./routes/steps";
 import { uploadsRoutes } from "./routes/uploads";
 import { workflowRoutes } from "./routes/workflow";
+import { continueRoutes } from "./routes/continue";
+import { systemLaunch, type Launch } from "./continue";
 import { createRunsService } from "./runs";
 import { createSkillsService } from "./skills";
 import { createWorkflowService } from "./workflow";
@@ -33,6 +35,8 @@ export interface ServiceOptions {
   graceMs?: number;
   reveal?: (file: string) => void;
   mcpEntry?: string;
+  /** How "Continue in Claude" opens a terminal or Claude Desktop (a recorder in tests). */
+  launch?: Launch;
 }
 
 /** A process's command line: /proc on Linux, `ps` elsewhere (macOS). Null when it is not running. */
@@ -119,6 +123,7 @@ export function buildServices(ctx: Ctx, opts: ServiceOptions = {}) {
     uploadsRoutes,
     runsRoutes({ runs, skills, workflow, broker, outputs }),
     settingsRoutes({ claudeBin, claudeHome }),
+    continueRoutes(runs, claudeBin, opts.launch ?? systemLaunch),
   ];
   return { skills, workflow, outputs, runs, broker, backfill, routes, claudeBin };
 }

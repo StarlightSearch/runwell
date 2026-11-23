@@ -131,3 +131,34 @@
 .menu button.danger {
   color: var(--red);
 }
+.menu.wide {
+  min-width: 300px;
+}
+.menu button {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.menu button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.menu button .desc {
+  font-size: 11px;
+}
+.continue-note {
+  position: absolute;
+  right: 0;
+  top: 38px;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--green);
+  background: var(--panel);
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  padding: 4px 8px;
+  z-index: 10;
+}
+.continue-note.bad {
+  color: var(--red);
+}

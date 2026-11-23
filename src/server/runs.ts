@@ -52,6 +52,8 @@ export interface RunRow {
   rating: 1 | -1 | null;
   note: string | null;
   error: string | null;
+  /** Claude's session id (from its init line, or the chat log for a history run). */
+  sessionId: string | null;
 }
 
 export interface RunsService {
@@ -105,7 +107,7 @@ export function newRunId(): string {
 
 type DbRun = {
   id: string; skill_key: string; skill_ref: string; n: number; kind: RunKind; status: RunStatus; brief: string | null; cwd: string | null;
-  place: string | null; project_path: string | null; model: string | null; allow_all: number; skill_version: number | null; pid: number | null;
+  place: string | null; project_path: string | null; model: string | null; allow_all: number; skill_version: number | null; pid: number | null; session_id?: string | null;
   created_at: number; started_at: number | null; ended_at: number | null; waiting_ms: number | null; rating: number | null; note: string | null; error: string | null;
 };
 
@@ -113,7 +115,7 @@ const toRow = (r: DbRun): RunRow => ({
   id: r.id, skillKey: r.skill_key, skillRef: r.skill_ref, n: r.n, kind: r.kind, status: r.status, brief: r.brief ?? "", cwd: r.cwd ?? "",
   place: (r.place as RunRow["place"]) ?? "folder", projectPath: r.project_path, model: r.model, allowAll: !!r.allow_all,
   skillVersion: r.skill_version ?? 1, createdAt: r.created_at, startedAt: r.started_at, endedAt: r.ended_at, waitingMs: r.waiting_ms ?? 0,
-  rating: r.rating === 1 ? 1 : r.rating === -1 ? -1 : null, note: r.note, error: r.error,
+  rating: r.rating === 1 ? 1 : r.rating === -1 ? -1 : null, note: r.note, error: r.error, sessionId: r.session_id ?? null,
 });
 
 /** A file name with no folders, made unique inside `dir` with -2, -3... */
@@ -242,7 +244,13 @@ export function createRunsService(deps: RunsDeps): RunsService {
     if (stopping.has(id)) void handle.stop();
     let sawOk = false;
     let error: string | null = null;
+    let sessionSaved = false;
     for await (const e of handle.events) {
+      const sid = handle.sessionId?.() ?? null;
+      if (!sessionSaved && sid) {
+        sessionSaved = true;
+        deps.db.run("UPDATE runs SET session_id = ? WHERE id = ?", sid, id);
+      }
       append(id, e);
       if (e.t === "result") {
         sawOk = e.ok;

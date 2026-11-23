@@ -16,7 +16,7 @@ const T0 = Date.UTC(2026, 10, 23, 10);
 const run = (over: Partial<RunRow>): RunRow => ({
   id: "r1", skillKey: "personal:x", skillRef: "x", n: 1, kind: "button", status: "finished", brief: "", cwd: "", place: "folder",
   projectPath: null, model: null, allowAll: false, skillVersion: 1, createdAt: T0, startedAt: T0, endedAt: T0 + 60_000, waitingMs: 0,
-  rating: null, note: null, error: null, ...over,
+  rating: null, note: null, error: null, sessionId: null, ...over,
 });
 const write = (id: string, file_path: string): RunEvent[] => [{ t: "tool.start", at: T0 + 1, id, agentId: null, name: "Write", input: { file_path } }, { t: "tool.end", at: T0 + 2, id, ok: true, result: "ok" }];
 function put(path: string, text: string, mtime = T0 + 30_000) {

@@ -48,6 +48,17 @@ describe("backfill", () => {
     const events = readFileSync(s.p.events(r!.id), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
     expect(events.some((e) => e.t === "tool.start" && e.name === "Agent")).toBe(true);
     expect(events.at(-1)).toMatchObject({ t: "status", status: "finished" });
+    expect((r as { session_id?: string }).session_id).toBeTruthy();
+  });
+
+  it("a history run recorded before session ids were kept gets its id from the log's file name", async () => {
+    const s = await setup();
+    s.db.run(
+      "INSERT INTO runs (id, skill_key, skill_ref, n, kind, status, created_at, source_ref) VALUES ('old', 'unknown:x', 'x', 1, 'history', 'finished', 1, ?)",
+      "/home/u/.claude/projects/-p/0b1c2d3e-4f50-4617-8899-aabbccddeeff.jsonl:3-9",
+    );
+    await finish(s.bf);
+    expect(s.db.get<{ session_id: string }>("SELECT session_id FROM runs WHERE id = 'old'")!.session_id).toBe("0b1c2d3e-4f50-4617-8899-aabbccddeeff");
   });
 
   it("running twice creates each run once; a grown file adds only the new use", async () => {

@@ -7,6 +7,8 @@ import { askNodeId } from "../../../src/shared/graph/from-events";
 import type { RunRow } from "../../../src/server/runs";
 import type { SkillRow } from "../../../src/server/skills";
 import { AskCard } from "../components/ask-card";
+import { ContinueMenu } from "../components/continue-menu";
+import type { ResumeInfo } from "../../../src/server/continue";
 import { Delivered } from "../components/delivered";
 import { HowItWent } from "../components/how-it-went";
 import { RatingCard } from "../components/rating-card";
@@ -34,6 +36,7 @@ export interface RunDetail {
   workflow: WorkflowSource;
   asks: Ask[];
   grant: string;
+  resume: ResumeInfo | null;
 }
 
 const LIVE = new Set(["queued", "running", "waiting"]);
@@ -184,6 +187,7 @@ export function RunPage() {
             <button className="btn ghost" type="button" onClick={() => void post("/api/outputs/reveal", { runId: run.id, path: "." }).catch(() => {})}>
               Open folder
             </button>
+            {!live && d.resume ? <ContinueMenu runId={run.id} resume={d.resume} /> : null}
             {!live && d.skill ? (
               <button className="btn primary" type="button" onClick={() => openRunDialog(run.skillKey, { fromRun: run.id })}>
                 Run again

@@ -6,6 +6,7 @@ import type { OutputsService } from "../outputs";
 import type { Place, RunsService, StartRunError, StartRunInput } from "../runs";
 import type { SkillsService } from "../skills";
 import type { WorkflowService } from "../workflow";
+import { resumeInfo } from "../continue";
 
 const STATUSES = new Set<RunStatus>(["queued", "running", "waiting", "finished", "failed", "stopped"]);
 const ENDED = new Set<RunStatus>(["finished", "failed", "stopped"]);
@@ -71,7 +72,7 @@ export function runsRoutes(s: { runs: RunsService; skills: Pick<SkillsService, "
       const skill = s.skills.get(run.skillKey);
       const started = s.runs.workflowOf(run.id);
       const workflow = started.from !== "none" ? started : skill ? s.workflow.cachedWorkflow(skill) : started;
-      return c.json({ run, skill, workflow, asks: s.broker.pending(run.id), grant: s.outputs.grant(run.id) });
+      return c.json({ run, skill, workflow, asks: s.broker.pending(run.id), grant: s.outputs.grant(run.id), resume: resumeInfo(run, process.platform) });
     });
 
     // Stored events from `from` (or Last-Event-ID + 1), then live ones; an `end` event once the run is over.

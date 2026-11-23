@@ -12,6 +12,7 @@ import { paths } from "../../src/server/paths";
 
 const SKILLS = fileURLToPath(new URL("../fixtures/skills", import.meta.url));
 const DAY = 86_400_000;
+export const SEED_SESSION = "0b1c2d3e-4f50-4617-8899-aabbccddeeff";
 
 export interface Seeded {
   home: string;
@@ -61,6 +62,7 @@ export async function seed(): Promise<Seeded> {
   };
   const runIds = { video: "aaaaaaaaaaa1", second: "aaaaaaaaaaa2", third: "aaaaaaaaaaa3", failed: "aaaaaaaaaaa4", loop: "aaaaaaaaaaa5", history: "aaaaaaaaaaa6" };
   mk(runIds.video, 1, "finished", 3 * DAY, 1, [], { "ad-9x16.mp4": "fake-mp4", "poster.png": "fake-png" });
+  db.run("UPDATE runs SET session_id = ? WHERE id = ?", SEED_SESSION, runIds.video);
   mk(runIds.second, 2, "finished", 2 * DAY, 1, [], { "notes.md": "# Notes\n\nA list." });
   mk(runIds.third, 3, "finished", DAY, -1, [], { "copy.txt": "words" });
   mk(runIds.failed, 4, "failed", 3_600_000, null, [], {}, "Claude stopped without finishing");

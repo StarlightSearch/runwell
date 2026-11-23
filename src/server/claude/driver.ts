@@ -34,6 +34,8 @@ export interface RunSpec {
 export interface RunHandle {
   pid: number;
   events: AsyncIterable<RunEvent>;
+  /** Claude's session id once its init line has arrived. */
+  sessionId?(): string | null;
   stop(): Promise<void>;
   done: Promise<{ exitCode: number | null; sawResult: boolean; skippedLines: number }>;
 }
@@ -187,7 +189,7 @@ export function createClaudeDriver(opts: { bin: string; home: string; extraEnv?:
           await exited;
         })());
 
-      return { pid: child.pid ?? 0, events: queue, stop, done };
+      return { pid: child.pid ?? 0, events: queue, sessionId: () => norm.sessionId(), stop, done };
     },
     answer() {},
     decide() {},

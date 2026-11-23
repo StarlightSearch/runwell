@@ -1,5 +1,5 @@
 /** The SQLite schema, applied by `PRAGMA user_version`. Times are epoch ms. Steps live in events.jsonl, not here. */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const MIGRATIONS: Record<number, string> = {
   1: `
@@ -29,4 +29,6 @@ CREATE TABLE backfill_files (
 );
 CREATE TABLE auth_sessions (id TEXT PRIMARY KEY, created_at INTEGER NOT NULL);
 `,
+  // Claude's own session id for a run, so it can be continued with claude --resume.
+  2: `ALTER TABLE runs ADD COLUMN session_id TEXT;`,
 };

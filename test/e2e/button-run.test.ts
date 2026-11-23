@@ -23,6 +23,9 @@ describe.skipIf(!BUILT)("button run", () => {
     const { outputs } = (await (await h.fetchApi(`/api/runs/${run.id}/outputs`)).json()) as { outputs: { path: string; label: string }[] };
     expect(outputs.map((o) => o.path).sort()).toEqual(["notes.md", "words.txt"]);
     expect(outputs.every((o) => o.label === "written")).toBe(true);
+    const { run: row, resume } = (await (await h.fetchApi(`/api/runs/${run.id}`)).json()) as { run: { sessionId: string }; resume: { command: string } };
+    expect(row.sessionId).toBe("00000000-0000-4000-8000-000000000001");
+    expect(resume.command).toMatch(/&& claude --resume 00000000-0000-4000-8000-000000000001$/);
   });
 
   it("claude gets --mcp-config naming the real built mcp.js, and that server reports a step into the run", async () => {
