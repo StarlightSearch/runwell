@@ -126,3 +126,13 @@ describe("startServer", () => {
     vi.unstubAllEnvs();
   });
 });
+
+describe("long-held requests", () => {
+  it("the server does not cut requests at Node's default 5 minutes", async () => {
+    vi.stubEnv("RUNWELL_HOME", mkdtempSync(join(tmpdir(), "runwell-main2-")));
+    const s = await startServer({ port: 0 });
+    expect(s.server.requestTimeout).toBe(0);
+    await s.close();
+    vi.unstubAllEnvs();
+  });
+});

@@ -62,6 +62,9 @@ export async function startServer(opts: { home?: string; port?: number } = {}): 
   const server = await new Promise<Server>((resolve) => {
     const s = serve({ fetch: (req) => ((lastRequest = Date.now()), app.fetch(req)), port: lock.info.port, hostname: "127.0.0.1" }, () => resolve(s as Server));
   });
+  // A card's long poll may wait for hours; Node's default 5-minute request timeout would cut it.
+  server.requestTimeout = 0;
+  server.headersTimeout = 60_000;
 
   let closed = false;
   const close = async () => {
