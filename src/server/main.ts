@@ -12,6 +12,7 @@ import { migrate, openDb } from "./db";
 import { createApp, type App, type Ctx } from "./http";
 import { acquire, idleWatch, type ServerInfo } from "./lifecycle";
 import { paths } from "./paths";
+import { buildServices, type ServiceOptions } from "./services";
 import { createHub } from "./sse";
 
 const IDLE_MS = 12 * 60 * 60 * 1000;
@@ -43,7 +44,7 @@ function serveUi(app: App, root: string): void {
   });
 }
 
-export async function startServer(opts: { home?: string; port?: number } = {}): Promise<{ info: ServerInfo; server: Server; close(): Promise<void> }> {
+export async function startServer(opts: { home?: string; port?: number; services?: ServiceOptions } = {}): Promise<{ info: ServerInfo; server: Server; close(): Promise<void>; services: ReturnType<typeof buildServices> }> {
   const p = paths(opts.home);
   const config = () => loadConfig(p);
   const db = await openDb(p.db);
@@ -54,8 +55,12 @@ export async function startServer(opts: { home?: string; port?: number } = {}): 
     throw new Error("Another Runwell server is already running.");
   }
   const hub = createHub();
-  const ctx: Ctx = { paths: p, config, db, info: lock.info, hub, now: Date.now, activeRuns: () => 0 };
-  const app = createApp(ctx);
+  let activeRuns = () => 0;
+  const ctx: Ctx = { paths: p, config, db, info: lock.info, hub, now: Date.now, activeRuns: () => activeRuns() };
+  const services = buildServices(ctx, opts.services);
+  activeRuns = () => services.runs.activeCount();
+  services.runs.recoverOrphans();
+  const app = createApp(ctx, services.routes);
   serveUi(app, webRoot());
 
   let lastRequest = Date.now();
@@ -66,11 +71,14 @@ export async function startServer(opts: { home?: string; port?: number } = {}): 
   server.requestTimeout = 0;
   server.headersTimeout = 60_000;
 
+  services.skills.start();
+
   let closed = false;
   const close = async () => {
     if (closed) return;
     closed = true;
     watch.stop();
+    services.skills.stop();
     await new Promise<void>((r) => server.close(() => r()));
     lock.release();
     db.close();
@@ -80,7 +88,7 @@ export async function startServer(opts: { home?: string; port?: number } = {}): 
     isBusy: () => ctx.activeRuns() > 0 || hub.clients() > 0 || Date.now() - lastRequest < IDLE_MS,
     onIdle: () => void close().then(() => process.exit(0)),
   });
-  return { info: lock.info, server, close };
+  return { info: lock.info, server, close, services };
 }
 
 export type { Hono };
