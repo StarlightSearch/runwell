@@ -18,7 +18,7 @@ export interface Seeded {
   claudeHome: string;
   trusted: string;
   untrusted: string;
-  runIds: { video: string; second: string; third: string; failed: string; loop: string };
+  runIds: { video: string; second: string; third: string; failed: string; loop: string; history: string };
 }
 
 const ev = (events: RunEvent[]) => events.map((e) => JSON.stringify(e)).join("\n") + "\n";
@@ -59,7 +59,7 @@ export async function seed(): Promise<Seeded> {
       db.run("INSERT INTO outputs (run_id, path, label, kind, bytes, mtime, copied) VALUES (?, ?, 'written', ?, ?, ?, 0)", id, rel, rel.endsWith(".mp4") ? "video" : rel.endsWith(".png") ? "image" : rel.endsWith(".md") ? "markdown" : "text", body.length, created);
     }
   };
-  const runIds = { video: "aaaaaaaaaaa1", second: "aaaaaaaaaaa2", third: "aaaaaaaaaaa3", failed: "aaaaaaaaaaa4", loop: "aaaaaaaaaaa5" };
+  const runIds = { video: "aaaaaaaaaaa1", second: "aaaaaaaaaaa2", third: "aaaaaaaaaaa3", failed: "aaaaaaaaaaa4", loop: "aaaaaaaaaaa5", history: "aaaaaaaaaaa6" };
   mk(runIds.video, 1, "finished", 3 * DAY, 1, [], { "ad-9x16.mp4": "fake-mp4", "poster.png": "fake-png" });
   mk(runIds.second, 2, "finished", 2 * DAY, 1, [], { "notes.md": "# Notes\n\nA list." });
   mk(runIds.third, 3, "finished", DAY, -1, [], { "copy.txt": "words" });
@@ -93,6 +93,20 @@ export async function seed(): Promise<Seeded> {
     step("s1", "started", 0), step("s1", "done", 1), step("s2.1", "started", 2), step("s2.1", "done", 3), step("s2.2", "started", 4), step("s2.2", "done", 5),
     step("s2.1", "started", 6), step("s2.1", "done", 7), step("s2.2", "started", 8), step("s2.2", "done", 8), step("s3", "started", 9), step("s3", "done", 9),
     { t: "result", at: t0 + 90_000, ok: true, error: null }, { t: "status", at: t0 + 90_000, status: "finished", reason: null },
+  ]));
+  // A skill used in a chat, from a skill that is no longer installed.
+  const h0 = now - 5 * DAY;
+  db.run(
+    `INSERT INTO runs (id, skill_key, skill_ref, n, kind, status, brief, cwd, place, project_path, created_at, started_at, ended_at, source_ref, skill_version)
+     VALUES (?, 'unknown:old-skill', 'old-skill', 1, 'history', 'finished', 'Tidy the changelog', ?, 'chat', ?, ?, ?, ?, 'seed:1-9', 1)`,
+    runIds.history, trusted, trusted, h0, h0, h0 + 60_000,
+  );
+  mkdirSync(p.runDir(runIds.history), { recursive: true });
+  writeFileSync(p.events(runIds.history), ev([
+    { t: "text", at: h0 + 1000, agentId: null, text: "Tidying the changelog." },
+    { t: "tool.start", at: h0 + 2000, id: "t1", agentId: null, name: "Read", input: { file_path: join(trusted, "CHANGELOG.md") } },
+    { t: "tool.end", at: h0 + 3000, id: "t1", ok: true, result: "# Changelog" },
+    { t: "status", at: h0 + 60_000, status: "finished", reason: null },
   ]));
   db.close();
   return { home, claudeHome, trusted, untrusted, runIds };

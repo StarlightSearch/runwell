@@ -7,7 +7,7 @@ test("the shell loads with the sidebar, recent runs and the right theme, and no 
   await app.open("/skills");
   const side = app.page.getByRole("complementary", { name: "Sidebar" });
   for (const label of ["Skills", "Runs", "Outputs", "Settings"]) await expect(side.getByText(label, { exact: true })).toBeVisible();
-  await expect(app.page.getByTestId("recent-run")).toHaveCount(5);
+  await expect(app.page.getByTestId("recent-run")).toHaveCount(6);
   await expect(app.page.getByTestId("recent-run").first()).toContainText("motion-ad #4");
   const bg = await app.page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   if (info.project.name === "dark") expect(bg).toBe("rgb(11, 11, 12)");

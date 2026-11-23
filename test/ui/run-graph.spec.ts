@@ -43,6 +43,7 @@ test.describe("live graph", () => {
 
 test("a loop run shows its region with the pass count", async ({ app }) => {
   await app.open(`/runs/${app.seeded.runIds.loop}`);
+  await app.page.getByRole("tab", { name: "Graph" }).click();
   await expect(app.page.getByTestId("loop-region")).toContainText("2 passes");
   await expect(app.page.getByTestId("loop-region")).toContainText("Draft and review");
 });

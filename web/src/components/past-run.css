@@ -1,0 +1,133 @@
+.past {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  max-width: 980px;
+}
+.past h2 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 10px;
+  color: var(--tx2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.deliv-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.deliv-head .p {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rate {
+  border: 1px solid var(--line2);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rate .thumbs {
+  display: flex;
+  gap: 8px;
+}
+.rate .thumbs button {
+  font-size: 18px;
+  width: 44px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--line2);
+  background: transparent;
+  cursor: pointer;
+}
+.rate .thumbs button[aria-pressed="true"] {
+  background: var(--blue-bg);
+  border-color: var(--blue);
+}
+.rate textarea {
+  min-height: 56px;
+  resize: vertical;
+}
+.strip {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+.seg {
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  background: var(--green-bg);
+  color: var(--green);
+  display: flex;
+  flex-direction: column;
+  min-width: 90px;
+}
+.seg.failed {
+  background: var(--red-bg, var(--raise));
+  color: var(--red);
+}
+.seg.waiting {
+  background: var(--amber-bg);
+  color: var(--amber);
+}
+.seg.pending {
+  background: var(--raise);
+  color: var(--tx3);
+}
+.seg .d {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.replay {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  background: var(--panel);
+  margin-bottom: 10px;
+}
+.replay input[type="range"] {
+  flex: 1;
+}
+.menu-wrap {
+  position: relative;
+}
+.menu {
+  position: absolute;
+  right: 0;
+  top: 34px;
+  z-index: 20;
+  min-width: 160px;
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  background: var(--panel);
+  padding: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+.menu button {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--tx);
+}
+.menu button:hover {
+  background: var(--raise);
+}
+.menu button.danger {
+  color: var(--red);
+}
