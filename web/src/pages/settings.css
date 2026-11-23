@@ -1,0 +1,73 @@
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  max-width: 820px;
+}
+.settings h2 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tx2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 10px;
+}
+.srow {
+  display: grid;
+  grid-template-columns: 150px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+.srow .v {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.found {
+  color: var(--green);
+  font-size: 12px;
+}
+.notfound {
+  color: var(--red);
+  font-size: 12px;
+}
+.ign {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.ign .chip {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  border: 1px solid var(--line2);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+}
+.ign .chip button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--tx2);
+}
+.inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.inline input {
+  flex: 1;
+}
+.btn.danger {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+.btn.danger:disabled {
+  opacity: 0.45;
+}
