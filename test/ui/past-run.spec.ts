@@ -92,3 +92,12 @@ test("Open folder opens the run folder, the project for a chat run, and says so 
   await expect(page.getByTestId("folder-note")).toHaveText("This run's folder no longer exists.");
   expect(app.revealed.length).toBe(before);
 });
+
+test("a run with no kept files offers Look again, which asks the server to collect them again", async ({ app }) => {
+  await app.open(`/runs/${app.seeded.runIds.failed}`);
+  const page = app.page;
+  const rescan = page.waitForRequest((r) => r.url().endsWith(`/api/runs/${app.seeded.runIds.failed}/outputs/rescan`) && r.method() === "POST");
+  await page.getByTestId("delivered").getByRole("button", { name: "Look again" }).click();
+  expect((await (await rescan).response())?.status()).toBe(200);
+  await expect(page.getByTestId("delivered")).toContainText("This run kept no files.");
+});

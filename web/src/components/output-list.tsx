@@ -10,6 +10,21 @@ const badge = (o: OutputItem) => (o.kind === "other" || o.kind === "text" ? (o.p
 const labelOf = (o: OutputItem) =>
   !o.copied && o.label !== "written" ? "too large to keep a copy, still at its original path" : o.label === "written" ? "written by this run" : o.label === "probably" ? "probably from this run" : "from history";
 
+/** "This run kept no files", with a way to look again (a file saved outside the run's folder, say). */
+export function NoFiles({ onRescan }: { onRescan?: () => void }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="desc" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      This run kept no files.
+      {onRescan ? (
+        <button className="btn ghost" type="button" disabled={busy} onClick={() => (setBusy(true), onRescan())}>
+          {busy ? "Looking…" : "Look again"}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 export function OutputActions({ output }: { output: OutputItem }) {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,9 +54,9 @@ export function OutputActions({ output }: { output: OutputItem }) {
   );
 }
 
-export function OutputList({ outputs, grant }: { outputs: OutputItem[]; grant: string }) {
+export function OutputList({ outputs, grant, onRescan }: { outputs: OutputItem[]; grant: string; onRescan?: () => void }) {
   const [open, setOpen] = useState<string | null>(null);
-  if (!outputs.length) return <div className="desc">This run kept no files.</div>;
+  if (!outputs.length) return <NoFiles onRescan={onRescan} />;
   return (
     <div className="outs">
       {outputs.map((o) => (

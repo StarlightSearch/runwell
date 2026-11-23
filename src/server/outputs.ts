@@ -2,11 +2,13 @@
  * What a run produced. Fresh-folder runs: everything in `work/` (already in Runwell's folder, so nothing
  * is copied). Runs in a project: files the run's Write/Edit calls named ("written") plus files changed in
  * the project during the run ("probably"), copied into `runs/<id>/outputs/` within the size caps.
+ * Either kind also keeps files outside its folder that the run pointed to by path (`~/...`, see pointedFiles).
  * Symlinks are never followed and nothing outside the folder is ever served.
  */
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { copyFileSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
-import { isAbsolute, join, relative, sep } from "node:path";
+import { homedir, tmpdir } from "node:os";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { outputKind } from "../shared/outputs";
 import type { RunEvent } from "../shared/events";
 import type { Config } from "./config";
@@ -98,39 +100,78 @@ const inside = (root: string, abs: string) => {
   return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
 };
 
-export function collectOutputs(run: RunRow, events: RunEvent[], cfg: Config, p: Paths): OutputRow[] {
+/** Files a run names by path, in what it said or did: `~/Downloads/ad.mp4`, `/home/me/out/report.pdf`. */
+const NAMED_FILE = /(?:~|\/)[^\s"'`<>()|;&*?\\]+?\.(?:mp4|mov|webm|gif|png|jpe?g|webp|svg|pdf|html?|md|csv|tsv|xlsx|docx|pptx|mp3|wav|m4a|zip|txt|json)(?![\w.])/gi;
+
+/**
+ * Files outside the run's own folder that the run pointed to by path (a skill that saves its result to
+ * ~/Downloads, say) and that were written during the run. Only under the home folder, never in a temp
+ * folder (intermediate files) or Runwell's own data. Stored as `~/<path>`.
+ */
+export function pointedFiles(events: RunEvent[], window: { from: number; to: number }, skip: string[], home: string): { rel: string; abs: string }[] {
+  const texts: string[] = [];
+  for (const e of events) {
+    if (e.t === "text") texts.push(e.text);
+    else if (e.t === "tool.start") texts.push(JSON.stringify(e.input));
+    else if (e.t === "tool.end") texts.push(e.result);
+  }
+  const seen = new Map<string, string>();
+  // Temp folders hold intermediate files; ignored unless the home folder itself is in one (tests).
+  const temp = [tmpdir(), "/tmp", "/var/folders", "/private/var"].filter((d) => !(home + sep).startsWith(d + sep));
+  for (const t of texts) {
+    for (const m of t.replace(/\\n/g, " ").matchAll(NAMED_FILE)) {
+      const raw = m[0];
+      const abs = resolve(raw.startsWith("~/") ? join(home, raw.slice(2)) : raw);
+      if (seen.has(abs) || !abs.startsWith(home + sep)) continue;
+      if ([...skip, ...temp].some((d) => abs === d || abs.startsWith(d + sep))) continue;
+      try {
+        const st = lstatSync(abs);
+        if (!st.isFile() || st.mtimeMs < window.from || st.mtimeMs > window.to) continue;
+      } catch {
+        continue;
+      }
+      seen.set(abs, `~/${relative(home, abs).split(sep).join("/")}`);
+      if (seen.size >= 20) break;
+    }
+  }
+  return [...seen].map(([abs, rel]) => ({ abs, rel }));
+}
+
+export function collectOutputs(run: RunRow, events: RunEvent[], cfg: Config, p: Paths, home = homedir()): OutputRow[] {
+  const from = (run.startedAt ?? run.createdAt) - MTIME_SLACK_MS;
+  const to = (run.endedAt ?? Date.now()) + MTIME_SLACK_MS;
+  const own = run.place === "folder" ? p.work(run.id) : (run.projectPath ?? run.cwd);
+  const pointed = pointedFiles(events, { from, to }, [own, p.root], home);
+
+  const rows: OutputRow[] = [];
+  /** rel -> where it is and how sure we are; copied into outputs/ within the caps. */
+  const found = new Map<string, { abs: string; label: "written" | "probably" }>();
   if (run.place === "folder") {
-    const rows: OutputRow[] = [];
-    walk(p.work(run.id), (rel, abs) => {
+    walk(own, (rel, abs) => {
       const st = statSync(abs);
       rows.push({ runId: run.id, path: rel, label: "written", kind: outputKind(rel), bytes: st.size, mtime: Math.round(st.mtimeMs), copied: false, hash: null });
     }, { skipDirs: false });
-    return rows;
-  }
-
-  const root = run.projectPath ?? run.cwd;
-  const found = new Map<string, "written" | "probably">();
-  for (const abs of writtenPaths(events)) {
-    if (!inside(root, abs)) continue;
-    try {
-      if (!lstatSync(abs).isFile()) continue;
-    } catch {
-      continue;
+  } else {
+    for (const abs of writtenPaths(events)) {
+      if (!inside(own, abs)) continue;
+      try {
+        if (!lstatSync(abs).isFile()) continue;
+      } catch {
+        continue;
+      }
+      found.set(relative(own, abs).split(sep).join("/"), { abs, label: "written" });
     }
-    found.set(relative(root, abs).split(sep).join("/"), "written");
+    walk(own, (rel, abs) => {
+      if (found.has(rel)) return;
+      const m = statSync(abs).mtimeMs;
+      if (m >= from && m <= to) found.set(rel, { abs, label: "probably" });
+    }, { skipDirs: true, ignored: gitignore(own) });
   }
-  const from = (run.startedAt ?? run.createdAt) - MTIME_SLACK_MS;
-  const to = (run.endedAt ?? Date.now()) + MTIME_SLACK_MS;
-  walk(root, (rel, abs) => {
-    if (found.has(rel)) return;
-    const m = statSync(abs).mtimeMs;
-    if (m >= from && m <= to) found.set(rel, "probably");
-  }, { skipDirs: true, ignored: gitignore(root) });
+  const written = new Set(writtenPaths(events).map((a) => resolve(a)));
+  for (const f of pointed) found.set(f.rel, { abs: f.abs, label: written.has(f.abs) ? "written" : "probably" });
 
-  const rows: OutputRow[] = [];
   let copiedBytes = 0;
-  for (const [rel, label] of found) {
-    const abs = join(root, rel);
+  for (const [rel, { abs, label }] of found) {
     let st;
     try {
       st = lstatSync(abs);
@@ -165,7 +206,8 @@ export function collectOutputs(run: RunRow, events: RunEvent[], cfg: Config, p: 
 /** The absolute file to serve for `rel`, or null when it would leave the run's folder. */
 export function outputFile(run: RunRow, rel: string, p: Paths): string | null {
   if (!rel || isAbsolute(rel) || rel.split(/[\\/]/).includes("..")) return null;
-  const base = run.place === "folder" ? p.work(run.id) : p.outputs(run.id);
+  // Files from outside the run's folder (`~/...`) are kept in outputs/, also for a fresh-folder run.
+  const base = run.place === "folder" && !rel.startsWith("~/") ? p.work(run.id) : p.outputs(run.id);
   const abs = join(base, rel);
   try {
     const real = realpathSync(abs);

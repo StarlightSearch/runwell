@@ -1,4 +1,4 @@
-import { OutputActions, OutputList } from "./output-list";
+import { NoFiles, OutputActions, OutputList } from "./output-list";
 import { OutputPreview, type OutputItem } from "./output-preview";
 import "./past-run.css";
 
@@ -9,13 +9,13 @@ export function pickDelivered(outputs: OutputItem[]): OutputItem | null {
   return [...outputs].sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind) || b.mtime - a.mtime)[0] ?? null;
 }
 
-export function Delivered({ outputs, grant }: { outputs: OutputItem[]; grant: string }) {
+export function Delivered({ outputs, grant, onRescan }: { outputs: OutputItem[]; grant: string; onRescan?: () => void }) {
   const main = pickDelivered(outputs);
   return (
     <section data-testid="delivered">
       <h2>Delivered by this run</h2>
       {!main ? (
-        <div className="desc">This run kept no files.</div>
+        <NoFiles onRescan={onRescan} />
       ) : (
         <>
           <OutputPreview output={main} grant={grant} />

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -71,6 +71,31 @@ describe("collectOutputs", () => {
     symlinkSync("/etc/hosts", join(proj, "hosts"));
     const rows = collectOutputs(run({ place: "project", cwd: proj, projectPath: proj }), [...write("w1", join(proj, "hosts")), ...write("w2", join(proj, "gone.txt"))], DEFAULT_CONFIG, p);
     expect(rows).toEqual([]);
+  });
+});
+
+describe("files a run points to outside its folder", () => {
+  const said = (text: string): RunEvent[] => [{ t: "text", at: T0 + 5, agentId: null, text }];
+  it("keeps a file under home that the run named and wrote during the run, for both run kinds", () => {
+    const home = mkdtempSync(join(tmpdir(), "runwell-home-"));
+    const p = paths(join(home, ".runwell"));
+    put(join(home, "Downloads", "ad-4x5.mp4"), "video");
+    put(join(home, "Downloads", "old.mp4"), "old", T0 - 3_600_000);
+    put(join(home, ".runwell", "runs", "x", "work", "inner.png"), "mine");
+    const events = [
+      ...said("Done. Saved to ~/Downloads/ad-4x5.mp4 (the 4:5 cut)."),
+      ...said(`Also see ${join(home, "Downloads", "old.mp4")} and ${join(home, ".runwell", "runs", "x", "work", "inner.png")}`),
+      { t: "tool.start", at: T0 + 6, id: "b1", agentId: null, name: "Bash", input: { command: "ffmpeg -i /tmp/frames/%04d.png ~/Downloads/missing.mp4" } } as RunEvent,
+    ];
+    const proj = mkdtempSync(join(tmpdir(), "runwell-proj-"));
+    const projectRows = collectOutputs(run({ place: "project", cwd: proj, projectPath: proj }), events, DEFAULT_CONFIG, p, home);
+    expect(projectRows.map((r) => [r.path, r.label, r.kind, r.copied])).toEqual([["~/Downloads/ad-4x5.mp4", "probably", "video", true]]);
+    expect(readFileSync(join(p.outputs("r1"), "~/Downloads/ad-4x5.mp4"), "utf8")).toBe("video");
+
+    mkdirSync(p.work("r2"), { recursive: true });
+    const folderRows = collectOutputs(run({ id: "r2", cwd: p.work("r2") }), events, DEFAULT_CONFIG, p, home);
+    expect(folderRows.map((r) => r.path)).toEqual(["~/Downloads/ad-4x5.mp4"]);
+    expect(outputFile(run({ id: "r2", cwd: p.work("r2") }), "~/Downloads/ad-4x5.mp4", p)).toBe(realpathSync(join(p.outputs("r2"), "~/Downloads/ad-4x5.mp4")));
   });
 });
 

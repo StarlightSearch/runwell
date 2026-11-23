@@ -48,13 +48,15 @@ function register(on) {
       if (!words.length || words[0] === "open") argv = [cli, "open"];
       else if (words[0] === "last") argv = [cli, "last", "--cwd", cwd];
       else if (words[0] === "run" && words[1]) argv = [cli, "run", words[1], words.slice(2).join(" "), "--cwd", cwd];
+      else if (words[0] === "run") argv = [cli, "run"];
       else return { text: "Usage: /runwell, /runwell last, or /runwell run <skill> [brief]", isTextDisplayOnly: true };
       const r = await runNode($, argv);
       if (!r) {
         await hintOnce($);
         return { text: NODE_HINT, isTextDisplayOnly: true };
       }
-      return { text: (r.stdout.trim() || r.stderr.trim() || "Runwell could not start.").split("\n")[0], isTextDisplayOnly: true };
+      const text = r.stdout.trim() || r.stderr.trim() || "Runwell could not start.";
+      return { text: text.length > 6e3 ? `${text.slice(0, 6e3)}\u2026` : text, isTextDisplayOnly: true };
     } catch {
       return { text: "Runwell could not start. Try npx runwell in a terminal.", isTextDisplayOnly: true };
     }

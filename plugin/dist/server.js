@@ -438,7 +438,7 @@ var readBodyDirect = (request) => {
     request[bodyBufferKey] = buffered;
     return Promise.resolve(buffered);
   }
-  const promise = new Promise((resolve2, reject) => {
+  const promise = new Promise((resolve3, reject) => {
     const chunks = [];
     let settled = false;
     const finish = (callback) => {
@@ -456,7 +456,7 @@ var readBodyDirect = (request) => {
         else if (recovered === void 0) reject(error ?? normalizeAbortError(request, incoming));
         else {
           request[bodyBufferKey] = recovered;
-          resolve2(recovered);
+          resolve3(recovered);
         }
       });
       return true;
@@ -468,7 +468,7 @@ var readBodyDirect = (request) => {
       finish(() => {
         const buffer = chunks.length === 1 ? chunks[0] : Buffer.concat(chunks);
         request[bodyBufferKey] = buffer;
-        resolve2(buffer);
+        resolve3(buffer);
       });
     };
     const onError = (error) => {
@@ -1031,7 +1031,7 @@ var responseViaResponseObject = async (res, outgoing, options = {}) => {
         const chunk = await readWithoutBlocking(currentReadPromise);
         if (!chunk) {
           if (i === 1) {
-            await new Promise((resolve2) => setTimeout(resolve2));
+            await new Promise((resolve3) => setTimeout(resolve3));
             maxReadCount = 3;
             continue;
           }
@@ -1223,9 +1223,9 @@ var setupWebSocket = (options) => {
     }
   };
   const waitForWebSocket = (request, connectionSymbol) => {
-    return new Promise((resolve2, reject) => {
+    return new Promise((resolve3, reject) => {
       waiterMap.set(request, {
-        resolve: resolve2,
+        resolve: resolve3,
         reject,
         connectionSymbol
       });
@@ -1387,7 +1387,7 @@ var serve = (options, listeningListener) => {
 };
 
 // src/shared/version.ts
-var VERSION = true ? "0.1.0" : "0.0.0-dev";
+var VERSION = true ? "0.1.1" : "0.0.0-dev";
 
 // src/shared/outputs.ts
 var MIME = {
@@ -1523,7 +1523,7 @@ function saveConfig(p, patch) {
 }
 
 // src/server/schema.ts
-var SCHEMA_VERSION = 3;
+var SCHEMA_VERSION = 4;
 var MIGRATIONS = {
   1: `
 CREATE TABLE skills (
@@ -1555,7 +1555,9 @@ CREATE TABLE auth_sessions (id TEXT PRIMARY KEY, created_at INTEGER NOT NULL);
   // Claude's own session id for a run, so it can be continued with claude --resume.
   2: `ALTER TABLE runs ADD COLUMN session_id TEXT;`,
   // Which marketplace a plugin skill came from, so a whole marketplace can be ignored (@name).
-  3: `ALTER TABLE skills ADD COLUMN marketplace TEXT;`
+  3: `ALTER TABLE skills ADD COLUMN marketplace TEXT;`,
+  // How a button run was allowed to act: auto (Claude Code's Auto mode) or ask (the person's own settings).
+  4: `ALTER TABLE runs ADD COLUMN mode TEXT;`
 };
 
 // src/server/db.ts
@@ -3860,7 +3862,7 @@ function createApp(ctx, extra = []) {
         clearInterval(ping);
         unsub();
       });
-      await new Promise((resolve2) => stream2.onAbort(resolve2));
+      await new Promise((resolve3) => stream2.onAbort(resolve3));
     });
   });
   for (const add of extra) add(app, ctx);
@@ -3911,12 +3913,12 @@ function alive(pid) {
   }
 }
 function freePort(wanted) {
-  const tryPort = (port) => new Promise((resolve2) => {
+  const tryPort = (port) => new Promise((resolve3) => {
     const s = createServer2();
-    s.once("error", () => resolve2(null));
+    s.once("error", () => resolve3(null));
     s.listen(port, "127.0.0.1", () => {
       const got = s.address().port;
-      s.close(() => resolve2(got));
+      s.close(() => resolve3(got));
     });
   });
   return tryPort(wanted).then((p) => p ?? tryPort(0).then((q) => q ?? 0));
@@ -4014,7 +4016,7 @@ function paths(home) {
 
 // src/server/services.ts
 import { spawn as spawn4 } from "node:child_process";
-import { homedir as homedir7, platform } from "node:os";
+import { homedir as homedir9, platform } from "node:os";
 import { dirname as dirname2, join as join15 } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -4027,10 +4029,10 @@ function createAskBroker(deps) {
       const id = randomBytes3(8).toString("hex");
       const agentId = input.agentId ?? (input.toolCallId ? deps.agentOfCall(runId, input.toolCallId) : null);
       const ask = { ...input, id, agentId };
-      let resolve2;
-      const answer = new Promise((r) => resolve2 = r);
+      let resolve3;
+      const answer = new Promise((r) => resolve3 = r);
       const asks = open.get(runId) ?? /* @__PURE__ */ new Map();
-      asks.set(id, { ask, resolve: resolve2 });
+      asks.set(id, { ask, resolve: resolve3 });
       open.set(runId, asks);
       deps.append(runId, { t: "ask", at: deps.now(), ask });
       return { id, answer };
@@ -4071,14 +4073,233 @@ function parseAnswer(v) {
 }
 
 // src/server/backfill.ts
-import { copyFileSync, lstatSync, mkdirSync as mkdirSync3, readdirSync as readdirSync4, statSync as statSync4, writeFileSync as writeFileSync4 } from "node:fs";
-import { homedir as homedir3 } from "node:os";
-import { isAbsolute, join as join6, relative, resolve, sep } from "node:path";
+import { copyFileSync as copyFileSync2, lstatSync as lstatSync2, mkdirSync as mkdirSync4, readdirSync as readdirSync5, statSync as statSync5, writeFileSync as writeFileSync4 } from "node:fs";
+import { homedir as homedir4 } from "node:os";
+import { isAbsolute as isAbsolute2, join as join7, relative as relative2, resolve as resolve2, sep as sep2 } from "node:path";
+
+// src/server/outputs.ts
+import { createHash, createHmac, timingSafeEqual as timingSafeEqual2 } from "node:crypto";
+import { copyFileSync, lstatSync, mkdirSync as mkdirSync2, readFileSync as readFileSync4, readdirSync, realpathSync, statSync } from "node:fs";
+import { homedir as homedir2, tmpdir } from "node:os";
+import { isAbsolute, join as join2, relative, resolve, sep } from "node:path";
+var WRITE_TOOLS = /* @__PURE__ */ new Set(["Write", "Edit", "MultiEdit", "NotebookEdit"]);
+var SKIP_DIRS = /* @__PURE__ */ new Set([".git", "node_modules", "dist", "build", ".next", "out", "target", ".venv", "__pycache__", ".cache"]);
+var SCAN_LIMIT = 2e4;
+var MTIME_SLACK_MS = 2e3;
+function gitignore(root) {
+  let lines2 = [];
+  try {
+    lines2 = readFileSync4(join2(root, ".gitignore"), "utf8").split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith("#") && !l.startsWith("!"));
+  } catch {
+    return () => false;
+  }
+  return (rel, isDir) => {
+    const parts = rel.split("/");
+    const name = parts.at(-1);
+    return lines2.some((raw2) => {
+      const dirOnly = raw2.endsWith("/");
+      const anchored = raw2.startsWith("/");
+      const pat = raw2.replace(/^\//, "").replace(/\/$/, "");
+      if (dirOnly && !isDir) return parts.slice(0, -1).some((p) => p === pat);
+      if (pat.startsWith("*.")) return name.endsWith(pat.slice(1));
+      if (anchored) return rel === pat || rel.startsWith(pat + "/");
+      return parts.includes(pat);
+    });
+  };
+}
+function walk(root, visit, opts) {
+  let seen = 0;
+  const stack = [""];
+  while (stack.length && seen < SCAN_LIMIT) {
+    const relDir = stack.pop();
+    let entries;
+    try {
+      entries = readdirSync(join2(root, relDir), { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const e of entries) {
+      if (++seen > SCAN_LIMIT) break;
+      const rel = relDir ? `${relDir}/${e.name}` : e.name;
+      if (e.isSymbolicLink()) continue;
+      if (e.isDirectory()) {
+        if (opts.skipDirs && (SKIP_DIRS.has(e.name) || e.name.startsWith("."))) continue;
+        if (opts.ignored?.(rel, true)) continue;
+        stack.push(rel);
+      } else if (e.isFile()) {
+        if (opts.ignored?.(rel, false)) continue;
+        visit(rel, join2(root, rel));
+      }
+    }
+  }
+}
+var sha2562 = (file) => createHash("sha256").update(readFileSync4(file)).digest("hex");
+function writtenPaths(events) {
+  const out = [];
+  for (const e of events) {
+    if (e.t !== "tool.start" || !WRITE_TOOLS.has(e.name)) continue;
+    const p = e.input.file_path ?? e.input.notebook_path;
+    if (typeof p === "string" && isAbsolute(p)) out.push(p);
+  }
+  return out;
+}
+var inside = (root, abs) => {
+  const rel = relative(root, abs);
+  return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
+};
+var NAMED_FILE = /(?:~|\/)[^\s"'`<>()|;&*?\\]+?\.(?:mp4|mov|webm|gif|png|jpe?g|webp|svg|pdf|html?|md|csv|tsv|xlsx|docx|pptx|mp3|wav|m4a|zip|txt|json)(?![\w.])/gi;
+function pointedFiles(events, window, skip, home) {
+  const texts = [];
+  for (const e of events) {
+    if (e.t === "text") texts.push(e.text);
+    else if (e.t === "tool.start") texts.push(JSON.stringify(e.input));
+    else if (e.t === "tool.end") texts.push(e.result);
+  }
+  const seen = /* @__PURE__ */ new Map();
+  const temp = [tmpdir(), "/tmp", "/var/folders", "/private/var"].filter((d) => !(home + sep).startsWith(d + sep));
+  for (const t of texts) {
+    for (const m of t.replace(/\\n/g, " ").matchAll(NAMED_FILE)) {
+      const raw2 = m[0];
+      const abs = resolve(raw2.startsWith("~/") ? join2(home, raw2.slice(2)) : raw2);
+      if (seen.has(abs) || !abs.startsWith(home + sep)) continue;
+      if ([...skip, ...temp].some((d) => abs === d || abs.startsWith(d + sep))) continue;
+      try {
+        const st = lstatSync(abs);
+        if (!st.isFile() || st.mtimeMs < window.from || st.mtimeMs > window.to) continue;
+      } catch {
+        continue;
+      }
+      seen.set(abs, `~/${relative(home, abs).split(sep).join("/")}`);
+      if (seen.size >= 20) break;
+    }
+  }
+  return [...seen].map(([abs, rel]) => ({ abs, rel }));
+}
+function collectOutputs(run3, events, cfg, p, home = homedir2()) {
+  const from = (run3.startedAt ?? run3.createdAt) - MTIME_SLACK_MS;
+  const to = (run3.endedAt ?? Date.now()) + MTIME_SLACK_MS;
+  const own = run3.place === "folder" ? p.work(run3.id) : run3.projectPath ?? run3.cwd;
+  const pointed = pointedFiles(events, { from, to }, [own, p.root], home);
+  const rows = [];
+  const found = /* @__PURE__ */ new Map();
+  if (run3.place === "folder") {
+    walk(own, (rel, abs) => {
+      const st = statSync(abs);
+      rows.push({ runId: run3.id, path: rel, label: "written", kind: outputKind(rel), bytes: st.size, mtime: Math.round(st.mtimeMs), copied: false, hash: null });
+    }, { skipDirs: false });
+  } else {
+    for (const abs of writtenPaths(events)) {
+      if (!inside(own, abs)) continue;
+      try {
+        if (!lstatSync(abs).isFile()) continue;
+      } catch {
+        continue;
+      }
+      found.set(relative(own, abs).split(sep).join("/"), { abs, label: "written" });
+    }
+    walk(own, (rel, abs) => {
+      if (found.has(rel)) return;
+      const m = statSync(abs).mtimeMs;
+      if (m >= from && m <= to) found.set(rel, { abs, label: "probably" });
+    }, { skipDirs: true, ignored: gitignore(own) });
+  }
+  const written = new Set(writtenPaths(events).map((a) => resolve(a)));
+  for (const f of pointed) found.set(f.rel, { abs: f.abs, label: written.has(f.abs) ? "written" : "probably" });
+  let copiedBytes = 0;
+  for (const [rel, { abs, label }] of found) {
+    let st;
+    try {
+      st = lstatSync(abs);
+    } catch {
+      continue;
+    }
+    if (!st.isFile()) continue;
+    let copied = false;
+    let hash = null;
+    if (st.size <= cfg.copyFileCapBytes && copiedBytes + st.size <= cfg.copyRunCapBytes) {
+      try {
+        const dest = join2(p.outputs(run3.id), rel);
+        mkdirSync2(join2(dest, ".."), { recursive: true });
+        copyFileSync(abs, dest);
+        copied = true;
+        copiedBytes += st.size;
+      } catch {
+        continue;
+      }
+    } else {
+      try {
+        hash = sha2562(abs);
+      } catch {
+        continue;
+      }
+    }
+    rows.push({ runId: run3.id, path: rel, label, kind: outputKind(rel), bytes: st.size, mtime: Math.round(st.mtimeMs), copied, hash });
+  }
+  return rows;
+}
+function outputFile(run3, rel, p) {
+  if (!rel || isAbsolute(rel) || rel.split(/[\\/]/).includes("..")) return null;
+  const base = run3.place === "folder" && !rel.startsWith("~/") ? p.work(run3.id) : p.outputs(run3.id);
+  const abs = join2(base, rel);
+  try {
+    const real = realpathSync(abs);
+    const realBase = realpathSync(base);
+    if (!real.startsWith(realBase + sep)) return null;
+    return statSync(real).isFile() ? real : null;
+  } catch {
+    return null;
+  }
+}
+var grantKey = (token) => createHmac("sha256", token).update("runwell-output-grant-v1").digest();
+function grantFor(token, runId, now) {
+  const exp = now + 36e5;
+  const mac = createHmac("sha256", grantKey(token)).update(`${runId}:${exp}`).digest("base64url");
+  return `${exp}.${mac}`;
+}
+function checkGrant(token, runId, grant, now) {
+  const [expStr, mac] = grant.split(".");
+  const exp = Number(expStr);
+  if (!mac || !Number.isFinite(exp) || exp < now) return false;
+  const want = Buffer.from(createHmac("sha256", grantKey(token)).update(`${runId}:${exp}`).digest("base64url"));
+  const got = Buffer.from(mac);
+  return want.length === got.length && timingSafeEqual2(want, got);
+}
+var toOut = (r) => ({ runId: r.run_id, path: r.path, label: r.label, kind: r.kind, bytes: r.bytes, mtime: r.mtime, copied: !!r.copied, hash: r.hash });
+function createOutputsService(deps) {
+  return {
+    async collect(run3, events) {
+      const rows = collectOutputs(run3, events, deps.config(), deps.paths);
+      deps.db.tx(() => {
+        deps.db.run("DELETE FROM outputs WHERE run_id = ?", run3.id);
+        for (const r of rows) {
+          deps.db.run("INSERT INTO outputs (run_id, path, label, kind, bytes, mtime, copied, hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", r.runId, r.path, r.label, r.kind, r.bytes, r.mtime, r.copied ? 1 : 0, r.hash);
+        }
+      });
+    },
+    list: (runId) => deps.db.all("SELECT * FROM outputs WHERE run_id = ? ORDER BY path", runId).map(toOut),
+    recent(q) {
+      const where = ["1 = 1"];
+      const params = [];
+      if (q.skill) where.push("r.skill_key = ?"), params.push(q.skill);
+      if (q.kind) where.push("o.kind = ?"), params.push(q.kind);
+      if (q.before) where.push("r.created_at < ?"), params.push(q.before);
+      params.push(Math.min(Math.max(q.limit ?? 60, 1), 500));
+      return deps.db.all(
+        `SELECT o.*, r.skill_ref, r.n, r.created_at FROM outputs o JOIN runs r ON r.id = o.run_id WHERE ${where.join(" AND ")} ORDER BY r.created_at DESC, o.path LIMIT ?`,
+        ...params
+      ).map((r) => ({ ...toOut(r), skillRef: r.skill_ref, runN: r.n, runCreatedAt: r.created_at }));
+    },
+    grant: (runId) => grantFor(deps.token(), runId, deps.now()),
+    checkGrant: (runId, grant) => checkGrant(deps.token(), runId, grant, deps.now()),
+    file: (run3, rel) => outputFile(run3, rel, deps.paths),
+    reveal: (file) => deps.reveal(file)
+  };
+}
 
 // src/server/runs.ts
 import { randomBytes as randomBytes4 } from "node:crypto";
-import { appendFileSync, cpSync, existsSync as existsSync2, mkdirSync as mkdirSync2, readFileSync as readFileSync5, readdirSync as readdirSync2, renameSync as renameSync3, rmSync as rmSync2, statSync as statSync3, writeFileSync as writeFileSync3 } from "node:fs";
-import { basename as basename2, extname, join as join4 } from "node:path";
+import { appendFileSync, cpSync, existsSync as existsSync2, mkdirSync as mkdirSync3, readFileSync as readFileSync6, readdirSync as readdirSync3, renameSync as renameSync3, rmSync as rmSync2, statSync as statSync4, writeFileSync as writeFileSync3 } from "node:fs";
+import { basename as basename2, extname, join as join5 } from "node:path";
 
 // src/shared/graph/names.ts
 var TRAILING = /(?:\s*[-–—:,]?\s*(?:\bv\s?\d+|\bversion\s*\d+|\bpass\s*#?\d+|\bround\s*#?\d+))+$/i;
@@ -4708,14 +4929,14 @@ function graphOf(events, workflow, live) {
 
 // src/server/claude/auth.ts
 import { execFile } from "node:child_process";
-import { homedir as homedir2 } from "node:os";
+import { homedir as homedir3 } from "node:os";
 
 // src/server/claude/locate.ts
-import { accessSync, constants as constants2, statSync } from "node:fs";
-import { delimiter, join as join2 } from "node:path";
+import { accessSync, constants as constants2, statSync as statSync2 } from "node:fs";
+import { delimiter, join as join3 } from "node:path";
 function isExecutable(file) {
   try {
-    if (!statSync(file).isFile()) return false;
+    if (!statSync2(file).isFile()) return false;
     accessSync(file, constants2.X_OK);
     return true;
   } catch {
@@ -4725,9 +4946,9 @@ function isExecutable(file) {
 function locateClaude(opts) {
   const candidates = [
     ...opts.configured ? [opts.configured] : [],
-    ...(opts.env.PATH ?? "").split(delimiter).filter(Boolean).map((d) => join2(d, "claude")),
-    join2(opts.home, ".claude/local/claude"),
-    join2(opts.home, ".local/bin/claude"),
+    ...(opts.env.PATH ?? "").split(delimiter).filter(Boolean).map((d) => join3(d, "claude")),
+    join3(opts.home, ".claude/local/claude"),
+    join3(opts.home, ".local/bin/claude"),
     "/opt/homebrew/bin/claude",
     "/usr/local/bin/claude"
   ];
@@ -4739,11 +4960,11 @@ var NOT_FOUND = "Claude Code was not found. Install it, or set its path in Setti
 var SIGNED_OUT = "Run `claude` in a terminal and sign in.";
 var MODS_FROM = "2.1.287";
 function run2(bin, args, env, timeoutMs) {
-  return new Promise((resolve2) => {
+  return new Promise((resolve3) => {
     execFile(bin, args, { env, timeout: timeoutMs, killSignal: "SIGKILL", maxBuffer: 1024 * 1024 }, (err, stdout) => {
-      if (err && err.killed) return resolve2(null);
+      if (err && err.killed) return resolve3(null);
       const code = err ? err.code ?? 1 : 0;
-      resolve2({ code: typeof code === "number" ? code : 1, stdout: String(stdout) });
+      resolve3({ code: typeof code === "number" ? code : 1, stdout: String(stdout) });
     });
   });
 }
@@ -4773,15 +4994,15 @@ var atLeast = (v, min) => {
 };
 async function claudeState(opts) {
   const env = opts.env ?? process.env;
-  const path = locateClaude({ configured: opts.configured, env, home: opts.home ?? homedir2() });
+  const path = locateClaude({ configured: opts.configured, env, home: opts.home ?? homedir3() });
   if (!path) return { found: false, path: null, version: null, signedIn: "unknown", modsSupported: false, message: NOT_FOUND };
   const [version, signedIn] = await Promise.all([claudeVersion(path, env), checkSignedIn(path, env)]);
   return { found: true, path, version, signedIn, modsSupported: version ? atLeast(version, MODS_FROM) : false, message: signedIn === "out" ? SIGNED_OUT : null };
 }
 
 // src/server/projects.ts
-import { closeSync as closeSync2, existsSync, openSync as openSync2, readFileSync as readFileSync4, readSync, readdirSync, statSync as statSync2 } from "node:fs";
-import { basename, join as join3 } from "node:path";
+import { closeSync as closeSync2, existsSync, openSync as openSync2, readFileSync as readFileSync5, readSync, readdirSync as readdirSync2, statSync as statSync3 } from "node:fs";
+import { basename, join as join4 } from "node:path";
 var HEAD_BYTES = 2 * 1024 * 1024;
 var HEAD_LINES = 200;
 function cwdOf(file) {
@@ -4807,7 +5028,7 @@ function cwdOf(file) {
 }
 function readTrust(claudeJson) {
   try {
-    const raw2 = JSON.parse(readFileSync4(claudeJson, "utf8"));
+    const raw2 = JSON.parse(readFileSync5(claudeJson, "utf8"));
     const out = /* @__PURE__ */ new Map();
     if (raw2.projects && typeof raw2.projects === "object") {
       for (const [path, v] of Object.entries(raw2.projects)) {
@@ -4820,19 +5041,19 @@ function readTrust(claudeJson) {
   }
 }
 function readLogs(claudeHome) {
-  const root = join3(claudeHome, "projects");
+  const root = join4(claudeHome, "projects");
   let folders;
   try {
-    folders = readdirSync(root);
+    folders = readdirSync2(root);
   } catch {
     return null;
   }
   const out = /* @__PURE__ */ new Map();
   for (const f of folders) {
-    const dir = join3(root, f);
+    const dir = join4(root, f);
     let logs = [];
     try {
-      logs = readdirSync(dir).filter((x) => x.endsWith(".jsonl")).map((x) => ({ file: join3(dir, x), at: statSync2(join3(dir, x)).mtimeMs })).sort((a, b) => b.at - a.at);
+      logs = readdirSync2(dir).filter((x) => x.endsWith(".jsonl")).map((x) => ({ file: join4(dir, x), at: statSync3(join4(dir, x)).mtimeMs })).sort((a, b) => b.at - a.at);
     } catch {
       continue;
     }
@@ -4845,7 +5066,7 @@ function readLogs(claudeHome) {
 }
 function skillCount(path) {
   try {
-    return readdirSync(join3(path, ".claude/skills"), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(join3(path, ".claude/skills", d.name, "SKILL.md"))).length;
+    return readdirSync2(join4(path, ".claude/skills"), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(join4(path, ".claude/skills", d.name, "SKILL.md"))).length;
   } catch {
     return 0;
   }
@@ -4860,7 +5081,7 @@ function scanProjects(claudeHome, claudeJson, runwellRoot) {
     if (path.includes("/.claude/worktrees/")) continue;
     if (runwellRoot && isRunwellFolder(path, runwellRoot)) continue;
     try {
-      if (!statSync2(path).isDirectory()) continue;
+      if (!statSync3(path).isDirectory()) continue;
     } catch {
       continue;
     }
@@ -4874,7 +5095,7 @@ function trustOf(projects, path) {
 }
 function hasHooks(file) {
   try {
-    const v = JSON.parse(readFileSync4(file, "utf8"));
+    const v = JSON.parse(readFileSync5(file, "utf8"));
     return !!v && typeof v === "object" && "hooks" in v;
   } catch {
     return false;
@@ -4883,15 +5104,15 @@ function hasHooks(file) {
 function checkProject(path, projects) {
   let exists = false;
   try {
-    exists = statSync2(path).isDirectory();
+    exists = statSync3(path).isDirectory();
   } catch {
   }
   if (!exists) return { exists: false, trusted: false, hooks: false, mcp: false };
   return {
     exists,
     trusted: trustOf(projects, path) === "trusted",
-    hooks: hasHooks(join3(path, ".claude/settings.json")) || hasHooks(join3(path, ".claude/settings.local.json")),
-    mcp: existsSync(join3(path, ".mcp.json"))
+    hooks: hasHooks(join4(path, ".claude/settings.json")) || hasHooks(join4(path, ".claude/settings.local.json")),
+    mcp: existsSync(join4(path, ".mcp.json"))
   };
 }
 
@@ -4918,6 +5139,7 @@ var toRow = (r) => ({
   projectPath: r.project_path,
   model: r.model,
   allowAll: !!r.allow_all,
+  mode: r.mode === "auto" || r.mode === "ask" ? r.mode : null,
   skillVersion: r.skill_version ?? 1,
   createdAt: r.created_at,
   startedAt: r.started_at,
@@ -4933,7 +5155,7 @@ function uniqueName(dir, raw2) {
   const ext2 = extname(base);
   const stem = base.slice(0, base.length - ext2.length) || "file";
   let name = base;
-  for (let i = 2; existsSync2(join4(dir, name)); i++) name = `${stem}-${i}${ext2}`;
+  for (let i = 2; existsSync2(join5(dir, name)); i++) name = `${stem}-${i}${ext2}`;
   return name;
 }
 function createRunsService(deps) {
@@ -4948,7 +5170,7 @@ function createRunsService(deps) {
   };
   const publishRuns = (id) => deps.hub.publish("runs", { id, status: row(id)?.status });
   const append = (id, e) => {
-    mkdirSync2(deps.paths.runDir(id), { recursive: true });
+    mkdirSync3(deps.paths.runDir(id), { recursive: true });
     appendFileSync(deps.paths.events(id), JSON.stringify(e) + "\n");
     deps.hub.publish(`run:${id}`, e);
     if (e.t === "ask") {
@@ -4971,7 +5193,7 @@ function createRunsService(deps) {
   };
   const events = (id, from = 0) => {
     try {
-      return readFileSync5(deps.paths.events(id), "utf8").split("\n").filter((l) => l.trim()).flatMap((l) => {
+      return readFileSync6(deps.paths.events(id), "utf8").split("\n").filter((l) => l.trim()).flatMap((l) => {
         try {
           return [JSON.parse(l)];
         } catch {
@@ -5011,13 +5233,13 @@ function createRunsService(deps) {
     const skill = deps.skill(r.skillKey);
     const wf = skill ? await deps.workflow(skill).catch(() => ({ steps: null, from: "none", note: null })) : { steps: null, from: "none", note: null };
     workflows.set(id, wf);
-    const mcpConfigPath = join4(deps.paths.runDir(id), "mcp.json");
+    const mcpConfigPath = join5(deps.paths.runDir(id), "mcp.json");
     if (deps.mcpServer) {
       const s = deps.mcpServer();
       writeFileSync3(mcpConfigPath, JSON.stringify({ mcpServers: { runwell: { command: s.command, args: s.args, env: { RUNWELL_HOME: deps.paths.root } } } }));
     } else writeFileSync3(mcpConfigPath, JSON.stringify({ mcpServers: {} }));
     const inputsDir = deps.paths.inputs(id);
-    const inputs = existsSync2(inputsDir) ? readdirSync2(inputsDir).map((f) => join4(inputsDir, f)) : [];
+    const inputs = existsSync2(inputsDir) ? readdirSync3(inputsDir).map((f) => join5(inputsDir, f)) : [];
     const contextProject = r.place === "folder" ? deps.db.get("SELECT project_path FROM runs WHERE id = ?", id)?.project_path ?? null : null;
     deps.db.run("UPDATE runs SET status = 'running', started_at = ? WHERE id = ?", deps.now(), id);
     append(id, { t: "status", at: deps.now(), status: "running", reason: null });
@@ -5034,6 +5256,7 @@ function createRunsService(deps) {
         addDir: contextProject,
         model: r.model,
         allowAll: r.allowAll,
+        mode: r.mode ?? "ask",
         steps: wf.steps,
         mcpConfigPath
       });
@@ -5074,21 +5297,21 @@ function createRunsService(deps) {
   }
   function moveUploads(id, uploadIds) {
     const dest = deps.paths.inputs(id);
-    mkdirSync2(dest, { recursive: true });
+    mkdirSync3(dest, { recursive: true });
     for (const up of uploadIds) {
       if (!/^[A-Za-z0-9_-]{1,64}$/.test(up)) continue;
-      const dir = join4(deps.paths.runs, "_uploads", up);
+      const dir = join5(deps.paths.runs, "_uploads", up);
       if (!existsSync2(dir)) continue;
       let original = null;
       try {
-        original = readFileSync5(join4(dir, ".name"), "utf8");
+        original = readFileSync6(join5(dir, ".name"), "utf8");
       } catch {
       }
-      for (const f of readdirSync2(dir)) {
+      for (const f of readdirSync3(dir)) {
         if (f === ".name") continue;
-        const src = join4(dir, f);
-        if (!statSync3(src).isFile()) continue;
-        renameSync3(src, join4(dest, uniqueName(dest, original ?? f)));
+        const src = join5(dir, f);
+        if (!statSync4(src).isFile()) continue;
+        renameSync3(src, join5(dest, uniqueName(dest, original ?? f)));
       }
       rmSync2(dir, { recursive: true, force: true });
     }
@@ -5108,7 +5331,7 @@ function createRunsService(deps) {
         const path = input.place.path;
         let exists = false;
         try {
-          exists = statSync3(path).isDirectory();
+          exists = statSync4(path).isDirectory();
         } catch {
         }
         if (!exists) return { ok: false, error: "folder_missing", message: "That folder no longer exists." };
@@ -5120,16 +5343,16 @@ function createRunsService(deps) {
       const id = newRunId();
       const n = (deps.db.get("SELECT MAX(n) AS m FROM runs WHERE skill_key = ?", skill.key)?.m ?? 0) + 1;
       const cwd = input.place.kind === "project" ? input.place.path : deps.paths.work(id);
-      mkdirSync2(deps.paths.work(id), { recursive: true });
+      mkdirSync3(deps.paths.work(id), { recursive: true });
       if (input.place.kind === "project") rmSync2(deps.paths.work(id), { recursive: true, force: true });
-      mkdirSync2(deps.paths.inputs(id), { recursive: true });
+      mkdirSync3(deps.paths.inputs(id), { recursive: true });
       moveUploads(id, input.uploadIds);
       if (from && !input.uploadIds.length && existsSync2(deps.paths.inputs(from.id))) {
         cpSync(deps.paths.inputs(from.id), deps.paths.inputs(id), { recursive: true });
       }
       deps.db.run(
-        `INSERT INTO runs (id, skill_key, skill_ref, n, kind, status, brief, cwd, place, project_path, model, allow_all, skill_version, created_at)
-         VALUES (?, ?, ?, ?, 'button', 'queued', ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO runs (id, skill_key, skill_ref, n, kind, status, brief, cwd, place, project_path, model, allow_all, skill_version, created_at, mode)
+         VALUES (?, ?, ?, ?, 'button', 'queued', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         id,
         skill.key,
         skill.ref,
@@ -5141,7 +5364,8 @@ function createRunsService(deps) {
         input.model,
         input.allowAll ? 1 : 0,
         skill.version,
-        deps.now()
+        deps.now(),
+        input.mode ?? "auto"
       );
       publishRuns(id);
       pump();
@@ -5197,7 +5421,7 @@ function createRunsService(deps) {
         const reason = "Runwell restarted during this run";
         deps.db.run("UPDATE runs SET status = 'failed', error = ?, ended_at = ?, pid = NULL WHERE id = ?", reason, deps.now(), o.id);
         append(o.id, { t: "status", at: deps.now(), status: "failed", reason });
-        if (o.pid && (deps.pidCommand(o.pid) ?? "").includes(join4(deps.paths.runDir(o.id), "mcp.json"))) {
+        if (o.pid && (deps.pidCommand(o.pid) ?? "").includes(join5(deps.paths.runDir(o.id), "mcp.json"))) {
           try {
             process.kill(process.platform === "win32" ? o.pid : -o.pid, "SIGTERM");
           } catch {
@@ -5224,8 +5448,8 @@ function createRunsService(deps) {
 }
 
 // src/server/sessions.ts
-import { closeSync as closeSync3, existsSync as existsSync3, openSync as openSync3, readFileSync as readFileSync6, readSync as readSync2, readdirSync as readdirSync3 } from "node:fs";
-import { basename as basename3, dirname, join as join5 } from "node:path";
+import { closeSync as closeSync3, existsSync as existsSync3, openSync as openSync3, readFileSync as readFileSync7, readSync as readSync2, readdirSync as readdirSync4 } from "node:fs";
+import { basename as basename3, dirname, join as join6 } from "node:path";
 var MAX_LINE = 5 * 1024 * 1024;
 var MAX_RESULT = 2e4;
 var GAP_MS = 30 * 60 * 1e3;
@@ -5364,16 +5588,16 @@ function readSessionLog(file) {
   return log;
 }
 function addSubagents(file, log) {
-  const dir = join5(dirname(file), basename3(file, ".jsonl"), "subagents");
+  const dir = join6(dirname(file), basename3(file, ".jsonl"), "subagents");
   if (!existsSync3(dir)) return;
   const callLine = /* @__PURE__ */ new Map();
   for (const e of log.events) if (e.t === "tool.start" && SUBAGENT_TOOLS.has(e.name)) callLine.set(e.id, e.line);
   const metas = [];
-  for (const f of readdirSync3(dir)) {
+  for (const f of readdirSync4(dir)) {
     if (!f.endsWith(".meta.json")) continue;
     try {
-      const m = JSON.parse(readFileSync6(join5(dir, f), "utf8"));
-      if (typeof m.toolUseId === "string") metas.push({ file: join5(dir, f.replace(/\.meta\.json$/, ".jsonl")), toolUseId: m.toolUseId, depth: typeof m.spawnDepth === "number" ? m.spawnDepth : 1 });
+      const m = JSON.parse(readFileSync7(join6(dir, f), "utf8"));
+      if (typeof m.toolUseId === "string") metas.push({ file: join6(dir, f.replace(/\.meta\.json$/, ".jsonl")), toolUseId: m.toolUseId, depth: typeof m.spawnDepth === "number" ? m.spawnDepth : 1 });
     } catch {
     }
   }
@@ -5440,29 +5664,29 @@ function findSkillUses(log) {
 }
 
 // src/server/backfill.ts
-var WRITE_TOOLS = /* @__PURE__ */ new Set(["Write", "Edit", "MultiEdit", "NotebookEdit"]);
+var WRITE_TOOLS2 = /* @__PURE__ */ new Set(["Write", "Edit", "MultiEdit", "NotebookEdit"]);
 var DAY = 864e5;
 function listLogs(claudeHome, sinceMs) {
-  const root = join6(claudeHome, "projects");
+  const root = join7(claudeHome, "projects");
   const out = [];
   let folders = [];
   try {
-    folders = readdirSync4(root);
+    folders = readdirSync5(root);
   } catch {
     return out;
   }
   for (const f of folders) {
     let names = [];
     try {
-      names = readdirSync4(join6(root, f));
+      names = readdirSync5(join7(root, f));
     } catch {
       continue;
     }
     for (const name of names) {
       if (!name.endsWith(".jsonl")) continue;
-      const file = join6(root, f, name);
+      const file = join7(root, f, name);
       try {
-        const st = statSync4(file);
+        const st = statSync5(file);
         if (st.isFile() && st.mtimeMs >= sinceMs) out.push({ file, size: st.size, mtime: Math.round(st.mtimeMs) });
       } catch {
       }
@@ -5485,32 +5709,59 @@ function createBackfill(deps) {
     let copied = 0;
     const seen = /* @__PURE__ */ new Set();
     for (const e of events) {
-      if (e.t !== "tool.start" || !WRITE_TOOLS.has(e.name)) continue;
+      if (e.t !== "tool.start" || !WRITE_TOOLS2.has(e.name)) continue;
       const raw2 = e.input.file_path ?? e.input.notebook_path;
-      if (typeof raw2 !== "string" || !isAbsolute(raw2) || !cwd) continue;
-      const abs = resolve(raw2);
-      const rel = relative(cwd, abs);
-      if (!rel || rel.startsWith("..") || isAbsolute(rel) || seen.has(abs)) continue;
+      if (typeof raw2 !== "string" || !isAbsolute2(raw2) || !cwd) continue;
+      const abs = resolve2(raw2);
+      const rel = relative2(cwd, abs);
+      if (!rel || rel.startsWith("..") || isAbsolute2(rel) || seen.has(abs)) continue;
       seen.add(abs);
       let s;
       try {
-        s = lstatSync(abs);
+        s = lstatSync2(abs);
       } catch {
         continue;
       }
       if (!s.isFile() || s.size > cfg.copyFileCapBytes || copied + s.size > cfg.copyRunCapBytes) continue;
       try {
         const root = deps.paths.outputs(runId);
-        const dest = join6(root, rel);
-        if (!dest.startsWith(root + sep)) continue;
-        mkdirSync3(join6(dest, ".."), { recursive: true });
-        copyFileSync(abs, dest);
+        const dest = join7(root, rel);
+        if (!dest.startsWith(root + sep2)) continue;
+        mkdirSync4(join7(dest, ".."), { recursive: true });
+        copyFileSync2(abs, dest);
         copied += s.size;
         deps.db.run(
           "INSERT OR REPLACE INTO outputs (run_id, path, label, kind, bytes, mtime, copied, hash) VALUES (?, ?, 'history', ?, ?, ?, 1, NULL)",
           runId,
           rel,
           outputKind(rel),
+          s.size,
+          Math.round(s.mtimeMs)
+        );
+      } catch {
+      }
+    }
+    if (!events.length) return;
+    const ats = events.map((e) => e.at);
+    const window = { from: Math.min(...ats) - 2e3, to: Math.max(...ats) + 6e4 };
+    for (const f of pointedFiles(events, window, [cwd ?? "", deps.paths.root].filter(Boolean), homedir4())) {
+      let s;
+      try {
+        s = lstatSync2(f.abs);
+      } catch {
+        continue;
+      }
+      if (!s.isFile() || s.size > cfg.copyFileCapBytes || copied + s.size > cfg.copyRunCapBytes) continue;
+      try {
+        const dest = join7(deps.paths.outputs(runId), f.rel);
+        mkdirSync4(join7(dest, ".."), { recursive: true });
+        copyFileSync2(f.abs, dest);
+        copied += s.size;
+        deps.db.run(
+          "INSERT OR REPLACE INTO outputs (run_id, path, label, kind, bytes, mtime, copied, hash) VALUES (?, ?, 'history', ?, ?, ?, 1, NULL)",
+          runId,
+          f.rel,
+          outputKind(f.rel),
           s.size,
           Math.round(s.mtimeMs)
         );
@@ -5542,7 +5793,7 @@ function createBackfill(deps) {
       const n = (deps.db.get("SELECT MAX(n) AS m FROM runs WHERE skill_key = ?", skillKey)?.m ?? 0) + 1;
       const events = log.events.filter((e) => e.line >= use.startLine && e.line <= use.endLine).map(({ line: _line, ...e }) => e);
       events.push({ t: "status", at: use.endedAt, status: "finished", reason: null });
-      mkdirSync3(deps.paths.runDir(id), { recursive: true });
+      mkdirSync4(deps.paths.runDir(id), { recursive: true });
       writeFileSync4(deps.paths.events(id), events.map((e) => JSON.stringify(e)).join("\n") + "\n");
       deps.db.run(
         `INSERT INTO runs (id, skill_key, skill_ref, n, kind, status, brief, cwd, place, project_path, created_at, started_at, ended_at, source_ref, session_id)
@@ -5575,7 +5826,7 @@ function createBackfill(deps) {
   async function run3() {
     fillSessionIds();
     const cfg = deps.config();
-    const claudeHome = cfg.claudeHome ?? join6(homedir3(), ".claude");
+    const claudeHome = cfg.claudeHome ?? join7(homedir4(), ".claude");
     const files = listLogs(claudeHome, deps.now() - cfg.backfillDays * DAY);
     st = { status: "running", filesDone: 0, filesTotal: files.length, runsFound: 0, skippedLines: 0 };
     publish(true);
@@ -5621,7 +5872,7 @@ function createBackfill(deps) {
 // src/server/claude/driver.ts
 import { spawn } from "node:child_process";
 import { writeFileSync as writeFileSync5 } from "node:fs";
-import { join as join7 } from "node:path";
+import { join as join8 } from "node:path";
 import { createInterface } from "node:readline";
 
 // src/server/claude/decisions.ts
@@ -5630,6 +5881,7 @@ var DECISIONS = {
   skillInvocation: (ref, brief) => `/${ref}${brief.trim() ? ` ${brief.trim()}` : ""}`,
   folderRule: (folder) => ({ permissions: { allow: [`Edit(/${folder.replace(/\/+$/, "")}/**)`] } }),
   bypassFlag: ["--permission-mode", "bypassPermissions"],
+  autoFlag: ["--permission-mode", "auto"],
   stopSignal: "SIGINT",
   toolTimeoutEnv: { MCP_TOOL_TIMEOUT: String(24 * 60 * 60 * 1e3) }
 };
@@ -5772,12 +6024,13 @@ function buildArgv(spec, d) {
   if (spec.addDir) argv.push("--add-dir", spec.addDir);
   if (spec.model) argv.push("--model", spec.model);
   if (spec.editFolder) {
-    const file = join7(spec.runDir, "settings.json");
+    const file = join8(spec.runDir, "settings.json");
     writeFileSync5(file, JSON.stringify(d.folderRule(spec.editFolder)));
     argv.push("--settings", file);
   }
   if (spec.allowAll) argv.push(...d.bypassFlag);
-  else if (d.askRoute === "permission-tool" || d.askRoute === "mixed") argv.push("--permission-prompt-tool", "mcp__runwell__runwell_permission");
+  else if (spec.mode === "auto") argv.push(...d.autoFlag);
+  if (!spec.allowAll && (d.askRoute === "permission-tool" || d.askRoute === "mixed")) argv.push("--permission-prompt-tool", "mcp__runwell__runwell_permission");
   return argv;
 }
 function eventQueue() {
@@ -5838,14 +6091,14 @@ function createClaudeDriver(opts) {
           }
         }
       });
-      const done = new Promise((resolve2) => {
+      const done = new Promise((resolve3) => {
         let exitCode = null;
         let closed = 0;
         const finish = () => {
           if (++closed < 2) return;
           for (const e of norm.end()) queue.push(e);
           queue.end();
-          resolve2({ exitCode, sawResult, skippedLines: norm.skipped() });
+          resolve3({ exitCode, sawResult, skippedLines: norm.skipped() });
         };
         child.on("exit", (code) => {
           exitCode = code;
@@ -5876,195 +6129,6 @@ function createClaudeDriver(opts) {
     },
     decide() {
     }
-  };
-}
-
-// src/server/outputs.ts
-import { createHash, createHmac, timingSafeEqual as timingSafeEqual2 } from "node:crypto";
-import { copyFileSync as copyFileSync2, lstatSync as lstatSync2, mkdirSync as mkdirSync4, readFileSync as readFileSync7, readdirSync as readdirSync5, realpathSync, statSync as statSync5 } from "node:fs";
-import { isAbsolute as isAbsolute2, join as join8, relative as relative2, sep as sep2 } from "node:path";
-var WRITE_TOOLS2 = /* @__PURE__ */ new Set(["Write", "Edit", "MultiEdit", "NotebookEdit"]);
-var SKIP_DIRS = /* @__PURE__ */ new Set([".git", "node_modules", "dist", "build", ".next", "out", "target", ".venv", "__pycache__", ".cache"]);
-var SCAN_LIMIT = 2e4;
-var MTIME_SLACK_MS = 2e3;
-function gitignore(root) {
-  let lines2 = [];
-  try {
-    lines2 = readFileSync7(join8(root, ".gitignore"), "utf8").split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith("#") && !l.startsWith("!"));
-  } catch {
-    return () => false;
-  }
-  return (rel, isDir) => {
-    const parts = rel.split("/");
-    const name = parts.at(-1);
-    return lines2.some((raw2) => {
-      const dirOnly = raw2.endsWith("/");
-      const anchored = raw2.startsWith("/");
-      const pat = raw2.replace(/^\//, "").replace(/\/$/, "");
-      if (dirOnly && !isDir) return parts.slice(0, -1).some((p) => p === pat);
-      if (pat.startsWith("*.")) return name.endsWith(pat.slice(1));
-      if (anchored) return rel === pat || rel.startsWith(pat + "/");
-      return parts.includes(pat);
-    });
-  };
-}
-function walk(root, visit, opts) {
-  let seen = 0;
-  const stack = [""];
-  while (stack.length && seen < SCAN_LIMIT) {
-    const relDir = stack.pop();
-    let entries;
-    try {
-      entries = readdirSync5(join8(root, relDir), { withFileTypes: true });
-    } catch {
-      continue;
-    }
-    for (const e of entries) {
-      if (++seen > SCAN_LIMIT) break;
-      const rel = relDir ? `${relDir}/${e.name}` : e.name;
-      if (e.isSymbolicLink()) continue;
-      if (e.isDirectory()) {
-        if (opts.skipDirs && (SKIP_DIRS.has(e.name) || e.name.startsWith("."))) continue;
-        if (opts.ignored?.(rel, true)) continue;
-        stack.push(rel);
-      } else if (e.isFile()) {
-        if (opts.ignored?.(rel, false)) continue;
-        visit(rel, join8(root, rel));
-      }
-    }
-  }
-}
-var sha2562 = (file) => createHash("sha256").update(readFileSync7(file)).digest("hex");
-function writtenPaths(events) {
-  const out = [];
-  for (const e of events) {
-    if (e.t !== "tool.start" || !WRITE_TOOLS2.has(e.name)) continue;
-    const p = e.input.file_path ?? e.input.notebook_path;
-    if (typeof p === "string" && isAbsolute2(p)) out.push(p);
-  }
-  return out;
-}
-var inside = (root, abs) => {
-  const rel = relative2(root, abs);
-  return rel !== "" && !rel.startsWith("..") && !isAbsolute2(rel);
-};
-function collectOutputs(run3, events, cfg, p) {
-  if (run3.place === "folder") {
-    const rows2 = [];
-    walk(p.work(run3.id), (rel, abs) => {
-      const st = statSync5(abs);
-      rows2.push({ runId: run3.id, path: rel, label: "written", kind: outputKind(rel), bytes: st.size, mtime: Math.round(st.mtimeMs), copied: false, hash: null });
-    }, { skipDirs: false });
-    return rows2;
-  }
-  const root = run3.projectPath ?? run3.cwd;
-  const found = /* @__PURE__ */ new Map();
-  for (const abs of writtenPaths(events)) {
-    if (!inside(root, abs)) continue;
-    try {
-      if (!lstatSync2(abs).isFile()) continue;
-    } catch {
-      continue;
-    }
-    found.set(relative2(root, abs).split(sep2).join("/"), "written");
-  }
-  const from = (run3.startedAt ?? run3.createdAt) - MTIME_SLACK_MS;
-  const to = (run3.endedAt ?? Date.now()) + MTIME_SLACK_MS;
-  walk(root, (rel, abs) => {
-    if (found.has(rel)) return;
-    const m = statSync5(abs).mtimeMs;
-    if (m >= from && m <= to) found.set(rel, "probably");
-  }, { skipDirs: true, ignored: gitignore(root) });
-  const rows = [];
-  let copiedBytes = 0;
-  for (const [rel, label] of found) {
-    const abs = join8(root, rel);
-    let st;
-    try {
-      st = lstatSync2(abs);
-    } catch {
-      continue;
-    }
-    if (!st.isFile()) continue;
-    let copied = false;
-    let hash = null;
-    if (st.size <= cfg.copyFileCapBytes && copiedBytes + st.size <= cfg.copyRunCapBytes) {
-      try {
-        const dest = join8(p.outputs(run3.id), rel);
-        mkdirSync4(join8(dest, ".."), { recursive: true });
-        copyFileSync2(abs, dest);
-        copied = true;
-        copiedBytes += st.size;
-      } catch {
-        continue;
-      }
-    } else {
-      try {
-        hash = sha2562(abs);
-      } catch {
-        continue;
-      }
-    }
-    rows.push({ runId: run3.id, path: rel, label, kind: outputKind(rel), bytes: st.size, mtime: Math.round(st.mtimeMs), copied, hash });
-  }
-  return rows;
-}
-function outputFile(run3, rel, p) {
-  if (!rel || isAbsolute2(rel) || rel.split(/[\\/]/).includes("..")) return null;
-  const base = run3.place === "folder" ? p.work(run3.id) : p.outputs(run3.id);
-  const abs = join8(base, rel);
-  try {
-    const real = realpathSync(abs);
-    const realBase = realpathSync(base);
-    if (!real.startsWith(realBase + sep2)) return null;
-    return statSync5(real).isFile() ? real : null;
-  } catch {
-    return null;
-  }
-}
-var grantKey = (token) => createHmac("sha256", token).update("runwell-output-grant-v1").digest();
-function grantFor(token, runId, now) {
-  const exp = now + 36e5;
-  const mac = createHmac("sha256", grantKey(token)).update(`${runId}:${exp}`).digest("base64url");
-  return `${exp}.${mac}`;
-}
-function checkGrant(token, runId, grant, now) {
-  const [expStr, mac] = grant.split(".");
-  const exp = Number(expStr);
-  if (!mac || !Number.isFinite(exp) || exp < now) return false;
-  const want = Buffer.from(createHmac("sha256", grantKey(token)).update(`${runId}:${exp}`).digest("base64url"));
-  const got = Buffer.from(mac);
-  return want.length === got.length && timingSafeEqual2(want, got);
-}
-var toOut = (r) => ({ runId: r.run_id, path: r.path, label: r.label, kind: r.kind, bytes: r.bytes, mtime: r.mtime, copied: !!r.copied, hash: r.hash });
-function createOutputsService(deps) {
-  return {
-    async collect(run3, events) {
-      const rows = collectOutputs(run3, events, deps.config(), deps.paths);
-      deps.db.tx(() => {
-        deps.db.run("DELETE FROM outputs WHERE run_id = ?", run3.id);
-        for (const r of rows) {
-          deps.db.run("INSERT INTO outputs (run_id, path, label, kind, bytes, mtime, copied, hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", r.runId, r.path, r.label, r.kind, r.bytes, r.mtime, r.copied ? 1 : 0, r.hash);
-        }
-      });
-    },
-    list: (runId) => deps.db.all("SELECT * FROM outputs WHERE run_id = ? ORDER BY path", runId).map(toOut),
-    recent(q) {
-      const where = ["1 = 1"];
-      const params = [];
-      if (q.skill) where.push("r.skill_key = ?"), params.push(q.skill);
-      if (q.kind) where.push("o.kind = ?"), params.push(q.kind);
-      if (q.before) where.push("r.created_at < ?"), params.push(q.before);
-      params.push(Math.min(Math.max(q.limit ?? 60, 1), 500));
-      return deps.db.all(
-        `SELECT o.*, r.skill_ref, r.n, r.created_at FROM outputs o JOIN runs r ON r.id = o.run_id WHERE ${where.join(" AND ")} ORDER BY r.created_at DESC, o.path LIMIT ?`,
-        ...params
-      ).map((r) => ({ ...toOut(r), skillRef: r.skill_ref, runN: r.n, runCreatedAt: r.created_at }));
-    },
-    grant: (runId) => grantFor(deps.token(), runId, deps.now()),
-    checkGrant: (runId, grant) => checkGrant(deps.token(), runId, grant, deps.now()),
-    file: (run3, rel) => outputFile(run3, rel, deps.paths),
-    reveal: (file) => deps.reveal(file)
   };
 }
 
@@ -6141,6 +6205,7 @@ function claudeRoutes(state) {
 
 // src/server/routes/outputs.ts
 import { createReadStream, statSync as statSync6 } from "node:fs";
+import { homedir as homedir5 } from "node:os";
 import { isAbsolute as isAbsolute3, join as join9 } from "node:path";
 import { Readable as Readable2 } from "node:stream";
 function runFolder(run3) {
@@ -6151,7 +6216,7 @@ function runFolder(run3) {
     return null;
   }
 }
-function outputsRoutes(outputs, runOf) {
+function outputsRoutes(outputs, runOf, eventsOf = () => []) {
   return (app, _ctx) => {
     app.get("/o/:grant/:runId/*", (c) => {
       const runId = c.req.param("runId");
@@ -6184,7 +6249,7 @@ function outputsRoutes(outputs, runOf) {
       const id = c.req.param("id");
       const run3 = runOf(id);
       if (!run3) return c.json({ error: "No run with that id." }, 404);
-      const where = (rel) => isAbsolute3(rel) ? rel : join9(run3.place === "folder" ? run3.cwd : run3.projectPath ?? run3.cwd, rel);
+      const where = (rel) => rel.startsWith("~/") ? join9(homedir5(), rel.slice(2)) : isAbsolute3(rel) ? rel : join9(run3.place === "folder" ? run3.cwd : run3.projectPath ?? run3.cwd, rel);
       return c.json({ outputs: outputs.list(id).map((o) => ({ ...o, absolute: where(o.path) })), grant: outputs.grant(id) });
     });
     app.get("/api/outputs", (c) => {
@@ -6192,6 +6257,13 @@ function outputsRoutes(outputs, runOf) {
       const limit = Number(c.req.query("limit"));
       const items = outputs.recent({ skill: c.req.query("skill") || void 0, kind: c.req.query("kind") || void 0, before: Number.isFinite(before) && before > 0 ? before : void 0, limit: Number.isFinite(limit) && limit > 0 ? limit : void 0 });
       return c.json({ items: items.map((i) => ({ ...i, grant: outputs.grant(i.runId) })) });
+    });
+    app.post("/api/runs/:id/outputs/rescan", async (c) => {
+      const run3 = runOf(c.req.param("id"));
+      if (!run3) return c.json({ error: "No run with that id." }, 404);
+      if (["queued", "running", "waiting"].includes(run3.status)) return c.json({ error: "This run is still going." }, 409);
+      await outputs.collect(run3, eventsOf(run3.id));
+      return c.json({ outputs: outputs.list(run3.id).length });
     });
     app.post("/api/runs/:id/reveal", (c) => {
       const run3 = runOf(c.req.param("id"));
@@ -6217,11 +6289,11 @@ function outputsRoutes(outputs, runOf) {
 }
 
 // src/server/routes/projects.ts
-import { homedir as homedir4 } from "node:os";
+import { homedir as homedir6 } from "node:os";
 import { join as join10 } from "node:path";
 function projectsRoutes(app, ctx) {
   const scan = () => {
-    const claudeHome = ctx.config().claudeHome ?? join10(homedir4(), ".claude");
+    const claudeHome = ctx.config().claudeHome ?? join10(homedir6(), ".claude");
     return scanProjects(claudeHome, join10(claudeHome, "..", ".claude.json"), ctx.paths.root);
   };
   app.get("/api/projects", (c) => c.json(scan()));
@@ -6239,26 +6311,26 @@ function projectsRoutes(app, ctx) {
 // src/server/continue.ts
 import { spawn as spawn2, spawnSync } from "node:child_process";
 import { existsSync as existsSync4 } from "node:fs";
-import { homedir as homedir5 } from "node:os";
+import { homedir as homedir7 } from "node:os";
 var SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 var shq = (s) => `'${s.replace(/'/g, `'\\''`)}'`;
 var systemLaunch = {
-  detached: (cmd, args, cwd) => new Promise((resolve2) => {
+  detached: (cmd, args, cwd) => new Promise((resolve3) => {
     try {
       const c = spawn2(cmd, args, { cwd, detached: true, stdio: "ignore" });
-      c.once("error", () => resolve2(false));
-      c.once("spawn", () => (c.unref(), resolve2(true)));
+      c.once("error", () => resolve3(false));
+      c.once("spawn", () => (c.unref(), resolve3(true)));
     } catch {
-      resolve2(false);
+      resolve3(false);
     }
   }),
-  run: (cmd, args, cwd, timeoutMs) => new Promise((resolve2) => {
+  run: (cmd, args, cwd, timeoutMs) => new Promise((resolve3) => {
     let out = "";
     const c = spawn2(cmd, args, { cwd, stdio: ["ignore", "pipe", "pipe"], timeout: timeoutMs });
     c.stdout.on("data", (d) => out += d);
     c.stderr.on("data", (d) => out += d);
-    c.once("error", () => resolve2({ code: null, out }));
-    c.once("close", (code) => resolve2({ code, out }));
+    c.once("error", () => resolve3({ code: null, out }));
+    c.once("close", (code) => resolve3({ code, out }));
   }),
   has: (cmd) => spawnSync("sh", ["-c", `command -v ${cmd}`], { stdio: "ignore" }).status === 0,
   platform: process.platform
@@ -6287,7 +6359,7 @@ async function continueRun(run3, where, claudeBin, launch) {
   if (["queued", "running", "waiting"].includes(run3.status)) return { ok: false, status: 409, message: "This run is still going. Continue it once it has ended." };
   const info = resumeInfo(run3, launch.platform);
   if (!info) return { ok: false, status: 409, message: "This run has no Claude session to continue." };
-  const cwd = run3.cwd && existsSync4(run3.cwd) ? run3.cwd : homedir5();
+  const cwd = run3.cwd && existsSync4(run3.cwd) ? run3.cwd : homedir7();
   const argv = [claudeBin, "--resume", info.sessionId];
   if (where === "desktop") {
     if (!info.desktop.available) return { ok: false, status: 400, message: info.desktop.reason };
@@ -6330,6 +6402,7 @@ function parseStart(v) {
     place,
     model: typeof b.model === "string" && b.model ? b.model : null,
     allowAll: b.allowAll === true,
+    mode: b.mode === "ask" ? "ask" : "auto",
     uploadIds: Array.isArray(b.uploadIds) ? b.uploadIds.filter((x) => typeof x === "string") : [],
     fromRun: typeof b.fromRun === "string" ? b.fromRun : null
   };
@@ -6669,8 +6742,8 @@ function continueRoutes(runs, claudeBin, launch) {
 
 // src/server/skills.ts
 import { createHash as createHash2 } from "node:crypto";
-import { existsSync as existsSync6, readFileSync as readFileSync8, readdirSync as readdirSync8, statSync as statSync9, watch } from "node:fs";
-import { homedir as homedir6 } from "node:os";
+import { existsSync as existsSync6, readFileSync as readFileSync8, readdirSync as readdirSync8, realpathSync as realpathSync2, statSync as statSync9, watch } from "node:fs";
+import { homedir as homedir8 } from "node:os";
 import { basename as basename5, join as join13 } from "node:path";
 
 // src/shared/skill-md.ts
@@ -7023,8 +7096,16 @@ function scanSkills(opts) {
       if (s) out.push(s);
     }
   }
+  const same = (a, b) => {
+    try {
+      return realpathSync2(a) === realpathSync2(b);
+    } catch {
+      return false;
+    }
+  };
   for (const project of opts.projects) {
     const skillsDir = join13(project, ".claude/skills");
+    if (same(skillsDir, personal)) continue;
     for (const d of dirs(skillsDir)) {
       const s = readSkill(join13(skillsDir, d), { source: "project", plugin: null, marketplace: null, projectPath: project, keyPrefix: `project:${project}:`, refPrefix: "" });
       if (s) out.push(s);
@@ -7040,7 +7121,7 @@ function createSkillsService(deps) {
   const watchers = [];
   let timer = null;
   let debounce = null;
-  const claudeHome = () => deps.config().claudeHome ?? join13(homedir6(), ".claude");
+  const claudeHome = () => deps.config().claudeHome ?? join13(homedir8(), ".claude");
   const versionOf = (key, hash) => {
     const known = deps.db.get("SELECT n FROM skill_versions WHERE skill_key = ? AND hash = ?", key, hash);
     if (known) return known.n;
@@ -7158,7 +7239,7 @@ function createSkillsService(deps) {
 // src/server/workflow.ts
 import { spawn as spawn3 } from "node:child_process";
 import { existsSync as existsSync7, mkdirSync as mkdirSync6, mkdtempSync, readFileSync as readFileSync9, rmSync as rmSync4, writeFileSync as writeFileSync7 } from "node:fs";
-import { tmpdir } from "node:os";
+import { tmpdir as tmpdir2 } from "node:os";
 import { join as join14 } from "node:path";
 var DRAW_PROMPT = 'Read the skill below and list its steps as JSON only, no prose: {"steps":[{"title":string (at most 40 characters),"detail":string (at most 160),"kind":"action"|"decision"|"loop","children"?:[steps, only for a loop],"maxPasses"?:number (only for a loop that states a limit),"agents"?:[{"name":string,"role":string}] (only subagents the skill names)}]}. At most 8 steps, loops nest once. Do not use any tools.';
 var NONE = { steps: null, from: "none", note: null };
@@ -7209,8 +7290,8 @@ function createWorkflowService(deps) {
   const timeoutMs = deps.timeoutMs ?? 9e4;
   const drawing = /* @__PURE__ */ new Map();
   function runClaude(bin, skillMd) {
-    const cwd = mkdtempSync(join14(tmpdir(), "runwell-draw-"));
-    return new Promise((resolve2) => {
+    const cwd = mkdtempSync(join14(tmpdir2(), "runwell-draw-"));
+    return new Promise((resolve3) => {
       let out = "";
       let settled = false;
       const done = (v) => {
@@ -7218,7 +7299,7 @@ function createWorkflowService(deps) {
         settled = true;
         clearTimeout(timer);
         rmSync4(cwd, { recursive: true, force: true });
-        resolve2(v);
+        resolve3(v);
       };
       const child = spawn3(bin, ["-p", DRAW_PROMPT, "--output-format", "json"], { cwd, env: { ...process.env, ...deps.extraEnv }, stdio: ["pipe", "pipe", "ignore"] });
       const timer = setTimeout(() => {
@@ -7292,9 +7373,9 @@ function defaultReveal(target) {
   child.unref();
 }
 function buildServices(ctx, opts = {}) {
-  const claudeHome = () => ctx.config().claudeHome ?? join15(homedir7(), ".claude");
+  const claudeHome = () => ctx.config().claudeHome ?? join15(homedir9(), ".claude");
   const projectsScan = () => scanProjects(claudeHome(), join15(claudeHome(), "..", ".claude.json"), ctx.paths.root);
-  const claudeBin = () => opts.claudeBin ?? locateClaude({ configured: ctx.config().claudePath, env: process.env, home: homedir7() });
+  const claudeBin = () => opts.claudeBin ?? locateClaude({ configured: ctx.config().claudePath, env: process.env, home: homedir9() });
   const claudeCheck = () => claudeState({ configured: opts.claudeBin ?? ctx.config().claudePath, env: { ...process.env, ...opts.extraEnv } });
   const skills = createSkillsService({ paths: ctx.paths, db: ctx.db, hub: ctx.hub, config: ctx.config, projects: () => projectsScan().projects.map((p) => p.path), now: ctx.now });
   const workflow = createWorkflowService({ paths: ctx.paths, claudeBin, extraEnv: opts.extraEnv });
@@ -7356,7 +7437,7 @@ function buildServices(ctx, opts = {}) {
     workflowRoutes(skills, workflow),
     stepsRoutes(runs),
     asksRoutes(broker, runs),
-    outputsRoutes(outputs, (id) => runs.get(id)),
+    outputsRoutes(outputs, (id) => runs.get(id), (id) => runs.events(id)),
     uploadsRoutes,
     runsRoutes({ runs, skills, workflow, broker, outputs }),
     settingsRoutes({ claudeBin, claudeHome }),
@@ -7438,8 +7519,8 @@ async function startServer(opts = {}) {
   });
   serveUi(app, webRoot());
   let lastRequest = Date.now();
-  const server = await new Promise((resolve2) => {
-    const s = serve({ fetch: (req) => (lastRequest = Date.now(), app.fetch(req)), port: lock.info.port, hostname: "127.0.0.1" }, () => resolve2(s));
+  const server = await new Promise((resolve3) => {
+    const s = serve({ fetch: (req) => (lastRequest = Date.now(), app.fetch(req)), port: lock.info.port, hostname: "127.0.0.1" }, () => resolve3(s));
   });
   server.requestTimeout = 0;
   server.headersTimeout = 6e4;

@@ -119,7 +119,7 @@ export function buildServices(ctx: Ctx, opts: ServiceOptions = {}) {
     workflowRoutes(skills, workflow),
     stepsRoutes(runs),
     asksRoutes(broker, runs),
-    outputsRoutes(outputs, (id) => runs.get(id)),
+    outputsRoutes(outputs, (id) => runs.get(id), (id) => runs.events(id)),
     uploadsRoutes,
     runsRoutes({ runs, skills, workflow, broker, outputs }),
     settingsRoutes({ claudeBin, claudeHome }),

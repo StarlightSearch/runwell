@@ -10,6 +10,7 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { RunEvent } from "../shared/events";
 import { isIgnored } from "../shared/ignore";
 import { outputKind } from "../shared/outputs";
+import { pointedFiles } from "./outputs";
 import type { Config } from "./config";
 import type { Db } from "./db";
 import { isRunwellFolder, type Paths } from "./paths";
@@ -107,6 +108,31 @@ export function createBackfill(deps: { paths: Paths; db: Db; hub: Hub; config():
         deps.db.run(
           "INSERT OR REPLACE INTO outputs (run_id, path, label, kind, bytes, mtime, copied, hash) VALUES (?, ?, 'history', ?, ?, ?, 1, NULL)",
           runId, rel, outputKind(rel), s.size, Math.round(s.mtimeMs),
+        );
+      } catch {
+        /* skip a file that cannot be copied */
+      }
+    }
+    // Files the chat pointed to by path outside its folder (a video saved to ~/Downloads, say).
+    if (!events.length) return;
+    const ats = events.map((e) => e.at);
+    const window = { from: Math.min(...ats) - 2_000, to: Math.max(...ats) + 60_000 };
+    for (const f of pointedFiles(events, window, [cwd ?? "", deps.paths.root].filter(Boolean), homedir())) {
+      let s;
+      try {
+        s = lstatSync(f.abs);
+      } catch {
+        continue;
+      }
+      if (!s.isFile() || s.size > cfg.copyFileCapBytes || copied + s.size > cfg.copyRunCapBytes) continue;
+      try {
+        const dest = join(deps.paths.outputs(runId), f.rel);
+        mkdirSync(join(dest, ".."), { recursive: true });
+        copyFileSync(f.abs, dest);
+        copied += s.size;
+        deps.db.run(
+          "INSERT OR REPLACE INTO outputs (run_id, path, label, kind, bytes, mtime, copied, hash) VALUES (?, ?, 'history', ?, ?, ?, 1, NULL)",
+          runId, f.rel, outputKind(f.rel), s.size, Math.round(s.mtimeMs),
         );
       } catch {
         /* skip a file that cannot be copied */

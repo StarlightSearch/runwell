@@ -1,9 +1,11 @@
 import { createReadStream, statSync } from "node:fs";
+import { homedir } from "node:os";
 import { isAbsolute, join } from "node:path";
 import { Readable } from "node:stream";
 import { mimeOf } from "../../shared/outputs";
 import type { App, Ctx } from "../http";
 import type { OutputsService } from "../outputs";
+import type { RunEvent } from "../../shared/events";
 import type { RunRow } from "../runs";
 
 /** Where a run worked, if that folder still exists. */
@@ -16,7 +18,7 @@ export function runFolder(run: RunRow): string | null {
   }
 }
 
-export function outputsRoutes(outputs: OutputsService, runOf: (id: string) => RunRow | null) {
+export function outputsRoutes(outputs: OutputsService, runOf: (id: string) => RunRow | null, eventsOf: (id: string) => RunEvent[] = () => []) {
   return (app: App, _ctx: Ctx) => {
     // A sandboxed page (opaque origin) sends no cookie, so files are reached with a path-scoped grant.
     app.get("/o/:grant/:runId/*", (c) => {
@@ -52,7 +54,8 @@ export function outputsRoutes(outputs: OutputsService, runOf: (id: string) => Ru
       const id = c.req.param("id");
       const run = runOf(id);
       if (!run) return c.json({ error: "No run with that id." }, 404);
-      const where = (rel: string) => (isAbsolute(rel) ? rel : join(run.place === "folder" ? run.cwd : (run.projectPath ?? run.cwd), rel));
+      const where = (rel: string) =>
+        rel.startsWith("~/") ? join(homedir(), rel.slice(2)) : isAbsolute(rel) ? rel : join(run.place === "folder" ? run.cwd : (run.projectPath ?? run.cwd), rel);
       return c.json({ outputs: outputs.list(id).map((o) => ({ ...o, absolute: where(o.path) })), grant: outputs.grant(id) });
     });
 
@@ -61,6 +64,15 @@ export function outputsRoutes(outputs: OutputsService, runOf: (id: string) => Ru
       const limit = Number(c.req.query("limit"));
       const items = outputs.recent({ skill: c.req.query("skill") || undefined, kind: c.req.query("kind") || undefined, before: Number.isFinite(before) && before > 0 ? before : undefined, limit: Number.isFinite(limit) && limit > 0 ? limit : undefined });
       return c.json({ items: items.map((i) => ({ ...i, grant: outputs.grant(i.runId) })) });
+    });
+
+    // "Look again": collect a finished run's files again (for runs collected before a rule improved).
+    app.post("/api/runs/:id/outputs/rescan", async (c) => {
+      const run = runOf(c.req.param("id"));
+      if (!run) return c.json({ error: "No run with that id." }, 404);
+      if (["queued", "running", "waiting"].includes(run.status)) return c.json({ error: "This run is still going." }, 409);
+      await outputs.collect(run, eventsOf(run.id));
+      return c.json({ outputs: outputs.list(run.id).length });
     });
 
     // The run's own folder: the run folder for a button run, the project for a project or chat run.

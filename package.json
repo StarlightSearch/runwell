@@ -1,6 +1,6 @@
 {
   "name": "runwell",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Run any agent skill from a button, watch it work as a live workflow, and keep every run.",
   "type": "module",
   "license": "MIT",

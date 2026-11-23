@@ -6,7 +6,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 // src/shared/version.ts
-var VERSION = true ? "0.1.0" : "0.0.0-dev";
+var VERSION = true ? "0.1.1" : "0.0.0-dev";
 
 // src/server/lifecycle.ts
 import { closeSync, openSync, readFileSync, renameSync, rmSync, writeFileSync, writeSync } from "node:fs";
@@ -140,6 +140,24 @@ function flag(args, name) {
   args.splice(i, 2);
   return v;
 }
+function listSkills(skills) {
+  const live = skills.filter((s) => !s.ignored);
+  if (!live.length) return "No skills found. Runwell looks in ~/.claude/skills, your plugins and your projects' .claude/skills.";
+  const groups = /* @__PURE__ */ new Map();
+  const add = (k, ref) => groups.set(k, [...groups.get(k) ?? [], ref]);
+  for (const s of live) {
+    if (s.source === "plugin") add(`plugin ${s.plugin ?? ""}`.trim(), s.ref);
+    else if (s.source === "project") add(`project ${(s.projectPath ?? "").split("/").filter(Boolean).pop() ?? ""}`, s.ref);
+    else add("personal", s.ref);
+  }
+  const order = [...groups.keys()].sort((a, b) => a === "personal" ? -1 : b === "personal" ? 1 : a.localeCompare(b));
+  const lines = order.map((k) => `${k}: ${[...new Set(groups.get(k))].sort().join(", ")}`);
+  return [`Skills you can run (${live.length}). Use /runwell run <skill> [brief]`, ...lines].join("\n");
+}
+function closeMatches(skills, q) {
+  const t = q.toLowerCase().replace(/^\//, "");
+  return skills.filter((s) => !s.ignored && (s.ref.toLowerCase().includes(t) || t.includes(s.name.toLowerCase()) || s.name.toLowerCase().startsWith(t.slice(0, 3)))).slice(0, 5);
+}
 function resolveSkill(skills, q) {
   const exact = skills.filter((s) => s.ref === q || s.ref === q.replace(/^\//, ""));
   if (exact.length === 1) return { skill: exact[0], candidates: [] };
@@ -200,14 +218,19 @@ ${body.url}`);
   }
   if (cmd === "run") {
     const q = args.shift();
-    if (!q) {
-      deps.err("Usage: runwell run <skill> [brief]");
-      return 1;
-    }
     const { body } = await call(info, "/api/skills");
-    const { skill, candidates } = resolveSkill(body.skills ?? [], q);
+    const all = body.skills ?? [];
+    if (!q) {
+      deps.out(listSkills(all));
+      return 0;
+    }
+    const { skill, candidates } = resolveSkill(all, q);
     if (!skill) {
-      deps.err(candidates.length ? `More than one skill matches "${q}": ${candidates.map((s) => s.ref).join(", ")}` : `No skill named "${q}".`);
+      if (candidates.length) deps.err(`More than one skill matches "${q}": ${candidates.map((s) => s.ref).join(", ")}`);
+      else {
+        const near = closeMatches(all, q);
+        deps.err(`No skill named "${q}".${near.length ? ` Did you mean: ${near.map((s) => s.ref).join(", ")}?` : ""} /runwell run with no name lists them all.`);
+      }
       return 1;
     }
     const projects = (await call(info, "/api/projects")).body.projects ?? [];

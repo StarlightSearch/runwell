@@ -133,6 +133,11 @@ export function RunPage() {
     };
   }, [askCount]);
 
+  const rescan = useCallback(() => {
+    if (!run) return;
+    void post(`/api/runs/${run.id}/outputs/rescan`).finally(() => outs.reload());
+  }, [run, outs.reload]);
+
   const remove = useCallback(async () => {
     setMenu(false);
     if (!run || !window.confirm(`Delete run #${run.n}? Its trace and kept files are removed. Files in your folders are not touched.`)) return;
@@ -162,7 +167,7 @@ export function RunPage() {
             render: () => (
               <div className="past">
                 {run.status === "failed" && run.error ? <div className="err errbox" data-testid="run-error">{run.error}</div> : null}
-                <Delivered outputs={outputList} grant={outs.data?.grant ?? d.grant} />
+                <Delivered outputs={outputList} grant={outs.data?.grant ?? d.grant} onRescan={rescan} />
                 <RatingCard run={run} onSaved={() => detail.reload()} />
                 <HowItWent
                   brief={run.brief}
@@ -179,7 +184,7 @@ export function RunPage() {
     { id: "graph", label: "Graph", render: () => null },
     { id: "timeline", label: "Timeline", render: () => <Timeline model={model} events={events} start={started} end={run.endedAt ?? now} /> },
     { id: "transcript", label: "Transcript", render: () => <Transcript events={events} runBrief={run.brief} /> },
-    { id: "outputs", label: `Outputs · ${outputList.length}`, render: () => <OutputList outputs={outputList} grant={outs.data?.grant ?? d.grant} /> },
+    { id: "outputs", label: `Outputs · ${outputList.length}`, render: () => <OutputList outputs={outputList} grant={outs.data?.grant ?? d.grant} onRescan={rescan} /> },
   ];
 
   return (
