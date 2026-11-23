@@ -58,6 +58,9 @@ export async function startServer(opts: { home?: string; port?: number; services
     db.close();
     throw new Error("Another Runwell server is already running.");
   }
+  // Browsers share a cookie across every server on 127.0.0.1, whatever the port, so a leaked `rw` cookie
+  // must not outlive this server: sessions start empty each time (review, 23/11/2026).
+  db.run("DELETE FROM auth_sessions");
   const hub = createHub();
   let activeRuns = () => 0;
   const ctx: Ctx = { paths: p, config, db, info: lock.info, hub, now: Date.now, activeRuns: () => activeRuns() };

@@ -48,6 +48,33 @@ describe("security", () => {
     ["unknown cookie", { headers: { host: H, cookie: "rw=nope" } }, 401],
   ])("%s", async (_n, init, status) => expect((await app.request("/api/ping", init)).status).toBe(status));
 
+  it.each(["/%61pi/ping", "/%61%70%69/ping", "//api/ping", "/API/ping", "/api%2Fping", "/%2561pi/ping"])("an encoded or doubled path to the API still needs credentials: %s", async (path) => {
+    const r = await app.request(path, { headers: { host: H } });
+    expect([400, 401, 404]).toContain(r.status);
+    expect(r.status).not.toBe(200);
+  });
+  it("a browser session older than 7 days is refused", async () => {
+    const saved = clock;
+    clock = 1 + 7 * 24 * 60 * 60 * 1000 + 1;
+    expect((await app.request("/api/ping", { headers: { host: H, cookie: `rw=${SESSION}` } })).status).toBe(401);
+    clock = saved;
+  });
+  it("a server start forgets every browser session", async () => {
+    const home = isolatedHome();
+    const p = paths(home);
+    const d = await openDb(p.db);
+    migrate(d);
+    d.run("INSERT INTO auth_sessions (id, created_at) VALUES (?, ?)", SESSION, Date.now());
+    d.close();
+    const s = await startServer({ home, port: 0 });
+    const r = await fetch(`http://127.0.0.1:${s.info.port}/api/ping`, { headers: { cookie: `rw=${SESSION}` } });
+    expect(r.status).toBe(401);
+    await s.close();
+  });
+  it("a path that cannot be decoded is refused", async () => {
+    expect((await app.request("/%E0%A4%A", { headers: { host: H } })).status).toBe(400);
+  });
+
   it("a cookie POST from another origin is refused", async () => {
     const r = await app.request("/api/ping", { method: "POST", headers: { host: H, cookie: `rw=${SESSION}`, origin: "https://evil.test" } });
     expect(r.status).toBe(403);

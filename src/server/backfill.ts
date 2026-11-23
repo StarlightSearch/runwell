@@ -6,7 +6,7 @@
  */
 import { copyFileSync, lstatSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { isAbsolute, join, relative } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { RunEvent } from "../shared/events";
 import { isIgnored } from "../shared/ignore";
 import { outputKind } from "../shared/outputs";
@@ -82,8 +82,13 @@ export function createBackfill(deps: { paths: Paths; db: Db; hub: Hub; config():
     const seen = new Set<string>();
     for (const e of events) {
       if (e.t !== "tool.start" || !WRITE_TOOLS.has(e.name)) continue;
-      const abs = e.input.file_path ?? e.input.notebook_path;
-      if (typeof abs !== "string" || !isAbsolute(abs) || seen.has(abs)) continue;
+      const raw = e.input.file_path ?? e.input.notebook_path;
+      if (typeof raw !== "string" || !isAbsolute(raw) || !cwd) continue;
+      // Only files inside the chat's own folder: a chat that edited ~/.zshrc or a credentials file is not
+      // copied into Runwell (review, 23/11/2026). `resolve` also folds any `..` before the check.
+      const abs = resolve(raw);
+      const rel = relative(cwd, abs);
+      if (!rel || rel.startsWith("..") || isAbsolute(rel) || seen.has(abs)) continue;
       seen.add(abs);
       let s;
       try {
@@ -92,9 +97,10 @@ export function createBackfill(deps: { paths: Paths; db: Db; hub: Hub; config():
         continue;
       }
       if (!s.isFile() || s.size > cfg.copyFileCapBytes || copied + s.size > cfg.copyRunCapBytes) continue;
-      const rel = cwd && !relative(cwd, abs).startsWith("..") ? relative(cwd, abs) : abs.replace(/^\/+/, "");
       try {
-        const dest = join(deps.paths.outputs(runId), rel);
+        const root = deps.paths.outputs(runId);
+        const dest = join(root, rel);
+        if (!dest.startsWith(root + sep)) continue;
         mkdirSync(join(dest, ".."), { recursive: true });
         copyFileSync(abs, dest);
         copied += s.size;
@@ -119,8 +125,17 @@ export function createBackfill(deps: { paths: Paths; db: Db; hub: Hub; config():
       if (isIgnored(use.skillRef, ignored)) continue;
       const sourceRef = `${file}:${use.startLine}-${use.endLine}`;
       // A grown file re-read: the same use keeps its start line, and its end may have moved.
-      const existing = deps.db.get<{ id: string }>("SELECT id FROM runs WHERE kind = 'history' AND (source_ref = ? OR source_ref LIKE ?)", sourceRef, `${file}:${use.startLine}-%`);
-      if (existing) continue;
+      const existing = deps.db.get<{ id: string; source_ref: string }>("SELECT id, source_ref FROM runs WHERE kind = 'history' AND (source_ref = ? OR source_ref LIKE ?)", sourceRef, `${file}:${use.startLine}-%`);
+      if (existing?.source_ref === sourceRef) continue;
+      if (existing) {
+        // The same use, read again after the log grew (it was still going last time): bring it up to date.
+        const events: RunEvent[] = log.events.filter((e) => e.line >= use.startLine && e.line <= use.endLine).map(({ line: _line, ...e }) => e as RunEvent);
+        events.push({ t: "status", at: use.endedAt, status: "finished", reason: null });
+        writeFileSync(deps.paths.events(existing.id), events.map((e) => JSON.stringify(e)).join("\n") + "\n");
+        deps.db.run("UPDATE runs SET ended_at = ?, source_ref = ? WHERE id = ?", use.endedAt, sourceRef, existing.id);
+        recordOutputs(existing.id, events, log.cwd);
+        continue;
+      }
       const id = newRunId();
       const skillKey = deps.skillKeyOf(use.skillRef) ?? `unknown:${use.skillRef}`;
       const n = (deps.db.get<{ m: number | null }>("SELECT MAX(n) AS m FROM runs WHERE skill_key = ?", skillKey)?.m ?? 0) + 1;

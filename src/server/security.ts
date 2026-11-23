@@ -14,7 +14,19 @@ import type { Db } from "./db";
 export type AuthVia = "bearer" | "cookie";
 
 const SAFE = new Set(["GET", "HEAD", "OPTIONS"]);
-const OPEN_PATHS = new Set(["/health", "/auth"]);
+
+/**
+ * The path as the router will see it: percent-decoded, with repeated slashes collapsed. Deciding on the raw
+ * path let `/%61pi/runs` through as a "static" page while the router served `/api/runs` (review, 23/11/2026).
+ * Null when it cannot be decoded.
+ */
+export function routedPath(raw: string): string | null {
+  try {
+    return decodeURIComponent(raw).replace(/\/{2,}/g, "/");
+  } catch {
+    return null;
+  }
+}
 
 function sameToken(a: string, b: string): boolean {
   const x = Buffer.from(a);
@@ -26,7 +38,10 @@ export function allowedHosts(port: number): Set<string> {
   return new Set([`127.0.0.1:${port}`, `localhost:${port}`]);
 }
 
-export function security(opts: { port: () => number; token: () => string; db: Db }): MiddlewareHandler<{ Variables: { via: AuthVia } }> {
+/** A browser session lasts at most this long, and never past the server that made it (main.ts clears them at start). */
+export const SESSION_MAX_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function security(opts: { port: () => number; token: () => string; db: Db; now?: () => number }): MiddlewareHandler<{ Variables: { via: AuthVia } }> {
   return async (c, next) => {
     c.header("Cache-Control", "no-store");
     c.header("X-Content-Type-Options", "nosniff");
@@ -34,8 +49,12 @@ export function security(opts: { port: () => number; token: () => string; db: Db
 
     const port = opts.port();
     if (!allowedHosts(port).has(c.req.header("host") ?? "")) return c.text("Forbidden", 403);
-    const path = new URL(c.req.url).pathname;
-    if ((OPEN_PATHS.has(path) || path.startsWith("/o/") || !path.startsWith("/api/")) && SAFE.has(c.req.method)) return next();
+    const path = routedPath(new URL(c.req.url).pathname);
+    const routed = routedPath(c.req.path);
+    if (path === null || routed === null) return c.text("Bad request", 400);
+    // /health, /auth, /o/<grant>/... and the UI's files are open to safe methods; anything under /api is not.
+    const isApi = (q: string) => /^\/api(\/|$)/i.test(q);
+    if (!isApi(path) && !isApi(routed) && SAFE.has(c.req.method)) return next();
 
     const auth = c.req.header("authorization") ?? "";
     if (auth.startsWith("Bearer ") && sameToken(auth.slice(7), opts.token())) {
@@ -43,7 +62,7 @@ export function security(opts: { port: () => number; token: () => string; db: Db
       return next();
     }
     const sid = getCookie(c, "rw");
-    if (sid && /^[0-9a-f]{16,128}$/.test(sid) && opts.db.get("SELECT id FROM auth_sessions WHERE id = ?", sid)) {
+    if (sid && /^[0-9a-f]{16,128}$/.test(sid) && opts.db.get("SELECT id FROM auth_sessions WHERE id = ? AND created_at > ?", sid, (opts.now ?? Date.now)() - SESSION_MAX_MS)) {
       if (!SAFE.has(c.req.method)) {
         const origin = c.req.header("origin");
         if (origin !== `http://127.0.0.1:${port}` && origin !== `http://localhost:${port}`) return c.text("Forbidden", 403);

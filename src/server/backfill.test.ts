@@ -88,6 +88,23 @@ describe("backfill", () => {
     expect(s.runs().map((r) => r.brief)).toEqual(["one", "two"]);
   });
 
+  it("a use still going when it was first read is brought up to date when its log grows", async () => {
+    const s = await setup();
+    const dir = join(s.claudeHome, "projects/-p");
+    mkdirSync(dir, { recursive: true });
+    const proj = mkdtempSync(join(tmpdir(), "runwell-bfproj-"));
+    const f = join(dir, "a.jsonl");
+    writeFileSync(f, [cmd("known", "one", 0, proj), write("w1", join(proj, "x.txt"), 1, proj)].join("\n") + "\n");
+    await finish(s.bf);
+    const id = s.runs()[0]!.id;
+    const before = readFileSync(s.p.events(id), "utf8").split("\n").filter(Boolean).length;
+    appendFileSync(f, write("w2", join(proj, "y.txt"), 2, proj) + "\n");
+    await finish(s.bf);
+    expect(s.runs()).toHaveLength(1);
+    expect(s.runs()[0]!.id).toBe(id);
+    expect(readFileSync(s.p.events(id), "utf8").split("\n").filter(Boolean).length).toBeGreaterThan(before);
+  });
+
   it("an ignored skill creates no run; a file older than the window is not read", async () => {
     const s = await setup({ ignored: ["known"] });
     const dir = join(s.claudeHome, "projects/-p");
@@ -113,6 +130,25 @@ describe("backfill", () => {
     const id = s.runs()[0]!.id;
     expect(s.db.all("SELECT path, label, copied FROM outputs WHERE run_id = ?", id)).toEqual([{ path: "kept.txt", label: "history", copied: 1 }]);
     expect(readFileSync(join(s.p.outputs(id), "kept.txt"), "utf8")).toBe("k");
+  });
+
+  it("outputs: files outside the chat's folder, or reached through .., are never copied", async () => {
+    const s = await setup();
+    const dir = join(s.claudeHome, "projects/-q");
+    mkdirSync(dir, { recursive: true });
+    const proj = mkdtempSync(join(tmpdir(), "runwell-bfproj-"));
+    const outside = mkdtempSync(join(tmpdir(), "runwell-bfout-"));
+    writeFileSync(join(outside, "secret.txt"), "s");
+    writeFileSync(join(proj, "ok.txt"), "o");
+    writeFileSync(join(dir, "b.jsonl"), [
+      cmd("known", "x", 0, proj),
+      write("w1", join(outside, "secret.txt"), 1, proj),
+      write("w2", `${proj}/../${outside.split("/").pop()}/secret.txt`, 2, proj),
+      write("w3", join(proj, "ok.txt"), 3, proj),
+    ].join("\n") + "\n");
+    await finish(s.bf);
+    const id = s.runs()[0]!.id;
+    expect(s.db.all("SELECT path FROM outputs WHERE run_id = ?", id)).toEqual([{ path: "ok.txt" }]);
   });
 
   it("an unreadable projects folder ends done with zero files", async () => {

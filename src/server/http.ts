@@ -26,7 +26,7 @@ const TOPICS = new Set(["runs", "skills", "backfill"]);
 
 export function createApp(ctx: Ctx, extra: ((app: App, ctx: Ctx) => void)[] = []): App {
   const app: App = new Hono();
-  app.use("*", security({ port: () => ctx.info.port, token: () => ctx.info.token, db: ctx.db }));
+  app.use("*", security({ port: () => ctx.info.port, token: () => ctx.info.token, db: ctx.db, now: ctx.now }));
   healthRoutes(app as unknown as Hono, ctx);
   authRoutes(app, ctx);
 
