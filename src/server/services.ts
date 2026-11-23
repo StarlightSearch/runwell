@@ -22,6 +22,7 @@ import { stepsRoutes } from "./routes/steps";
 import { uploadsRoutes } from "./routes/uploads";
 import { workflowRoutes } from "./routes/workflow";
 import { pidCommand } from "./proc";
+import { statSync } from "node:fs";
 import { continueRoutes } from "./routes/continue";
 import { systemLaunch, type Launch } from "./continue";
 import { createRunsService } from "./runs";
@@ -40,9 +41,19 @@ export interface ServiceOptions {
 }
 
 
-function defaultReveal(file: string): void {
+/** Shows a file in its folder, or opens a folder, in the system file manager. */
+function defaultReveal(target: string): void {
   const p = platform();
-  const child = p === "darwin" ? spawn("open", ["-R", file], { stdio: "ignore", detached: true }) : spawn("xdg-open", [dirname(file)], { stdio: "ignore", detached: true });
+  let isDir = false;
+  try {
+    isDir = statSync(target).isDirectory();
+  } catch {
+    /* gone: let the file manager say so */
+  }
+  const child =
+    p === "darwin"
+      ? spawn("open", isDir ? [target] : ["-R", target], { stdio: "ignore", detached: true })
+      : spawn("xdg-open", [isDir ? target : dirname(target)], { stdio: "ignore", detached: true });
   child.on("error", () => {});
   child.unref();
 }

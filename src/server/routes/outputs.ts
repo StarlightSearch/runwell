@@ -6,6 +6,16 @@ import type { App, Ctx } from "../http";
 import type { OutputsService } from "../outputs";
 import type { RunRow } from "../runs";
 
+/** Where a run worked, if that folder still exists. */
+export function runFolder(run: RunRow): string | null {
+  const dir = run.place === "folder" ? run.cwd : (run.projectPath ?? run.cwd);
+  try {
+    return dir && statSync(dir).isDirectory() ? dir : null;
+  } catch {
+    return null;
+  }
+}
+
 export function outputsRoutes(outputs: OutputsService, runOf: (id: string) => RunRow | null) {
   return (app: App, _ctx: Ctx) => {
     // A sandboxed page (opaque origin) sends no cookie, so files are reached with a path-scoped grant.
@@ -51,6 +61,16 @@ export function outputsRoutes(outputs: OutputsService, runOf: (id: string) => Ru
       const limit = Number(c.req.query("limit"));
       const items = outputs.recent({ skill: c.req.query("skill") || undefined, kind: c.req.query("kind") || undefined, before: Number.isFinite(before) && before > 0 ? before : undefined, limit: Number.isFinite(limit) && limit > 0 ? limit : undefined });
       return c.json({ items: items.map((i) => ({ ...i, grant: outputs.grant(i.runId) })) });
+    });
+
+    // The run's own folder: the run folder for a button run, the project for a project or chat run.
+    app.post("/api/runs/:id/reveal", (c) => {
+      const run = runOf(c.req.param("id"));
+      if (!run) return c.json({ error: "No run with that id." }, 404);
+      const dir = runFolder(run);
+      if (!dir) return c.json({ error: "This run's folder no longer exists." }, 404);
+      outputs.reveal(dir);
+      return c.json({ ok: true, path: dir });
     });
 
     app.post("/api/outputs/reveal", async (c) => {

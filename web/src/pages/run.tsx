@@ -83,6 +83,7 @@ export function RunPage() {
   const [tabChoice, setTab] = useState<string | null>(null);
   const [replay, setReplay] = useState<number | null>(null);
   const [menu, setMenu] = useState(false);
+  const [folderNote, setFolderNote] = useState<string | null>(null);
   const navigate = useNavigate();
   const { openRunDialog } = useRunDialog();
   const [selected, setSelected] = useState<string | null>(null);
@@ -184,9 +185,26 @@ export function RunPage() {
       <PageHeader
         actions={
           <>
-            <button className="btn ghost" type="button" onClick={() => void post("/api/outputs/reveal", { runId: run.id, path: "." }).catch(() => {})}>
-              Open folder
-            </button>
+            <span className="menu-wrap">
+              <button
+                className="btn ghost"
+                type="button"
+                title={run.place === "folder" ? "Open this run's folder" : "Open the folder this run worked in"}
+                onClick={() =>
+                  void post(`/api/runs/${run.id}/reveal`).then(
+                    () => setFolderNote(null),
+                    (e: Error) => setFolderNote(e.message),
+                  )
+                }
+              >
+                Open folder
+              </button>
+              {folderNote ? (
+                <span className="continue-note bad" role="status" data-testid="folder-note">
+                  {folderNote}
+                </span>
+              ) : null}
+            </span>
             {!live && d.resume ? <ContinueMenu runId={run.id} resume={d.resume} /> : null}
             {!live && d.skill ? (
               <button className="btn primary" type="button" onClick={() => openRunDialog(run.skillKey, { fromRun: run.id })}>

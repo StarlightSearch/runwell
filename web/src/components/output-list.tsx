@@ -12,9 +12,15 @@ const labelOf = (o: OutputItem) =>
 
 export function OutputActions({ output }: { output: OutputItem }) {
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   return (
     <>
-      <button className="btn ghost" type="button" onClick={() => void post("/api/outputs/reveal", { runId: output.runId, path: output.path }).catch(() => {})}>
+      {error ? <span className="err" role="status">{error}</span> : null}
+      <button
+        className="btn ghost"
+        type="button"
+        onClick={() => void post("/api/outputs/reveal", { runId: output.runId, path: output.path }).then(() => setError(null), () => setError("That file is no longer there."))}
+      >
         Show in folder
       </button>
       <button

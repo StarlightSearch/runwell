@@ -6143,6 +6143,14 @@ function claudeRoutes(state) {
 import { createReadStream, statSync as statSync6 } from "node:fs";
 import { isAbsolute as isAbsolute3, join as join9 } from "node:path";
 import { Readable as Readable2 } from "node:stream";
+function runFolder(run3) {
+  const dir = run3.place === "folder" ? run3.cwd : run3.projectPath ?? run3.cwd;
+  try {
+    return dir && statSync6(dir).isDirectory() ? dir : null;
+  } catch {
+    return null;
+  }
+}
 function outputsRoutes(outputs, runOf) {
   return (app, _ctx) => {
     app.get("/o/:grant/:runId/*", (c) => {
@@ -6184,6 +6192,14 @@ function outputsRoutes(outputs, runOf) {
       const limit = Number(c.req.query("limit"));
       const items = outputs.recent({ skill: c.req.query("skill") || void 0, kind: c.req.query("kind") || void 0, before: Number.isFinite(before) && before > 0 ? before : void 0, limit: Number.isFinite(limit) && limit > 0 ? limit : void 0 });
       return c.json({ items: items.map((i) => ({ ...i, grant: outputs.grant(i.runId) })) });
+    });
+    app.post("/api/runs/:id/reveal", (c) => {
+      const run3 = runOf(c.req.param("id"));
+      if (!run3) return c.json({ error: "No run with that id." }, 404);
+      const dir = runFolder(run3);
+      if (!dir) return c.json({ error: "This run's folder no longer exists." }, 404);
+      outputs.reveal(dir);
+      return c.json({ ok: true, path: dir });
     });
     app.post("/api/outputs/reveal", async (c) => {
       let body = {};
@@ -6627,6 +6643,9 @@ function workflowRoutes(skills, workflow) {
     });
   };
 }
+
+// src/server/services.ts
+import { statSync as statSync10 } from "node:fs";
 
 // src/server/routes/continue.ts
 function continueRoutes(runs, claudeBin, launch) {
@@ -7260,9 +7279,14 @@ function createWorkflowService(deps) {
 }
 
 // src/server/services.ts
-function defaultReveal(file) {
+function defaultReveal(target) {
   const p = platform();
-  const child = p === "darwin" ? spawn4("open", ["-R", file], { stdio: "ignore", detached: true }) : spawn4("xdg-open", [dirname2(file)], { stdio: "ignore", detached: true });
+  let isDir = false;
+  try {
+    isDir = statSync10(target).isDirectory();
+  } catch {
+  }
+  const child = p === "darwin" ? spawn4("open", isDir ? [target] : ["-R", target], { stdio: "ignore", detached: true }) : spawn4("xdg-open", [isDir ? target : dirname2(target)], { stdio: "ignore", detached: true });
   child.on("error", () => {
   });
   child.unref();

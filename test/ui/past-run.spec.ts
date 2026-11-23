@@ -72,3 +72,23 @@ test("Run again opens the dialog with the old brief; Delete run asks first and r
   const r = await fetch(`${app.base}/api/runs/${app.seeded.runIds.second}`, { headers: { authorization: `Bearer ${app.token}` } });
   expect(r.status).toBe(404);
 });
+
+test("Open folder opens the run folder, the project for a chat run, and says so when the folder is gone", async ({ app }) => {
+  const { join } = await import("node:path");
+  const { rmSync } = await import("node:fs");
+  const page = app.page;
+  await app.open(`/runs/${app.seeded.runIds.video}`);
+  await page.getByRole("button", { name: "Open folder" }).click();
+  await expect.poll(() => app.revealed.at(-1)).toBe(join(app.seeded.home, "runs", app.seeded.runIds.video, "work"));
+
+  await page.goto(`${app.base}/runs/${app.seeded.runIds.history}`);
+  await page.getByRole("button", { name: "Open folder" }).click();
+  await expect.poll(() => app.revealed.at(-1)).toBe(app.seeded.trusted);
+
+  rmSync(join(app.seeded.home, "runs", app.seeded.runIds.third, "work"), { recursive: true, force: true });
+  await page.goto(`${app.base}/runs/${app.seeded.runIds.third}`);
+  const before = app.revealed.length;
+  await page.getByRole("button", { name: "Open folder" }).click();
+  await expect(page.getByTestId("folder-note")).toHaveText("This run's folder no longer exists.");
+  expect(app.revealed.length).toBe(before);
+});
