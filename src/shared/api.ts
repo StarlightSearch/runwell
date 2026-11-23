@@ -1,3 +1,4 @@
+import type { OverviewStep } from "./graph/source-types";
 /** Request and response shapes of Runwell's HTTP API. Later tasks add their routes here. */
 export interface HealthResponse {
   ok: true;
@@ -12,3 +13,11 @@ export interface AuthLinkResponse {
 }
 /** Topics the live stream (`GET /api/stream?topics=...`) carries. */
 export type StreamTopic = "runs" | "skills" | "backfill" | `run:${string}`;
+
+
+/** Where a run's workflow came from: the skill's own map, a cached drawing, or nothing. */
+export interface WorkflowSource {
+  steps: OverviewStep[] | null;
+  from: "block" | "drawn" | "none";
+  note: string | null;
+}
