@@ -1,0 +1,243 @@
+#!/usr/bin/env node
+import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);
+
+// src/launcher.ts
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+// src/shared/version.ts
+var VERSION = true ? "0.1.0" : "0.0.0-dev";
+
+// src/server/lifecycle.ts
+import { closeSync, openSync, readFileSync, renameSync, rmSync, writeFileSync, writeSync } from "node:fs";
+function readServerInfo(p) {
+  try {
+    const v = JSON.parse(readFileSync(p.serverJson, "utf8"));
+    if (typeof v.pid === "number" && typeof v.port === "number" && typeof v.token === "string" && typeof v.version === "string") {
+      return { pid: v.pid, port: v.port, token: v.token, version: v.version };
+    }
+  } catch {
+  }
+  return null;
+}
+async function probe(info, timeoutMs = 500) {
+  try {
+    const r = await fetch(`http://127.0.0.1:${info.port}/health`, { signal: AbortSignal.timeout(timeoutMs) });
+    if (!r.ok) return null;
+    const v = await r.json();
+    if (v.ok !== true || typeof v.version !== "string") return null;
+    if (typeof v.pid === "number" && v.pid !== info.pid) return null;
+    return { ok: true, version: v.version, activeRuns: typeof v.activeRuns === "number" ? v.activeRuns : 0 };
+  } catch {
+    return null;
+  }
+}
+function cmpVersion(a, b) {
+  const parse = (v) => v.split("-")[0].split(".").map((x2) => Number.parseInt(x2, 10) || 0);
+  const x = parse(a);
+  const y = parse(b);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    const d = (x[i] ?? 0) - (y[i] ?? 0);
+    if (d) return Math.sign(d);
+  }
+  return 0;
+}
+function decide(existing, mine) {
+  if (!existing) return "start";
+  if (cmpVersion(existing.version, mine) >= 0) return "reuse";
+  return existing.activeRuns > 0 ? "reuse" : "replace";
+}
+
+// src/server/paths.ts
+import { mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+function paths(home) {
+  const root = home ?? process.env.RUNWELL_HOME ?? join(homedir(), ".runwell");
+  mkdirSync(root, { recursive: true, mode: 448 });
+  const runs = join(root, "runs");
+  const runDir = (id) => join(runs, id);
+  return {
+    root,
+    db: join(root, "runwell.db"),
+    serverJson: join(root, "server.json"),
+    lock: join(root, "server.lock"),
+    configJson: join(root, "config.json"),
+    runs,
+    workflows: join(root, "workflows"),
+    runDir,
+    events: (id) => join(runDir(id), "events.jsonl"),
+    inputs: (id) => join(runDir(id), "inputs"),
+    work: (id) => join(runDir(id), "work"),
+    outputs: (id) => join(runDir(id), "outputs"),
+    workflowJson: (id) => join(runDir(id), "workflow.json")
+  };
+}
+
+// src/launcher.ts
+var NODE_HINT = "Runwell needs Node 20 or newer. Install it from https://nodejs.org and try again.";
+var nodeOk = (v = process.versions.node) => Number(v.split(".")[0]) >= 20;
+var sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function waitFor(home, ms, pred) {
+  const end = Date.now() + ms;
+  for (; ; ) {
+    const info = readServerInfo(paths(home));
+    const live = info && await probe(info, 300) ? info : null;
+    if (pred(live)) return live;
+    if (Date.now() > end) return null;
+    await sleep(100);
+  }
+}
+async function ensureServer(opts = {}) {
+  const p = paths(opts.home);
+  const info = readServerInfo(p);
+  const health = info ? await probe(info) : null;
+  const choice = decide(health, opts.version ?? VERSION);
+  if (choice === "reuse" && info) return info;
+  if (choice === "replace" && info) {
+    try {
+      const r = await fetch(`http://127.0.0.1:${info.port}/api/shutdown`, { method: "POST", headers: { authorization: `Bearer ${info.token}` }, signal: AbortSignal.timeout(1e3) });
+      if (r.status === 409) return info;
+    } catch {
+    }
+    await waitFor(p.root, 3e3, (live) => live === null);
+  }
+  const entry = opts.serverEntry ?? fileURLToPath(new URL("./server.js", import.meta.url));
+  const child = spawn(process.execPath, [entry], { detached: true, stdio: "ignore", env: { ...process.env, RUNWELL_HOME: p.root } });
+  child.on("error", () => {
+  });
+  child.unref();
+  if (!opts.wait) return null;
+  return waitFor(p.root, 5e3, (live) => live !== null && live.pid !== info?.pid);
+}
+function openUrl(url) {
+  const cmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "explorer" : "xdg-open";
+  return new Promise((resolve) => {
+    try {
+      const c = spawn(cmd, [url], { detached: true, stdio: "ignore" });
+      const t = setTimeout(() => (c.unref(), resolve(true)), 5e3);
+      c.once("error", () => (clearTimeout(t), resolve(false)));
+      c.once("exit", (code) => (clearTimeout(t), resolve(code === 0)));
+    } catch {
+      resolve(false);
+    }
+  });
+}
+
+// src/cli.ts
+async function call(info, path, init = {}) {
+  const r = await fetch(`http://127.0.0.1:${info.port}${path}`, {
+    method: init.method ?? "GET",
+    headers: { authorization: `Bearer ${info.token}`, "content-type": "application/json" },
+    body: init.body === void 0 ? void 0 : JSON.stringify(init.body)
+  });
+  return { status: r.status, body: await r.json().catch(() => ({})) };
+}
+function flag(args, name) {
+  const i = args.indexOf(name);
+  if (i < 0) return null;
+  const v = args[i + 1] ?? null;
+  args.splice(i, 2);
+  return v;
+}
+function resolveSkill(skills, q) {
+  const exact = skills.filter((s) => s.ref === q || s.ref === q.replace(/^\//, ""));
+  if (exact.length === 1) return { skill: exact[0], candidates: [] };
+  const byName = skills.filter((s) => s.name === q || s.ref.endsWith(`:${q}`));
+  if (byName.length === 1) return { skill: byName[0], candidates: [] };
+  return { skill: null, candidates: byName.length ? byName : exact };
+}
+async function main(argv, deps) {
+  const args = [...argv];
+  if (args[0] === "--version" || args[0] === "-v") {
+    deps.out(VERSION);
+    return 0;
+  }
+  if (!nodeOk(deps.nodeVersion)) {
+    deps.err(NODE_HINT);
+    return 1;
+  }
+  const cmd = args.shift() ?? "open";
+  if (cmd === "ensure") {
+    try {
+      await ensureServer({ ...deps.ensure, wait: false });
+    } catch {
+    }
+    return 0;
+  }
+  const cwd = flag(args, "--cwd") ?? deps.cwd;
+  const info = await ensureServer({ ...deps.ensure, wait: true });
+  if (!info) {
+    deps.err("Runwell could not start. Run npx runwell again, or see ~/.runwell for details.");
+    return 1;
+  }
+  const open = async (to) => {
+    const { body } = await call(info, "/api/auth/link", { method: "POST", body: { to } });
+    if (await deps.openUrl(body.url) === false) deps.err(`Could not open a browser. Paste this link into one within a minute (it works once):
+${body.url}`);
+  };
+  if (cmd === "open") {
+    if (args.includes("--print")) {
+      const { body } = await call(info, "/api/auth/link", { method: "POST", body: { to: args.find((a) => a.startsWith("/")) ?? "/" } });
+      deps.out(`Paste this into your browser within a minute (it works once):
+${body.url}`);
+      return 0;
+    }
+    await open(args[0] ?? "/");
+    deps.out(`Runwell is open at http://127.0.0.1:${info.port}. In another browser, run: runwell open --print`);
+    return 0;
+  }
+  if (cmd === "last") {
+    const { body } = await call(info, `/api/runs/latest?cwd=${encodeURIComponent(cwd)}`);
+    if (!body.run) {
+      await open("/runs");
+      deps.out("No runs yet.");
+      return 0;
+    }
+    await open(`/runs/${body.run.id}`);
+    deps.out(`Opened ${body.run.skillRef} #${body.run.n}`);
+    return 0;
+  }
+  if (cmd === "run") {
+    const q = args.shift();
+    if (!q) {
+      deps.err("Usage: runwell run <skill> [brief]");
+      return 1;
+    }
+    const { body } = await call(info, "/api/skills");
+    const { skill, candidates } = resolveSkill(body.skills ?? [], q);
+    if (!skill) {
+      deps.err(candidates.length ? `More than one skill matches "${q}": ${candidates.map((s) => s.ref).join(", ")}` : `No skill named "${q}".`);
+      return 1;
+    }
+    const projects = (await call(info, "/api/projects")).body.projects ?? [];
+    const contextProject = projects.some((p) => p.path === cwd && p.trusted) ? cwd : null;
+    const r = await call(info, "/api/runs", { method: "POST", body: { skillKey: skill.key, brief: args.join(" "), place: { kind: "folder", contextProject } } });
+    if (!r.body.run) {
+      deps.err(r.body.message ?? r.body.error ?? "The run could not start.");
+      return 1;
+    }
+    await open(`/runs/${r.body.run.id}`);
+    deps.out(`Started ${skill.ref} #${r.body.run.n}`);
+    return 0;
+  }
+  deps.err(`Unknown command "${cmd}". Commands: open, last, run <skill> [brief], ensure, --version`);
+  return 1;
+}
+
+// src/bin.ts
+main(process.argv.slice(2), {
+  out: (s) => process.stdout.write(`${s}
+`),
+  err: (s) => process.stderr.write(`${s}
+`),
+  openUrl: (u) => openUrl(u),
+  cwd: process.cwd()
+}).then(
+  (code) => process.exit(code),
+  (e) => {
+    process.stderr.write(`runwell: ${e.message}
+`);
+    process.exit(1);
+  }
+);
