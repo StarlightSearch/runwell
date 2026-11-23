@@ -169,3 +169,10 @@ table.tbl {
 .menu button:hover {
   background: var(--raise);
 }
+.skill-link {
+  color: inherit;
+  text-decoration: none;
+}
+.skill-link:hover {
+  text-decoration: underline;
+}

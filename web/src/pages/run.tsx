@@ -212,7 +212,7 @@ export function RunPage() {
         }
       >
         <span className="crumb">
-          <Link to="/runs">Runs</Link> / <Link to={`/runs?skill=${encodeURIComponent(run.skillKey)}`}>{run.skillRef}</Link> / <b>#{run.n}</b>
+          <Link to="/runs">Runs</Link> / {d.skill ? <Link to={`/skills/${encodeURIComponent(run.skillKey)}`}>{run.skillRef}</Link> : run.skillRef} / <b>#{run.n}</b>
         </span>
         <StatusPill status={run.status} suffix={formatDuration(elapsed)} />
         {!d.skill ? <span className="src" data-testid="not-installed">not installed</span> : null}

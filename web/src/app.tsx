@@ -5,6 +5,7 @@ import { Sidebar } from "./components/sidebar";
 import { RunDialogProvider } from "./components/run-dialog";
 import { CommandPalette } from "./components/command-palette";
 import { SkillsPage } from "./pages/skills";
+import { SkillPage } from "./pages/skill";
 import { RunsPage } from "./pages/runs";
 import { RunPage } from "./pages/run";
 import { OutputsPage } from "./pages/outputs";
@@ -42,6 +43,7 @@ export function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/skills" replace />} />
             <Route path="/skills" element={<SkillsPage />} />
+            <Route path="/skills/:key" element={<SkillPage />} />
             <Route path="/runs" element={<RunsPage />} />
             <Route path="/runs/:id" element={<RunPage />} />
             <Route path="/outputs" element={<OutputsPage />} />

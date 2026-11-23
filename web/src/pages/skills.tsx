@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import type { SkillListItem } from "../../../src/server/skills";
 import { formatAgo } from "../../../src/shared/format";
 import { Empty } from "../components/empty";
@@ -88,20 +88,24 @@ export function SkillsPage() {
     [all, filter, hideIgnored],
   );
 
-  // R opens the Run dialog for the focused row; arrows move the focus.
+  // R opens the Run dialog for the focused row, Enter opens its page; arrows move the focus.
+  const navigate = useNavigate();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (isTyping(e.target) || dialogOpen()) return;
       if (e.key === "ArrowDown") (setFocus((f) => Math.min(f + 1, shown.length - 1)), e.preventDefault());
       else if (e.key === "ArrowUp") (setFocus((f) => Math.max(f - 1, 0)), e.preventDefault());
-      else if ((e.key === "r" || e.key === "R" || e.key === "Enter") && !e.metaKey && !e.ctrlKey && shown[focus]) {
+      else if (e.key === "Enter" && !e.metaKey && !e.ctrlKey && shown[focus]) {
+        e.preventDefault();
+        navigate(`/skills/${encodeURIComponent(shown[focus]!.key)}`);
+      } else if ((e.key === "r" || e.key === "R") && !e.metaKey && !e.ctrlKey && shown[focus]) {
         e.preventDefault();
         openRunDialog(shown[focus]!.key);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [shown, focus, openRunDialog]);
+  }, [shown, focus, openRunDialog, navigate]);
 
   const toggle = async (s: SkillListItem) => {
     await post(`/api/skills/${encodeURIComponent(s.key)}/ignore`, { ignored: !s.ignored });
@@ -156,7 +160,9 @@ export function SkillsPage() {
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <div className="nm">
-                          {s.name}
+                          <Link to={`/skills/${encodeURIComponent(s.key)}`} className="skill-link">
+                            {s.name}
+                          </Link>
                           {s.warning ? (
                             <span className="warn-mark" title={s.warning} aria-label={s.warning}>
                               !

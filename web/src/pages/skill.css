@@ -1,0 +1,59 @@
+.skill-page {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+.skill-page h2 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tx2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 10px;
+}
+.skill-head .stats {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--tx2);
+}
+.skill-head .stats b {
+  color: var(--tx);
+}
+.skill-graph {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 260px;
+}
+.skill-graph .canvas-wrap {
+  overflow: auto;
+}
+.skill-graph .panel {
+  border-left: 1px solid var(--line);
+}
+.skill-graph .panel h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+.nograph {
+  border: 1px dashed var(--line2);
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+@media (max-width: 900px) {
+  .skill-graph {
+    grid-template-columns: 1fr;
+  }
+  .skill-graph .panel {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}

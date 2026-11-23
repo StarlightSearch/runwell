@@ -12,7 +12,7 @@ export const KEYS: [string, string][] = [
   ["G then S", "Go to Skills"],
   ["G then R", "Go to Runs"],
   ["G then O", "Go to Outputs"],
-  ["↑ / ↓, Enter", "Move in a table and open"],
+  ["↑ / ↓, Enter", "Move in a table and open (a skill opens its page)"],
   ["⌘↵", "Start the run in the Run dialog"],
   ["esc", "Close the top dialog"],
   ["?", "Show these keys"],

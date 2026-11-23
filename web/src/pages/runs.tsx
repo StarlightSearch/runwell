@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { dialogOpen, isTyping } from "../lib/keys";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { formatAgo, formatDateTime, formatDuration } from "../../../src/shared/format";
+import { useCallback, useMemo, useState } from "react";
+import { RunsTable } from "../components/runs-table";
+import { useSearchParams } from "react-router-dom";
 import type { RunRow } from "../../../src/server/runs";
 import { Empty } from "../components/empty";
 import { FilterChips } from "../components/filter-chips";
@@ -12,7 +11,6 @@ import "./skills.css";
 import "./lists.css";
 
 const LIVE = new Set(["queued", "running", "waiting"]);
-const base = (p: string | null) => (p ?? "").split("/").filter(Boolean).pop() ?? "";
 const FILTERS: Record<string, (r: RunRow) => boolean> = {
   all: () => true,
   live: (r) => LIVE.has(r.status),
@@ -21,32 +19,16 @@ const FILTERS: Record<string, (r: RunRow) => boolean> = {
   chat: (r) => r.kind === "history",
 };
 
-export function whereOf(r: RunRow): string {
-  if (r.kind === "history") return `chat in ${base(r.projectPath ?? r.cwd) || "a folder"}`;
-  return r.place === "project" ? base(r.projectPath) : "run folder";
-}
 
 export function RunsPage() {
   const [params, setParams] = useSearchParams();
   const skill = params.get("skill");
   const runs = useResource<{ runs: RunRow[] }>(`/api/runs?limit=500${skill ? `&skill=${encodeURIComponent(skill)}` : ""}`);
   const [filter, setFilter] = useState("all");
-  const navigate = useNavigate();
   useStream("runs", useCallback(() => runs.reload(), [runs.reload]));
   const all = runs.data?.runs ?? [];
   const shown = useMemo(() => all.filter(FILTERS[filter]!), [all, filter]);
-  const now = Date.now();
-  const [focus, setFocus] = useState(-1);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (isTyping(e.target) || dialogOpen() || e.metaKey || e.ctrlKey) return;
-      if (e.key === "ArrowDown") (e.preventDefault(), setFocus((f) => Math.min(f + 1, shown.length - 1)));
-      else if (e.key === "ArrowUp") (e.preventDefault(), setFocus((f) => Math.max(f - 1, 0)));
-      else if (e.key === "Enter" && shown[focus]) (e.preventDefault(), navigate(`/runs/${shown[focus]!.id}`));
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [shown, focus, navigate]);
+
   const chips = [
     { id: "all", label: "All", count: all.length },
     { id: "live", label: "Live", count: all.filter(FILTERS.live!).length },
@@ -78,37 +60,7 @@ export function RunsPage() {
         {!runs.data ? null : !shown.length ? (
           <Empty title={all.length ? "No runs match this filter." : "No runs yet."}>{all.length ? null : "Press Run on a skill, or use a skill in a chat, and it shows up here."}</Empty>
         ) : (
-          <table className="tbl" data-testid="runs-table">
-            <thead>
-              <tr>
-                <th>Run</th>
-                <th>Brief</th>
-                <th>Where</th>
-                <th>Started</th>
-                <th>Took</th>
-                <th>Rating</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((r, i) => {
-                const started = r.startedAt ?? r.createdAt;
-                return (
-                  <tr key={r.id} className={`clickable${i === focus ? " focused" : ""}`} data-testid="run-row" data-status={r.status} onClick={() => navigate(`/runs/${r.id}`)}>
-                    <td>
-                      <span className={`dot ${r.status}`} aria-label={r.status} /> <b>{r.skillRef}</b> #{r.n}
-                    </td>
-                    <td className="brief-cell">{r.brief || <span className="desc">(no brief)</span>}</td>
-                    <td className="desc">{whereOf(r)}</td>
-                    <td className="desc" title={formatDateTime(started)}>
-                      {formatAgo(started, now)}
-                    </td>
-                    <td className="mono desc">{r.endedAt ? formatDuration(r.endedAt - started) : LIVE.has(r.status) ? "running" : ""}</td>
-                    <td>{r.rating === 1 ? "👍" : r.rating === -1 ? "👎" : ""}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <RunsTable runs={shown} />
         )}
       </div>
     </>
