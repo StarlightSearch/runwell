@@ -7,7 +7,7 @@
 //   {"__fake":"write","path":"out.txt","text":"hi"}                  writes relative to its working folder
 //   {"__fake":"exit","code":1}
 // Env: FAKE_CLAUDE_FIXTURE (path), FAKE_CLAUDE_AUTH (in|out), FAKE_CLAUDE_LOG (path),
-// FAKE_CLAUDE_IGNORE_SIGINT=1, FAKE_CLAUDE_HOLD_MS (wait this long before replaying), RUNWELL_HOME, RUNWELL_RUN_ID.
+// FAKE_CLAUDE_IGNORE_SIGINT=1, FAKE_CLAUDE_NOW=1, FAKE_CLAUDE_HOLD_MS (wait this long before replaying), RUNWELL_HOME, RUNWELL_RUN_ID.
 // The brief can pick the fixture and behaviour instead (for a server started once): "[fixture:failure]"
 // replays fixtures/stream/failure.jsonl, "[ignore-sigint]" ignores the interrupt.
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -85,7 +85,8 @@ rl.on("line", async (line) => {
       }
     }
     if (!ctl || ctl.__fake === undefined) {
-      process.stdout.write(l + "\n");
+      // FAKE_CLAUDE_NOW=1: stamp lines with the current time, as real claude would (for screenshots).
+      process.stdout.write((env.FAKE_CLAUDE_NOW === "1" ? l.replace(/"timestamp": "[^"]+"/g, `"timestamp": "${new Date().toISOString()}"`) : l) + "\n");
       continue;
     }
     if (ctl.__fake === "sleep") await sleep(ctl.ms ?? 0);

@@ -57,13 +57,13 @@ describe("fake claude", () => {
   });
 
   it("ends on SIGINT with a stop result line", async () => {
-    const r = await run(["-p"], fakeEnv({ fixture: "happy", holdMs: 5000 }), { signalAfterMs: 300 });
+    const r = await run(["-p"], fakeEnv({ fixture: "happy", holdMs: 5000 }), { signalAfterMs: 1500 });
     expect(r.code).toBe(0);
     expect(r.stdout).toContain('"error_during_execution"');
   });
 
   it("with ignoreSigint survives SIGINT and dies on SIGKILL", async () => {
-    const r = await run(["-p"], fakeEnv({ fixture: "happy", ignoreSigint: true, holdMs: 5000 }), { signalAfterMs: 200, killAfterMs: 600 });
+    const r = await run(["-p"], fakeEnv({ fixture: "happy", ignoreSigint: true, holdMs: 5000 }), { signalAfterMs: 1500, killAfterMs: 2500 });
     expect(r.signal).toBe("SIGKILL");
   });
 });
