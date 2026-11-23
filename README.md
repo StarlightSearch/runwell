@@ -19,12 +19,6 @@ In Claude Code:
 /runwell
 ```
 
-Or without the plugin, from a terminal:
-
-```
-npx runwell
-```
-
 Needs Node 20 or newer and Claude Code. macOS and Linux.
 
 ## What you get
@@ -48,7 +42,6 @@ Needs Node 20 or newer and Claude Code. macOS and Linux.
 | `/runwell` | Opens Runwell in your browser |
 | `/runwell run <skill> [brief]` | Starts a run of that skill and opens it |
 | `/runwell last` | Opens the newest run for the folder you are in |
-| `npx runwell` | The same as `/runwell`, from a terminal (`npx runwell run <skill> [brief]` and `npx runwell last` work too) |
 
 In the page: `⌘K` or `Ctrl K` searches skills and runs, `R` runs the selected skill, `G` then `S`, `R` or `O` goes to Skills, Runs or Outputs, and `?` lists the keys.
 
