@@ -135,6 +135,7 @@ describe("file route", () => {
     db.run("INSERT INTO runs (id, skill_key, skill_ref, n, kind, status, cwd, place, created_at) VALUES ('r1', 'personal:x', 'x', 1, 'button', 'finished', ?, 'folder', ?)", p.work("r1"), T0);
     put(join(p.work("r1"), "page.html"), "<script>fetch('/api/ping')</script>");
     put(join(p.work("r1"), "clip.mp4"), "0123456789abcdefghij");
+    put(join(p.work("r1"), "report.pdf"), "<script>fetch('/api/ping')</script>");
     const svc = createOutputsService({ paths: p, db, config: () => loadConfig(p), token: () => token, now: () => now, reveal: () => {} });
     const a = createApp({ paths: p, config: () => loadConfig(p), db, info: { pid: 1, port: 4795, token, version: "0.1.0" }, hub: createHub(), now: () => now, activeRuns: () => 0 }, [outputsRoutes(svc, (id) => (id === "r1" ? run({ cwd: p.work("r1") }) : null))]);
     return { a, token, p };
@@ -150,6 +151,15 @@ describe("file route", () => {
     expect(r.headers.get("access-control-allow-origin")).toBe("*");
     expect(r.headers.get("set-cookie")).toBeNull();
     expect(r.headers.get("content-type")).toContain("text/html");
+  });
+
+  it("serves a PDF unsandboxed (the browser's viewer refuses a sandbox) but always as application/pdf with nosniff", async () => {
+    const { a, token } = await app();
+    const r = await a.request(`/o/${grantFor(token, "r1", T0)}/r1/report.pdf`, { headers: host });
+    expect(r.status).toBe(200);
+    expect(r.headers.get("content-security-policy")).toBeNull();
+    expect(r.headers.get("content-type")).toBe("application/pdf");
+    expect(r.headers.get("x-content-type-options")).toBe("nosniff");
   });
 
   it("404s a bad grant, another run's grant and an expired grant", async () => {
