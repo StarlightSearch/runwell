@@ -1,0 +1,132 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 9vh;
+  z-index: 50;
+}
+.dialog {
+  width: 600px;
+  max-width: calc(100vw - 32px);
+  background: var(--panel);
+  border: 1px solid var(--line2);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+.dh {
+  padding: 16px 18px 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dh .t {
+  font-weight: 600;
+  font-size: 14px;
+}
+.dbody {
+  padding: 8px 18px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.brief {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  border-radius: 10px;
+  padding: 12px;
+}
+.opts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.opt {
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--tx2);
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  background: var(--bg);
+  padding: 0 0 0 8px;
+}
+.opt select {
+  border: 0;
+  background: transparent;
+  padding: 5px 8px 5px 2px;
+  box-shadow: none;
+  font-size: 12px;
+}
+.opt.file {
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.hint {
+  font-size: 12px;
+  color: var(--tx3);
+}
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  border: 1px solid var(--line2);
+  border-radius: 999px;
+  padding: 2px 4px 2px 10px;
+  background: var(--raise);
+}
+.chip button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--tx3);
+  padding: 0 4px;
+}
+.allow {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12px;
+  color: var(--tx2);
+}
+.allow .warn {
+  color: var(--amber);
+}
+.confirm {
+  border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent);
+  background: var(--amber-bg);
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.df {
+  border-top: 1px solid var(--line);
+  margin-top: 8px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--tx3);
+  font-size: 12px;
+}
+.df .gate-msg {
+  color: var(--amber);
+}
+.drop {
+  outline: 2px dashed var(--blue);
+  outline-offset: -6px;
+}

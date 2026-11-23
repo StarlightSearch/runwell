@@ -81,7 +81,7 @@ export async function startServer(opts: { home?: string; port?: number; services
     closed = true;
     watch.stop();
     services.skills.stop();
-    services.backfill.stop();
+    await services.backfill.stop();
     // Open live-update streams would keep close() waiting forever.
     const closing = new Promise<void>((r) => server.close(() => r()));
     server.closeAllConnections();

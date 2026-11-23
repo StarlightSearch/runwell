@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { api, ApiError } from "./lib/api";
 import { Sidebar } from "./components/sidebar";
+import { RunDialogProvider } from "./components/run-dialog";
 import { SkillsPage } from "./pages/skills";
 import { RunsPage } from "./pages/runs";
 import { RunPage } from "./pages/run";
@@ -33,6 +34,7 @@ export function App() {
   if (auth === "no") return <Gate message={SIGN_IN_GATE} />;
   return (
     <BrowserRouter>
+      <RunDialogProvider>
       <div className="app">
         <Sidebar onSearch={() => window.dispatchEvent(new CustomEvent("runwell:palette"))} />
         <main className="main">
@@ -47,6 +49,7 @@ export function App() {
           </Routes>
         </main>
       </div>
+      </RunDialogProvider>
     </BrowserRouter>
   );
 }

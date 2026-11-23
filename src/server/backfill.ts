@@ -27,7 +27,8 @@ export interface BackfillState {
 
 export interface Backfill {
   start(): void;
-  stop(): void;
+  /** Stops after the file being read; resolves once nothing more will be written. */
+  stop(): Promise<void>;
   state(): BackfillState;
 }
 
@@ -171,8 +172,9 @@ export function createBackfill(deps: { paths: Paths; db: Db; hub: Hub; config():
       cancelled = false;
       running = run().finally(() => (running = null));
     },
-    stop() {
+    async stop() {
       cancelled = true;
+      await running;
     },
     state: () => ({ ...st }),
   };

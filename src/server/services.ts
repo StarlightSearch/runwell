@@ -55,6 +55,7 @@ export function buildServices(ctx: Ctx, opts: ServiceOptions = {}) {
   const projectsScan = () => scanProjects(claudeHome(), join(claudeHome(), "..", ".claude.json"));
   const claudeBin = () => opts.claudeBin ?? locateClaude({ configured: ctx.config().claudePath, env: process.env, home: homedir() });
 
+  const claudeCheck = () => claudeState({ configured: opts.claudeBin ?? ctx.config().claudePath, env: { ...process.env, ...opts.extraEnv } });
   const skills = createSkillsService({ paths: ctx.paths, db: ctx.db, hub: ctx.hub, config: ctx.config, projects: () => projectsScan().projects.map((p) => p.path), now: ctx.now });
   const workflow = createWorkflowService({ paths: ctx.paths, claudeBin, extraEnv: opts.extraEnv });
   const outputs = createOutputsService({ paths: ctx.paths, db: ctx.db, config: ctx.config, token: () => ctx.info.token, now: ctx.now, reveal: opts.reveal ?? defaultReveal });
@@ -76,7 +77,7 @@ export function buildServices(ctx: Ctx, opts: ServiceOptions = {}) {
     skill: (key) => skills.get(key),
     projects: () => projectsScan().projects,
     claude: async () => {
-      const s = await claudeState({ configured: opts.claudeBin ?? ctx.config().claudePath, env: { ...process.env, ...opts.extraEnv } });
+      const s = await claudeCheck();
       return { found: s.found, signedIn: s.signedIn };
     },
     workflow: (skill) => workflow.resolveWorkflow(skill, { draw: true }),
@@ -103,7 +104,7 @@ export function buildServices(ctx: Ctx, opts: ServiceOptions = {}) {
 
   const routes: ((app: App, ctx: Ctx) => void)[] = [
     backfillRoutes(backfill),
-    claudeRoutes,
+    claudeRoutes(claudeCheck),
     projectsRoutes,
     skillsRoutes(skills),
     workflowRoutes(skills, workflow),
