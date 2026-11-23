@@ -1,7 +1,8 @@
 /**
  * The rules every request passes, in order:
  * 1. `Host` must be 127.0.0.1:<port> or localhost:<port> (a page on another name cannot reach us through DNS rebinding).
- * 2. `GET /health`, `GET /auth` and `GET /o/<grant>/...` (output files, checked by their own grant) need nothing more.
+ * 2. `GET /health`, `GET /auth`, `GET /o/<grant>/...` (output files, checked by their own grant) and the UI's static files
+ *    (any GET outside /api/: the page holds no data, it asks the API) need nothing more.
  * 3. Anything else needs `Authorization: Bearer <token>` or the `rw` cookie of a stored session.
  * 4. A cookie-authorised request that changes state must come from our own origin.
  */
@@ -34,7 +35,7 @@ export function security(opts: { port: () => number; token: () => string; db: Db
     const port = opts.port();
     if (!allowedHosts(port).has(c.req.header("host") ?? "")) return c.text("Forbidden", 403);
     const path = new URL(c.req.url).pathname;
-    if ((OPEN_PATHS.has(path) || path.startsWith("/o/")) && SAFE.has(c.req.method)) return next();
+    if ((OPEN_PATHS.has(path) || path.startsWith("/o/") || !path.startsWith("/api/")) && SAFE.has(c.req.method)) return next();
 
     const auth = c.req.header("authorization") ?? "";
     if (auth.startsWith("Bearer ") && sameToken(auth.slice(7), opts.token())) {
