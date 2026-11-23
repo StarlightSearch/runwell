@@ -1,6 +1,6 @@
 {
   "name": "runwell",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Run your skills from a button, watch them work as a live graph, and keep every run. Works with Claude Code.",
   "author": {
     "name": "Starlight"

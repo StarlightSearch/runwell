@@ -6,7 +6,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 // src/shared/version.ts
-var VERSION = true ? "0.1.2" : "0.0.0-dev";
+var VERSION = true ? "0.1.3" : "0.0.0-dev";
 
 // src/server/lifecycle.ts
 import { closeSync, openSync, readFileSync, renameSync, rmSync, writeFileSync, writeSync } from "node:fs";

@@ -1387,7 +1387,7 @@ var serve = (options, listeningListener) => {
 };
 
 // src/shared/version.ts
-var VERSION = true ? "0.1.2" : "0.0.0-dev";
+var VERSION = true ? "0.1.3" : "0.0.0-dev";
 
 // src/shared/outputs.ts
 var MIME = {
