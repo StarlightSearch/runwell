@@ -27,7 +27,8 @@ function VideoPreview({ url }: { url: string }) {
   );
 }
 
-/** HTML and PDF run in a sandboxed frame with no same-origin access: a page a skill wrote cannot reach Runwell. */
+/** HTML runs in a sandboxed frame with no same-origin access: a page a skill wrote cannot reach Runwell.
+ *  A PDF cannot be sandboxed (the browser's viewer refuses to open in one); it is served as application/pdf with nosniff. */
 export function OutputPreview({ output, grant }: { output: OutputItem; grant: string }) {
   const url = fileUrl(grant, output.runId, output.path);
   const [text, setText] = useState<string | null>(null);
@@ -46,6 +47,7 @@ export function OutputPreview({ output, grant }: { output: OutputItem; grant: st
     case "image":
       return <div className="preview"><img alt={output.path} src={url} /></div>;
     case "pdf":
+      return <div className="preview"><iframe title={output.path} src={url} /></div>;
     case "html":
       return <div className="preview"><iframe title={output.path} sandbox="allow-scripts" src={url} /></div>;
     case "markdown":

@@ -30,9 +30,12 @@ export function outputsRoutes(outputs: OutputsService, runOf: (id: string) => Ru
       const file = outputs.file(run, rel);
       if (!file) return c.text("Not found", 404);
       const size = statSync(file).size;
+      const type = mimeOf(file);
+      // Browsers refuse to open their PDF viewer under a CSP sandbox (the frame stays blank), and a PDF
+      // served as application/pdf with nosniff cannot run as a page, so only PDFs go unsandboxed.
       const headers: Record<string, string> = {
-        "Content-Type": mimeOf(file),
-        "Content-Security-Policy": "sandbox allow-scripts",
+        "Content-Type": type,
+        ...(type === "application/pdf" ? {} : { "Content-Security-Policy": "sandbox allow-scripts" }),
         "Access-Control-Allow-Origin": "*",
         "X-Content-Type-Options": "nosniff",
         "Accept-Ranges": "bytes",

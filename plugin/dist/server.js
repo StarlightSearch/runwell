@@ -6229,9 +6229,10 @@ function outputsRoutes(outputs, runOf, eventsOf = () => []) {
       const file = outputs.file(run3, rel);
       if (!file) return c.text("Not found", 404);
       const size = statSync6(file).size;
+      const type = mimeOf(file);
       const headers = {
-        "Content-Type": mimeOf(file),
-        "Content-Security-Policy": "sandbox allow-scripts",
+        "Content-Type": type,
+        ...type === "application/pdf" ? {} : { "Content-Security-Policy": "sandbox allow-scripts" },
         "Access-Control-Allow-Origin": "*",
         "X-Content-Type-Options": "nosniff",
         "Accept-Ranges": "bytes",
