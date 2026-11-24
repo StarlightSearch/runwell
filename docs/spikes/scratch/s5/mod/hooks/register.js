@@ -17,9 +17,9 @@ export function register(on) {
       info.runExit = r.exitCode
     } catch (err) { info.runError = String(err) }
     info.ms = Date.now() - t0
-    try { await $.command.register({ name: 'runwell-spike', description: 'Spike 5 test command', argumentHint: '[sub]', immediate: true }) } catch (err) { info.cmdError = String(err) }
+    try { await $.command.register({ name: 'workflows-spike', description: 'Spike 5 test command', argumentHint: '[sub]', immediate: true }) } catch (err) { info.cmdError = String(err) }
     await $.fs.write(out + '/mod-info.json', JSON.stringify(info))
     return next(e)
   })
-  on('command.run', { command: 'runwell-spike' }, async ($, e) => ({ text: 'spike reply: ' + (e.args || 'none'), isTextDisplayOnly: true }))
+  on('command.run', { command: 'workflows-spike' }, async ($, e) => ({ text: 'spike reply: ' + (e.args || 'none'), isTextDisplayOnly: true }))
 }

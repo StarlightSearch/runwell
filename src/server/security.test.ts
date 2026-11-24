@@ -12,10 +12,10 @@ import { createHub } from "./sse";
 
 const TOKEN = "a".repeat(64);
 
-/** A Runwell home whose config points at an empty Claude folder, so tests never read the real ~/.claude. */
+/** A Workflows home whose config points at an empty Claude folder, so tests never read the real ~/.claude. */
 function isolatedHome(): string {
-  const home = mkdtempSync(join(tmpdir(), "runwell-main-"));
-  writeFileSync(join(home, "config.json"), JSON.stringify({ claudeHome: mkdtempSync(join(tmpdir(), "runwell-emptyclaude-")) }));
+  const home = mkdtempSync(join(tmpdir(), "workflows-main-"));
+  writeFileSync(join(home, "config.json"), JSON.stringify({ claudeHome: mkdtempSync(join(tmpdir(), "workflows-emptyclaude-")) }));
   return home;
 }
 const PORT = 47999;
@@ -27,7 +27,7 @@ let db: Db;
 let clock = 1_000_000;
 
 beforeAll(async () => {
-  const p = paths(mkdtempSync(join(tmpdir(), "runwell-sec-")));
+  const p = paths(mkdtempSync(join(tmpdir(), "workflows-sec-")));
   db = await openDb(p.db);
   migrate(db);
   db.run("INSERT INTO auth_sessions (id, created_at) VALUES (?, ?)", SESSION, 1);
@@ -119,7 +119,7 @@ describe("one-time link", () => {
     expect((await app.request("/api/ping", { headers: { host: H, cookie: `rw=${id}` } })).status).toBe(200);
     const second = await app.request(u.pathname + u.search, { headers: { host: H } });
     expect(second.status).toBe(403);
-    expect(await second.text()).toBe("This link has expired. Run /runwell or npx runwell again.");
+    expect(await second.text()).toBe("This link has expired. Run /workflows or npx workflows again.");
   });
 
   it("a link older than 60 seconds is refused", async () => {
@@ -151,7 +151,7 @@ describe("health", () => {
 
 describe("startServer", () => {
   it("binds 127.0.0.1 only", async () => {
-    vi.stubEnv("RUNWELL_HOME", isolatedHome());
+    vi.stubEnv("WORKFLOWS_HOME", isolatedHome());
     const s = await startServer({ port: 0 });
     expect((s.server.address() as AddressInfo).address).toBe("127.0.0.1");
     const r = await fetch(`http://127.0.0.1:${s.info.port}/health`);
@@ -163,7 +163,7 @@ describe("startServer", () => {
 
 describe("long-held requests", () => {
   it("the server does not cut requests at Node's default 5 minutes", async () => {
-    vi.stubEnv("RUNWELL_HOME", isolatedHome());
+    vi.stubEnv("WORKFLOWS_HOME", isolatedHome());
     const s = await startServer({ port: 0 });
     expect(s.server.requestTimeout).toBe(0);
     await s.close();

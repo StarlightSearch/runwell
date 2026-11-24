@@ -41,7 +41,7 @@ export async function harness(): Promise<Harness> {
 
   const start = async () => {
     child = spawn(process.execPath, [SERVER], {
-      env: { ...process.env, RUNWELL_HOME: home, FAKE_CLAUDE_FIXTURE: join(FIXTURES, "happy.jsonl"), FAKE_CLAUDE_LOG: log },
+      env: { ...process.env, WORKFLOWS_HOME: home, FAKE_CLAUDE_FIXTURE: join(FIXTURES, "happy.jsonl"), FAKE_CLAUDE_LOG: log },
       stdio: "ignore",
     });
     for (let i = 0; i < 100; i++) {

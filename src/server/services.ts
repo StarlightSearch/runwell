@@ -76,7 +76,7 @@ export function buildServices(ctx: Ctx, opts: ServiceOptions = {}) {
     return driver;
   };
   const here = dirname(fileURLToPath(import.meta.url));
-  const mcpEntry = opts.mcpEntry ?? process.env.RUNWELL_MCP_ENTRY ?? join(here, "mcp.js");
+  const mcpEntry = opts.mcpEntry ?? process.env.WORKFLOWS_MCP_ENTRY ?? join(here, "mcp.js");
 
   let broker: ReturnType<typeof createAskBroker>;
   const runs = createRunsService({

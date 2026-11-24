@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 type Theme = "dark" | "light";
-const KEY = "runwell:theme";
+const KEY = "workflows:theme";
 
 function initial(): Theme {
   try {

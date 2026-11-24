@@ -118,11 +118,11 @@ export function CommandPalette() {
       setPickBrief((e as CustomEvent<{ brief?: string }>).detail?.brief ?? "");
       setOpen("pick");
     };
-    window.addEventListener("runwell:palette", onOpen);
-    window.addEventListener("runwell:pick", onPick);
+    window.addEventListener("workflows:palette", onOpen);
+    window.addEventListener("workflows:pick", onPick);
     return () => {
-      window.removeEventListener("runwell:palette", onOpen);
-      window.removeEventListener("runwell:pick", onPick);
+      window.removeEventListener("workflows:palette", onOpen);
+      window.removeEventListener("workflows:pick", onPick);
     };
   }, []);
   useEffect(() => {

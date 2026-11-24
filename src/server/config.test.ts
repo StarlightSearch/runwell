@@ -6,7 +6,7 @@ import { DEFAULT_IGNORED } from "../shared/ignore";
 import { DEFAULT_CONFIG, loadConfig, saveConfig } from "./config";
 import { paths } from "./paths";
 
-const home = () => mkdtempSync(join(tmpdir(), "runwell-cfg-"));
+const home = () => mkdtempSync(join(tmpdir(), "workflows-cfg-"));
 
 describe("config", () => {
   it("defaults when the file is missing", () => {
@@ -37,7 +37,7 @@ describe("config", () => {
     saveConfig(p, { maxRuns: 2 });
     expect(readdirSync(p.root).filter((f) => f.includes(".tmp"))).toEqual([]);
   });
-  it("paths are under RUNWELL_HOME-style root with run folders", () => {
+  it("paths are under WORKFLOWS_HOME-style root with run folders", () => {
     const h = home();
     const p = paths(h);
     expect(p.root).toBe(h);

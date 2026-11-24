@@ -5,7 +5,7 @@ Real captures from Claude Code 2.1.330 on Linux, recorded on 23/11/2026 during t
 
 | File | What it is | From |
 |---|---|---|
-| `stream/happy.jsonl` | A skill run (`/runwell-fixture`) that starts one subagent and writes two files, then finishes | fixture run |
+| `stream/happy.jsonl` | A skill run (`/workflows-fixture`) that starts one subagent and writes two files, then finishes | fixture run |
 | `stream/subagents.jsonl` | Three subagents, two running at once with interleaved lines, one whose command exits 1 | spike 3 |
 | `stream/question.jsonl` | AskUserQuestion answered through the permission tool, then a Write allowed through it | spike 1, route B |
 | `stream/permission.jsonl` | A Bash call denied through the permission tool (message `no`), then a Write allowed; each held 600 s | spike 1, 10-minute hold |

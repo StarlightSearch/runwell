@@ -1,22 +1,20 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/runwell-lockup-dark.svg">
-    <img alt="Runwell" src="docs/assets/brand/runwell-lockup-light.svg" width="260">
-  </picture>
+  <img alt="Pulsar" src="docs/assets/brand/pulsar-logo.svg" width="72">
 </p>
+<h1 align="center">Workflows</h1>
 
-Run your skills from a button, watch them work, keep every run. Works with Claude Code.
+The open-source, local version of [Pulsar Workflows](https://pulsarbot.cloud). Run your skills from a button, watch them work, keep every run. Works with Claude Code.
 
-![A Runwell run: two agents working side by side under the step that started them](docs/assets/runwell.gif)
+![A Workflows run: two agents working side by side under the step that started them](docs/assets/workflows.gif)
 
 ## Install
 
 In Claude Code:
 
 ```
-/plugin marketplace add StarlightSearch/runwell
-/plugin install runwell@runwell
-/runwell
+/plugin marketplace add StarlightSearch/workflows
+/plugin install workflows@workflows
+/workflows
 ```
 
 Needs Node 20 or newer and Claude Code. macOS and Linux.
@@ -31,7 +29,7 @@ Needs Node 20 or newer and Claude Code. macOS and Linux.
 
 ![A run in progress](docs/assets/run-live.png)
 
-**Every run kept.** The files it made (videos, images, PDFs, HTML and markdown preview in the page), the full transcript, a timeline, a replay of the graph, and a thumbs up or down with a note. Runwell also finds the skills you used in past Claude Code chats and lists those runs too.
+**Every run kept.** The files it made (videos, images, PDFs, HTML and markdown preview in the page), the full transcript, a timeline, a replay of the graph, and a thumbs up or down with a note. Workflows also finds the skills you used in past Claude Code chats and lists those runs too.
 
 ![A finished run](docs/assets/run-past.png)
 
@@ -39,25 +37,25 @@ Needs Node 20 or newer and Claude Code. macOS and Linux.
 
 | Command | What it does |
 | --- | --- |
-| `/runwell` | Opens Runwell in your browser |
-| `/runwell run <skill> [brief]` | Starts a run of that skill and opens it |
-| `/runwell last` | Opens the newest run for the folder you are in |
+| `/workflows` | Opens Workflows in your browser |
+| `/workflows run <skill> [brief]` | Starts a run of that skill and opens it |
+| `/workflows last` | Opens the newest run for the folder you are in |
 
 In the page: `⌘K` or `Ctrl K` searches skills and runs, `R` runs the selected skill, `G` then `S`, `R` or `O` goes to Skills, Runs or Outputs, and `?` lists the keys.
 
 ## How a run works
 
-- Runwell runs your own `claude` command with your own login. It never asks for an API key and never reads or stores your credentials.
+- Workflows runs your own `claude` command with your own login. It never asks for an API key and never reads or stores your credentials.
 - Your own permission settings apply. When Claude wants to do something your settings would ask about, the question comes to the run's page.
 - By default a run works in a new folder of its own, so it does not touch your projects. Edits are allowed inside that folder. You can pick one of your projects instead, and the run works there the way a chat in that folder would.
 - **Allow everything for this run** is off every time. Turned on, nothing asks first for that one run, and commands can reach outside the run's folder. Runs that had it on are labelled.
-- Stop ends a run at once. A run never keeps going after Runwell stops.
+- Stop ends a run at once. A run never keeps going after Workflows stops.
 
 ## What it reads and what it never touches
 
 **Reads:** your skill folders; `~/.claude.json`, only for project paths and whether you have trusted them; and the session logs under `~/.claude/projects`, to find the skills you used in past chats.
 
-**Writes:** only `~/.runwell`, and a project folder only when you choose to run in it.
+**Writes:** only `~/.pulsar-workflows`, and a project folder only when you choose to run in it.
 
 **Never:** your credentials, tokens or the keychain, git, your skill files, or the network. The server listens on 127.0.0.1 only and every request needs a token. There is no telemetry.
 
@@ -67,11 +65,11 @@ In the page: `⌘K` or `Ctrl K` searches skills and runs, `R` runs the selected 
 claude plugin validate ./plugin
 ```
 
-The part that runs inside Claude Code is one short file, [`plugin/hooks/register.js`](plugin/hooks/register.js) (built from [`src/plugin/mod.ts`](src/plugin/mod.ts)). At the start of a session it starts the Runwell server in the background if it is not running, and it adds `/runwell`. It makes no network calls.
+The part that runs inside Claude Code is one short file, [`plugin/hooks/register.js`](plugin/hooks/register.js) (built from [`src/plugin/mod.ts`](src/plugin/mod.ts)). At the start of a session it starts the Workflows server in the background if it is not running, and it adds `/workflows`. It makes no network calls.
 
 ## Limits in 0.1
 
-- Runs started from the Run button (or `/runwell run`) are shown live. Skills used in a chat are read from the session logs afterwards, not live.
+- Runs started from the Run button (or `/workflows run`) are shown live. Skills used in a chat are read from the session logs afterwards, not live.
 - Tested on Linux. macOS is checked by hand before each release. Windows is not tested.
 - Built-in skills that have no files on disk are not listed.
 

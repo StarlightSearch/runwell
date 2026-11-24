@@ -19,9 +19,9 @@ test("the shell loads with the sidebar, recent runs and the right theme, and no 
   expect(errors).toEqual([]);
 });
 
-test("without the cookie the page says how to open Runwell", async ({ app }) => {
+test("without the cookie the page says how to open Workflows", async ({ app }) => {
   await app.page.goto(`${app.base}/skills`);
-  await expect(app.page.getByText("Open Runwell with /runwell in Claude Code or npx runwell in a terminal.")).toBeVisible();
+  await expect(app.page.getByText("Open Workflows with /workflows in Claude Code or npx workflows in a terminal.")).toBeVisible();
 });
 
 test("the theme toggle switches and is remembered", async ({ app }) => {

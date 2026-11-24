@@ -26,7 +26,7 @@ a credential? What does a signed-out run look like in the stream?
 
 ## Result
 
-`claude auth status --json` is a usable pre-check. Its output carries personal fields, so Runwell must
+`claude auth status --json` is a usable pre-check. Its output carries personal fields, so Workflows must
 read `loggedIn` and discard the rest without logging it.
 
 ## Decision for the plan

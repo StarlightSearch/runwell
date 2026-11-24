@@ -12,7 +12,7 @@ const FIXTURE = join(__dirname, "../../test/fixtures/skills");
 
 /** A private copy of the fixture tree, with the installed-plugins record pointing at it. */
 function tree() {
-  const dir = mkdtempSync(join(tmpdir(), "runwell-skills-"));
+  const dir = mkdtempSync(join(tmpdir(), "workflows-skills-"));
   cpSync(FIXTURE, dir, { recursive: true });
   const claudeHome = join(dir, "claude");
   const rec = join(claudeHome, "plugins/installed_plugins.json");
@@ -64,7 +64,7 @@ describe("scanSkills", () => {
 
 async function service() {
   const t = tree();
-  const p = paths(mkdtempSync(join(tmpdir(), "runwell-skillsvc-")));
+  const p = paths(mkdtempSync(join(tmpdir(), "workflows-skillsvc-")));
   saveConfig(p, { claudeHome: t.claudeHome });
   const db = await openDb(p.db);
   migrate(db);

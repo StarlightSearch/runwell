@@ -1,5 +1,5 @@
 /**
- * One Runwell server per user. Whoever starts it (the mod, the session hook, `npx runwell`) checks
+ * One Workflows server per user. Whoever starts it (the mod, the session hook, `npx workflows`) checks
  * `server.json` and the live server's /health first; a new server takes an exclusive lock file,
  * picks a port, writes `server.json` (mode 600, with a fresh token) and serves.
  */
@@ -9,10 +9,10 @@ import { createServer } from "node:net";
 import type { Paths } from "./paths";
 import { pidCommand } from "./proc";
 
-const isRunwellServer = (pid: number) => {
+const isWorkflowsServer = (pid: number) => {
   const cmd = pidCommand(pid);
   // Unknown (no /proc, no ps): keep the old, cautious answer.
-  return cmd === null ? true : /server\.js|runwell|vitest|playwright/.test(cmd);
+  return cmd === null ? true : /server\.js|workflows|vitest|playwright/.test(cmd);
 };
 
 export interface ServerInfo {
@@ -104,9 +104,9 @@ function takeLock(p: Paths): boolean {
       } catch {
         /* a half-written lock: treat as stale */
       }
-      // A live holder counts only if it is still a Runwell server: after a crash and a reboot its pid can
-      // belong to anything, and refusing then would keep Runwell from ever starting again.
-      if (holder && alive(holder) && isRunwellServer(holder)) return false;
+      // A live holder counts only if it is still a Workflows server: after a crash and a reboot its pid can
+      // belong to anything, and refusing then would keep Workflows from ever starting again.
+      if (holder && alive(holder) && isWorkflowsServer(holder)) return false;
       rmSync(p.lock, { force: true });
     }
   }

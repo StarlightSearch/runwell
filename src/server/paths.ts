@@ -1,5 +1,5 @@
-/** Runwell's data folder (`~/.runwell`, or RUNWELL_HOME) and every path in it. */
-import { mkdirSync } from "node:fs";
+/** The data folder (`~/.pulsar-workflows`, or WORKFLOWS_HOME) and every path in it. */
+import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -20,23 +20,34 @@ export interface Paths {
 }
 
 /**
- * Folders Runwell itself made Claude work in: its data folder (button runs' work folders) and the
- * temporary folders of "Draw the workflow". Claude Code records them like any folder; Runwell never
+ * Folders Workflows itself made Claude work in: its data folder (button runs' work folders) and the
+ * temporary folders of "Draw the workflow". Claude Code records them like any folder; Workflows never
  * lists them as projects or reads their sessions back as history.
  */
-export function isRunwellFolder(path: string, root: string): boolean {
+export function isWorkflowsFolder(path: string, root: string): boolean {
   const p = path.replace(/\/+$/, "");
-  return p === root || p.startsWith(`${root}/`) || /(^|\/)runwell-draw-[^/]*$/.test(p);
+  return p === root || p.startsWith(`${root}/`) || /(^|\/)(workflows|runwell)-draw-[^/]*$/.test(p);
+}
+
+/**
+ * `~/.pulsar-workflows`, unless only a folder from before the rename (`~/.runwell`, when this was called
+ * Runwell) exists: that one is kept where it is, because Claude keys an old run's session by its work
+ * folder, so moving it would break continuing that run.
+ */
+export function defaultRoot(home = homedir()): string {
+  const root = join(home, ".pulsar-workflows");
+  const legacy = join(home, ".runwell");
+  return !existsSync(root) && existsSync(legacy) ? legacy : root;
 }
 
 export function paths(home?: string): Paths {
-  const root = home ?? process.env.RUNWELL_HOME ?? join(homedir(), ".runwell");
+  const root = home ?? process.env.WORKFLOWS_HOME ?? defaultRoot();
   mkdirSync(root, { recursive: true, mode: 0o700 });
   const runs = join(root, "runs");
   const runDir = (id: string) => join(runs, id);
   return {
     root,
-    db: join(root, "runwell.db"),
+    db: join(root, existsSync(join(root, "runwell.db")) ? "runwell.db" : "workflows.db"),
     serverJson: join(root, "server.json"),
     lock: join(root, "server.lock"),
     configJson: join(root, "config.json"),

@@ -1,5 +1,5 @@
 ---
-description: Open Runwell, or run a skill in it
+description: Open Workflows, or run a skill in it
 argument-hint: "[run <skill> [brief] | last]"
 allowed-tools: Bash
 ---

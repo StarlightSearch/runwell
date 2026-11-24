@@ -1,5 +1,5 @@
 /**
- * `runwell` / `npx runwell`: open the dashboard, open the last run, start a run, or just make sure the
+ * `workflows` / `npx workflows`: open the dashboard, open the last run, start a run, or just make sure the
  * server is up (`ensure`, used by the Claude Code hook and mod).
  */
 import { ensureServer, NODE_HINT, nodeOk, openUrl as defaultOpen, type EnsureOptions } from "./launcher";
@@ -39,7 +39,7 @@ function flag(args: string[], name: string): string | null {
 /** Every skill you can run, grouped by where it comes from, names only (for a chat reply or a terminal). */
 export function listSkills(skills: Skill[]): string {
   const live = skills.filter((s) => !s.ignored);
-  if (!live.length) return "No skills found. Runwell looks in ~/.claude/skills, your plugins and your projects' .claude/skills.";
+  if (!live.length) return "No skills found. Workflows looks in ~/.claude/skills, your plugins and your projects' .claude/skills.";
   const groups = new Map<string, string[]>();
   const add = (k: string, ref: string) => groups.set(k, [...(groups.get(k) ?? []), ref]);
   for (const s of live) {
@@ -49,7 +49,7 @@ export function listSkills(skills: Skill[]): string {
   }
   const order = [...groups.keys()].sort((a, b) => (a === "personal" ? -1 : b === "personal" ? 1 : a.localeCompare(b)));
   const lines = order.map((k) => `${k}: ${[...new Set(groups.get(k)!)].sort().join(", ")}`);
-  return [`Skills you can run (${live.length}). Use /runwell run <skill> [brief]`, ...lines].join("\n");
+  return [`Skills you can run (${live.length}). Use /workflows run <skill> [brief]`, ...lines].join("\n");
 }
 
 /** Up to five skills whose name contains the query, or starts like it. */
@@ -89,7 +89,7 @@ export async function main(argv: string[], deps: CliDeps): Promise<number> {
   const cwd = flag(args, "--cwd") ?? deps.cwd;
   const info = await ensureServer({ ...deps.ensure, wait: true });
   if (!info) {
-    deps.err("Runwell could not start. Run npx runwell again, or see ~/.runwell for details.");
+    deps.err("Workflows could not start. Run npx workflows again, or see ~/.pulsar-workflows for details.");
     return 1;
   }
   /** Opens a one-time sign-in link; when no browser could be opened, prints it to paste. */
@@ -106,7 +106,7 @@ export async function main(argv: string[], deps: CliDeps): Promise<number> {
       return 0;
     }
     await open(args[0] ?? "/");
-    deps.out(`Runwell is open at http://127.0.0.1:${info.port}. In another browser, run: runwell open --print`);
+    deps.out(`Workflows is open at http://127.0.0.1:${info.port}. In another browser, run: workflows open --print`);
     return 0;
   }
   if (cmd === "last") {
@@ -133,7 +133,7 @@ export async function main(argv: string[], deps: CliDeps): Promise<number> {
       if (candidates.length) deps.err(`More than one skill matches "${q}": ${candidates.map((s) => s.ref).join(", ")}`);
       else {
         const near = closeMatches(all, q);
-        deps.err(`No skill named "${q}".${near.length ? ` Did you mean: ${near.map((s) => s.ref).join(", ")}?` : ""} /runwell run with no name lists them all.`);
+        deps.err(`No skill named "${q}".${near.length ? ` Did you mean: ${near.map((s) => s.ref).join(", ")}?` : ""} /workflows run with no name lists them all.`);
       }
       return 1;
     }

@@ -1,4 +1,4 @@
-/** What a run is made of, as Runwell records it. Shared by the server (which writes them) and the web UI (which draws them). */
+/** What a run is made of, as Workflows records it. Shared by the server (which writes them) and the web UI (which draws them). */
 
 export type RunStatus = "queued" | "running" | "waiting" | "finished" | "failed" | "stopped";
 export type RunKind = "button" | "history";

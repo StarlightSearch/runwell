@@ -92,7 +92,7 @@ function mapEntry(d: Record<string, unknown>, at: number, agentId: string | null
   for (const b of content as Block[]) {
     if (d.type === "assistant") {
       if (b?.type === "text" && typeof b.text === "string" && b.text.trim()) out.push({ t: "text", at, agentId, text: b.text, line });
-      else if (b?.type === "tool_use" && typeof b.id === "string" && typeof b.name === "string" && !b.name.startsWith("mcp__runwell__")) {
+      else if (b?.type === "tool_use" && typeof b.id === "string" && typeof b.name === "string" && !b.name.startsWith("mcp__workflows__")) {
         out.push({ t: "tool.start", at, id: b.id, agentId, name: b.name, input: b.input && typeof b.input === "object" ? (b.input as Record<string, unknown>) : {}, line });
       }
     } else if (d.type === "user" && b?.type === "tool_result" && typeof b.tool_use_id === "string") {

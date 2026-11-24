@@ -1,4 +1,4 @@
-/** `~/.runwell/config.json`: the person's settings. A bad or missing file never stops Runwell. */
+/** `~/.pulsar-workflows/config.json`: the person's settings. A bad or missing file never stops Workflows. */
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { DEFAULT_IGNORED } from "../shared/ignore";
 import type { Paths } from "./paths";

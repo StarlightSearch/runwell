@@ -13,7 +13,7 @@ import { outputKind } from "../shared/outputs";
 import { pointedFiles } from "./outputs";
 import type { Config } from "./config";
 import type { Db } from "./db";
-import { isRunwellFolder, type Paths } from "./paths";
+import { isWorkflowsFolder, type Paths } from "./paths";
 import { newRunId } from "./runs";
 import { findSkillUses, readSessionLog } from "./sessions";
 import type { Hub } from "./sse";
@@ -86,7 +86,7 @@ export function createBackfill(deps: { paths: Paths; db: Db; hub: Hub; config():
       const raw = e.input.file_path ?? e.input.notebook_path;
       if (typeof raw !== "string" || !isAbsolute(raw) || !cwd) continue;
       // Only files inside the chat's own folder: a chat that edited ~/.zshrc or a credentials file is not
-      // copied into Runwell (review, 23/11/2026). `resolve` also folds any `..` before the check.
+      // copied into Workflows (review, 23/11/2026). `resolve` also folds any `..` before the check.
       const abs = resolve(raw);
       const rel = relative(cwd, abs);
       if (!rel || rel.startsWith("..") || isAbsolute(rel) || seen.has(abs)) continue;
@@ -143,8 +143,8 @@ export function createBackfill(deps: { paths: Paths; db: Db; hub: Hub; config():
   function importFile(file: string): number {
     const log = readSessionLog(file);
     st.skippedLines += log.skipped;
-    // Runwell's own runs are already runs; their logs are not history.
-    if (log.cwd && isRunwellFolder(log.cwd, deps.paths.root)) return 0;
+    // Workflows' own runs are already runs; their logs are not history.
+    if (log.cwd && isWorkflowsFolder(log.cwd, deps.paths.root)) return 0;
     const ignored = deps.config().ignored;
     let found = 0;
     for (const use of findSkillUses(log)) {

@@ -1,8 +1,8 @@
 /**
- * Runwell's MCP server, started by `claude` for each run (runs/<id>/mcp.json).
- * - `runwell_step`: reports a step's progress. Always answers "ok": a Runwell problem never breaks a run.
- * - `runwell_permission`: the `--permission-prompt-tool` (spike 1). Questions and permission requests
- *   become cards in Runwell; the call waits until the person answers.
+ * Workflows' MCP server, started by `claude` for each run (runs/<id>/mcp.json).
+ * - `workflows_step`: reports a step's progress. Always answers "ok": a Workflows problem never breaks a run.
+ * - `workflows_permission`: the `--permission-prompt-tool` (spike 1). Questions and permission requests
+ *   become cards in Workflows; the call waits until the person answers.
  * Requests go through node:http with no timeout of their own, so a card can wait as long as it needs.
  */
 import { readFileSync } from "node:fs";
@@ -12,7 +12,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-const NOT_RUNNING = "Runwell is not running, so nobody could be asked.";
+const NOT_RUNNING = "Workflows is not running, so nobody could be asked.";
 const ENDED = "The run ended before anyone answered.";
 
 function serverInfo(home: string): { port: number; token: string } | null {
@@ -68,13 +68,13 @@ function toQuestions(input: Record<string, unknown>): Question[] {
 
 const text = (s: string) => ({ content: [{ type: "text" as const, text: s }] });
 
-export function createRunwellMcp(opts: { home: string; runId: string | null }): McpServer {
-  const mcp = new McpServer({ name: "runwell", version: "0.1.0" });
+export function createWorkflowsMcp(opts: { home: string; runId: string | null }): McpServer {
+  const mcp = new McpServer({ name: "workflows", version: "0.1.0" });
 
   mcp.registerTool(
-    "runwell_step",
+    "workflows_step",
     {
-      description: "Report the progress of a step of this run to Runwell.",
+      description: "Report the progress of a step of this run to Workflows.",
       inputSchema: { runId: z.string(), stepId: z.string(), status: z.enum(["started", "done", "failed", "skipped"]), note: z.string().optional() },
     },
     async ({ runId, stepId, status, note }) => {
@@ -84,9 +84,9 @@ export function createRunwellMcp(opts: { home: string; runId: string | null }): 
   );
 
   mcp.registerTool(
-    "runwell_permission",
+    "workflows_permission",
     {
-      description: "Asks the person in Runwell whether a tool may run, or puts Claude's question to them.",
+      description: "Asks the person in Workflows whether a tool may run, or puts Claude's question to them.",
       inputSchema: { tool_name: z.string(), input: z.record(z.string(), z.unknown()), tool_use_id: z.string().optional() },
     },
     async ({ tool_name, input, tool_use_id }) => {
@@ -113,7 +113,7 @@ export function createRunwellMcp(opts: { home: string; runId: string | null }): 
 
 /** Entry point when started by `claude` over stdio. */
 export async function main(): Promise<void> {
-  const home = process.env.RUNWELL_HOME ?? join(process.env.HOME ?? "", ".runwell");
-  const mcp = createRunwellMcp({ home, runId: process.env.RUNWELL_RUN_ID ?? null });
+  const home = process.env.WORKFLOWS_HOME ?? join(process.env.HOME ?? "", ".pulsar-workflows");
+  const mcp = createWorkflowsMcp({ home, runId: process.env.WORKFLOWS_RUN_ID ?? null });
   await mcp.connect(new StdioServerTransport());
 }

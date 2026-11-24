@@ -1,7 +1,7 @@
 # Spikes
 
 Short experiments against a real, signed-in Claude Code that decide parts of the design
-(`docs/superpowers/specs/2026-11-23-runwell-design.md`, section 20). They run in throwaway folders
+(`docs/superpowers/specs/2026-11-23-workflows-design.md`, section 20). They run in throwaway folders
 under the system temp directory, never in a real project.
 
 Every write-up uses these headings:

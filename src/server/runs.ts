@@ -223,7 +223,7 @@ export function createRunsService(deps: RunsDeps): RunsService {
     const mcpConfigPath = join(deps.paths.runDir(id), "mcp.json");
     if (deps.mcpServer) {
       const s = deps.mcpServer();
-      writeFileSync(mcpConfigPath, JSON.stringify({ mcpServers: { runwell: { command: s.command, args: s.args, env: { RUNWELL_HOME: deps.paths.root } } } }));
+      writeFileSync(mcpConfigPath, JSON.stringify({ mcpServers: { workflows: { command: s.command, args: s.args, env: { WORKFLOWS_HOME: deps.paths.root } } } }));
     } else writeFileSync(mcpConfigPath, JSON.stringify({ mcpServers: {} }));
     const inputsDir = deps.paths.inputs(id);
     const inputs = existsSync(inputsDir) ? readdirSync(inputsDir).map((f) => join(inputsDir, f)) : [];
@@ -404,7 +404,7 @@ export function createRunsService(deps: RunsDeps): RunsService {
     recoverOrphans() {
       const orphans = deps.db.all<{ id: string; pid: number | null }>("SELECT id, pid FROM runs WHERE status IN ('queued', 'running', 'waiting')");
       for (const o of orphans) {
-        const reason = "Runwell restarted during this run";
+        const reason = "Workflows restarted during this run";
         deps.db.run("UPDATE runs SET status = 'failed', error = ?, ended_at = ?, pid = NULL WHERE id = ?", reason, deps.now(), o.id);
         append(o.id, { t: "status", at: deps.now(), status: "failed", reason });
         // Only the run's own process: its command line names this run's mcp.json. A pid reused by an

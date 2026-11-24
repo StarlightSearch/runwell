@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { hasNodeSqlite, migrate, openDbWith, type Backend } from "./db";
 import { SCHEMA_VERSION } from "./schema";
 
-const file = () => join(mkdtempSync(join(tmpdir(), "runwell-db-")), "runwell.db");
+const file = () => join(mkdtempSync(join(tmpdir(), "workflows-db-")), "workflows.db");
 const nodeOk = await hasNodeSqlite();
 
 describe.each(["node", "wasm"] as Backend[])("db (%s)", (backend) => {

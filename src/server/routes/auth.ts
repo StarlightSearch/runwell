@@ -1,5 +1,5 @@
 /**
- * The one-time link that signs a browser in: `/runwell` and `npx runwell` ask for a link with the
+ * The one-time link that signs a browser in: `/workflows` and `npx workflows` ask for a link with the
  * bearer token, the browser opens it, and gets an HttpOnly, SameSite=Strict cookie.
  */
 import { randomBytes } from "node:crypto";
@@ -9,7 +9,7 @@ import type { AuthLinkResponse } from "../../shared/api";
 import type { Ctx } from "../http";
 
 const LINK_TTL_MS = 60_000;
-const EXPIRED = "This link has expired. Run /runwell or npx runwell again.";
+const EXPIRED = "This link has expired. Run /workflows or npx workflows again.";
 
 /** A path inside the app: starts with "/", not "//", no backslash or scheme tricks. */
 export function safeTo(to: unknown): string {

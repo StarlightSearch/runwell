@@ -1,5 +1,5 @@
 import type { OverviewStep } from "./graph/source-types";
-/** Request and response shapes of Runwell's HTTP API. Later tasks add their routes here. */
+/** Request and response shapes of Workflows' HTTP API. Later tasks add their routes here. */
 export interface HealthResponse {
   ok: true;
   version: string;

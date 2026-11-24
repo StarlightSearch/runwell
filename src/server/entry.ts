@@ -1,4 +1,4 @@
-/** `node dist/server.js`: starts the Runwell server, or exits quietly when another one already serves. */
+/** `node dist/server.js`: starts the Workflows server, or exits quietly when another one already serves. */
 import { startServer } from "./main";
 
 // node:sqlite prints an ExperimentalWarning on first use; it is expected and says nothing to the person.
@@ -16,7 +16,7 @@ startServer().then(
     process.on("SIGINT", stop);
   },
   (err: Error) => {
-    process.stderr.write(`runwell: ${err.message}\n`);
-    process.exit(err.message.startsWith("Another Runwell server") ? 0 : 1);
+    process.stderr.write(`workflows: ${err.message}\n`);
+    process.exit(err.message.startsWith("Another Workflows server") ? 0 : 1);
   },
 );

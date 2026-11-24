@@ -1,9 +1,9 @@
-/** Full-size screenshots for checking the look by eye. Skipped unless RUNWELL_LOOK names a folder. */
+/** Full-size screenshots for checking the look by eye. Skipped unless WORKFLOWS_LOOK names a folder. */
 import { join } from "node:path";
 import { expect, test } from "./fixtures";
 
-const OUT = process.env.RUNWELL_LOOK;
-test.skip(!OUT, "set RUNWELL_LOOK to a folder");
+const OUT = process.env.WORKFLOWS_LOOK;
+test.skip(!OUT, "set WORKFLOWS_LOOK to a folder");
 test.use({ viewport: { width: 1600, height: 950 } });
 
 test("look", async ({ app }) => {

@@ -3,7 +3,7 @@
 ## Question
 
 How do the agent's questions (AskUserQuestion) and permission requests reach a page and get answered
-when Runwell runs `claude -p` in stream-json mode? How is a skill invoked, how is one folder made
+when Workflows runs `claude -p` in stream-json mode? How is a skill invoked, how is one folder made
 writable, and how is a run stopped?
 
 ## Setup
@@ -23,10 +23,10 @@ writable, and how is a run stopped?
    denied unless something approves it. Writes inside the working folder were also denied with no rule
    (`s1-folder-rule.jsonl`, first run). The person's own user-level hooks, plugins and MCP servers load in
    the run (a SessionStart hook and their MCP servers appeared).
-2. **Skill invocation.** A personal test skill (`~/.claude/skills/runwell-spike`, removed afterwards)
-   invoked as the first message `/runwell-spike make it say hi` loaded and ran: `spike.txt` contained
+2. **Skill invocation.** A personal test skill (`~/.claude/skills/workflows-spike`, removed afterwards)
+   invoked as the first message `/workflows-spike make it say hi` loaded and ran: `spike.txt` contained
    `hi`. The stream shows no Skill tool call; the session log shows a user line
-   `<command-name>/runwell-spike</command-name>` with `<command-args>`, then an `isMeta` user line
+   `<command-name>/workflows-spike</command-name>` with `<command-args>`, then an `isMeta` user line
    starting `Base directory for this skill: <path>`. The `init` event's `slash_commands` lists personal
    skills by bare name and plugin skills as `plugin:skill` (for example `superpowers:brainstorming`);
    a plugin skill was not run (listing taken as sufficient).
@@ -69,7 +69,7 @@ permissions only. No Agent SDK fallback is needed.
 
 ## Decision for the plan
 
-- `ASK_ROUTE: permission-tool` (one MCP tool on the Runwell MCP server, passed as `--permission-prompt-tool mcp__runwell__permission`; questions answer through `updatedInput.answers` keyed by question text, permissions through `behavior` allow/deny).
+- `ASK_ROUTE: permission-tool` (one MCP tool on the Workflows MCP server, passed as `--permission-prompt-tool mcp__workflows__permission`; questions answer through `updatedInput.answers` keyed by question text, permissions through `behavior` allow/deny).
 - `SKILL_INVOCATION: first message "/<name> <brief>" for personal and project skills, "/<plugin>:<name> <brief>" for plugin skills (the names in init.slash_commands)`.
 - `FOLDER_RULE: --settings '{"permissions":{"allow":["Edit(//<absolute run folder>/**)"]}}'` (double slash; a single slash does not match).
 - `BYPASS_FLAG: --permission-mode bypassPermissions`.

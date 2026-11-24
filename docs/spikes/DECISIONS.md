@@ -8,7 +8,7 @@ No spike landed on the Agent SDK fallback: button runs use `claude -p` throughou
 
 | Name | Value | Feeds tasks |
 |---|---|---|
-| `ASK_ROUTE` | `permission-tool`. Pass `--mcp-config <runwell MCP>` and `--permission-prompt-tool mcp__runwell__permission`. The tool receives `{tool_name, input, tool_use_id}`. Questions: `tool_name === "AskUserQuestion"`, `input.questions[]` (`question`, `header`, `multiSelect`, `options[{label, description}]`); answer `{"behavior":"allow","updatedInput":{...input,"answers":{"<question text>":"<label or typed text>"}}}`. Permissions: answer `{"behavior":"allow","updatedInput":input}` or `{"behavior":"deny","message":"<text the agent reads>"}`. The answer is the tool result's text content (JSON). The run waits for the answer (600 s held twice without a timeout). Read-only commands never reach the tool. | 20, 22, 23, 39 |
+| `ASK_ROUTE` | `permission-tool`. Pass `--mcp-config <workflows MCP>` and `--permission-prompt-tool mcp__workflows__permission`. The tool receives `{tool_name, input, tool_use_id}`. Questions: `tool_name === "AskUserQuestion"`, `input.questions[]` (`question`, `header`, `multiSelect`, `options[{label, description}]`); answer `{"behavior":"allow","updatedInput":{...input,"answers":{"<question text>":"<label or typed text>"}}}`. Permissions: answer `{"behavior":"allow","updatedInput":input}` or `{"behavior":"deny","message":"<text the agent reads>"}`. The answer is the tool result's text content (JSON). The run waits for the answer (600 s held twice without a timeout). Read-only commands never reach the tool. | 20, 22, 23, 39 |
 | `ASK_MOD_ROUTE` | Not used for button runs. A mod `tool.check` hook can hold a permission by looping `$.http.fetch` long-polls (each call under 30 s), but AskUserQuestion is not offered under `-p` without a permission tool, so the mod cannot carry questions. Kept for 0.2 chat runs. | 39 |
 | `SKILL_INVOCATION` | First user message `/<name> <brief>` for personal and project skills; `/<plugin>:<name> <brief>` for plugin skills (names as listed in the `init` event's `slash_commands`). | 20 |
 | `FOLDER_RULE` | `--settings '{"permissions":{"allow":["Edit(//<absolute run folder>/**)"]}}'`. The double slash is required; `Edit(/abs/**)` does not match. Without a rule, `-p` (Manual mode) denies writes even inside the working folder unless the permission tool allows them. | 20 |
@@ -29,8 +29,8 @@ No spike landed on the Agent SDK fallback: button runs use `claude -p` throughou
 | `MOD_SPAWN` | `await $.process.run([node, <plugin>/dist/launcher.js, ...])` in `session.start`, in try/catch; the launcher spawns the server `detached: true, stdio: "ignore"`, `unref()`, and exits. Verified to outlive the session. `$.process.spawn` is a lazy iterator; do not use it for this. | 38, 39 |
 | `MOD_ROOT` | `new URL('..', import.meta.url).pathname` from `hooks/register.js`. `CLAUDE_PLUGIN_ROOT` is not visible to mods. Mods may import only their own files and `claude-code`. | 39 |
 | `HOOK_SPAWN` | `SessionStart` command hook `node "${CLAUDE_PLUGIN_ROOT}/dist/launcher.js"` (same launcher). Verified on Linux. | 38, 39 |
-| `NODE_DISCOVERY` | Mod: `node` on PATH, else the path in `~/.runwell/config.json`. Hook and CLI: `process.execPath` if it is Node 20+, else PATH. None found: "Runwell needs Node 20 or newer. Install it from nodejs.org, then restart Claude Code." | 38, 39 |
-| `MOD_COMMANDS` | `$.command.register({name: "runwell", description, argumentHint, immediate: true})` in `session.start`; `on("command.run", {command: "runwell"}, ...)` returns `{text, isTextDisplayOnly: true}`. A plugin command file `commands/runwell.md` is listed as `/runwell:runwell` (no clash). | 39 |
+| `NODE_DISCOVERY` | Mod: `node` on PATH, else the path in `~/.pulsar-workflows/config.json`. Hook and CLI: `process.execPath` if it is Node 20+, else PATH. None found: "Workflows needs Node 20 or newer. Install it from nodejs.org, then restart Claude Code." | 38, 39 |
+| `MOD_COMMANDS` | `$.command.register({name: "workflows", description, argumentHint, immediate: true})` in `session.start`; `on("command.run", {command: "workflows"}, ...)` returns `{text, isTextDisplayOnly: true}`. A plugin command file `commands/workflows.md` is listed as `/workflows:workflows` (no clash). | 39 |
 | `OPEN_URL` | `$.process.run(["xdg-open", url])` on Linux, `["open", url]` on macOS (no URL helper in the mods API). | 39 |
 | `MOD_START_MS` | About 150 ms for the `session.start` hook including the launcher. | 39 |
 
@@ -38,10 +38,10 @@ No spike landed on the Agent SDK fallback: button runs use `claude -p` throughou
 
 23/11/2026, Claude Code 2.1.330, Linux.
 
-- `claude plugin validate ./plugin`: passes (hooks `session.start` and `command.run{command=runwell}`, the `SessionStart` hook, the fallback command `runwell:runwell`). Warning only: no icon.
-- Loaded with `--plugin-dir ./plugin` (not installed from the marketplace; that is in the release check list) against a temp `RUNWELL_HOME`, a fake `xdg-open` and the fake `claude` for the run itself:
-  - `/runwell` answered "Runwell is open at http://127.0.0.1:4790" with no model turn, and opened a one-time link.
-  - `/runwell run motion-ad hello there` answered "Started motion-ad #1"; the run finished with that brief.
-  - `/runwell last` answered "Opened motion-ad #1".
+- `claude plugin validate ./plugin`: passes (hooks `session.start` and `command.run{command=workflows}`, the `SessionStart` hook, the fallback command `workflows:workflows`). Warning only: no icon.
+- Loaded with `--plugin-dir ./plugin` (not installed from the marketplace; that is in the release check list) against a temp `WORKFLOWS_HOME`, a fake `xdg-open` and the fake `claude` for the run itself:
+  - `/workflows` answered "Workflows is open at http://127.0.0.1:4790" with no model turn, and opened a one-time link.
+  - `/workflows run motion-ad hello there` answered "Started motion-ad #1"; the run finished with that brief.
+  - `/workflows last` answered "Opened motion-ad #1".
   - All three sessions used the same server (one process, same pid), which kept running after each `claude -p` exited. Each whole `claude -p` call took about 3.7 s.
-- Not checked here: install from the marketplace, a real `claude` run started from `/runwell run`, macOS, and a session with mods off (the hook path is covered by `test/plugin/hook.test.ts`).
+- Not checked here: install from the marketplace, a real `claude` run started from `/workflows run`, macOS, and a session with mods off (the hook path is covered by `test/plugin/hook.test.ts`).

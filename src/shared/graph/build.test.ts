@@ -494,7 +494,7 @@ describe("step outputs come from the tracker", () => {
   });
 });
 
-describe("Runwell: failed steps", () => {
+describe("Workflows: failed steps", () => {
   it("a step reported failed is a failed node and counts in the header", () => {
     const g = buildRunGraph({ overviewSteps: null, live: false, steps: [step("a", "A", 0, "done"), step("b", "B", 0, "failed")],
       messages: [assistant("m1", [todo(["a", "b"], { a: "completed", b: "failed" })])] });

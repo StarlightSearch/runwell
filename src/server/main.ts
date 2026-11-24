@@ -22,7 +22,7 @@ const UI_CSP =
 /** The built web UI sits beside the server bundle (dist/web), or under web/dist in development. */
 function webRoot(): string {
   const here = fileURLToPath(new URL(".", import.meta.url));
-  return process.env.RUNWELL_WEB_ROOT ?? join(here, "web");
+  return process.env.WORKFLOWS_WEB_ROOT ?? join(here, "web");
 }
 
 function serveUi(app: App, root: string): void {
@@ -39,7 +39,7 @@ function serveUi(app: App, root: string): void {
       return c.body(body, 200, { "Content-Type": type });
     } catch {
       c.header("Content-Security-Policy", UI_CSP);
-      return c.html("<!doctype html><title>Runwell</title><p>The Runwell interface has not been built yet.</p>", inside ? 404 : 200);
+      return c.html("<!doctype html><title>Workflows</title><p>The Workflows interface has not been built yet.</p>", inside ? 404 : 200);
     }
   });
 }
@@ -56,7 +56,7 @@ export async function startServer(opts: { home?: string; port?: number; services
   const lock = await acquire(p, opts.port ?? config().port, VERSION);
   if (!lock) {
     db.close();
-    throw new Error("Another Runwell server is already running.");
+    throw new Error("Another Workflows server is already running.");
   }
   // Browsers share a cookie across every server on 127.0.0.1, whatever the port, so a leaked `rw` cookie
   // must not outlive this server: sessions start empty each time (review, 23/11/2026).

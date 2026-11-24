@@ -5,7 +5,7 @@ import { FAKE_CLAUDE, fakeEnv } from "../fake-claude";
 import { startServer } from "../../src/server/main";
 import { seed, type Seeded } from "./seed";
 
-process.env.RUNWELL_WEB_ROOT = fileURLToPath(new URL("../../plugin/dist/web", import.meta.url));
+process.env.WORKFLOWS_WEB_ROOT = fileURLToPath(new URL("../../plugin/dist/web", import.meta.url));
 
 export interface AppFixture {
   page: Page;

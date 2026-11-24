@@ -1,4 +1,4 @@
-/* Runwell's look: calm and dense, colour kept for status. Dark and light share every token name. */
+/* Workflows' look: calm and dense, colour kept for status. Dark and light share every token name. */
 :root,
 :root[data-theme="dark"] {
   --bg: #0b0b0c;

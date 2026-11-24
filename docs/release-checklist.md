@@ -11,7 +11,7 @@ Run this against a real Claude Code before each release. Record each pass at the
 
 ## Checks (each with what should happen)
 
-1. **Fresh install from the marketplace** (macOS and Linux): `/plugin marketplace add StarlightSearch/runwell`, `/plugin install runwell@runwell`, start a new session. The session starts with no visible delay; `/runwell` opens the dashboard.
+1. **Fresh install from the marketplace** (macOS and Linux): `/plugin marketplace add StarlightSearch/workflows`, `/plugin install workflows@workflows`, start a new session. The session starts with no visible delay; `/workflows` opens the dashboard.
 2. **First start**: past runs found in your chats show within a minute (the Settings page says how many logs were read).
 3. **Button run in a new run folder**: the graph moves live, the run finishes, its files show under Outputs.
 4. **Button run in a trusted project**: runs there; files it wrote are labelled "written by this run".
@@ -23,11 +23,11 @@ Run this against a real Claude Code before each release. Record each pass at the
 10. **Stop**: the run ends as Stopped within a few seconds, and no `claude` process is left.
 11. **Signed out**: after `claude auth logout`, the Run dialog says so and nothing starts.
 12. **No Node on PATH**: the one-line hint shows once; Claude Code works normally.
-13. **Mods off**: the SessionStart hook still starts the server, and `/runwell:runwell` works through a turn.
+13. **Mods off**: the SessionStart hook still starts the server, and `/workflows:workflows` works through a turn.
 14. **Two sessions**: both use the same server (one `server.json`, one process).
 15. **Upgrade**: after installing a newer version, the old server is replaced once it has no run in progress.
 16. **Spike decisions still hold**: re-run the Step 1 captures of spikes 1 and 3 (docs/spikes) on this Claude Code version and compare the line shapes with `test/fixtures/stream`.
 
 ## Passes
 
-- 23/11/2026, Claude Code 2.1.330, Linux, partial (pre-release, before the repository exists): `npm run test:all` and the package check pass; the plugin validates; loaded with `--plugin-dir`, `/runwell`, `/runwell run` and `/runwell last` work and two sessions share one server (see docs/spikes/DECISIONS.md, "Plugin check"). Not yet run: checks 1, 2 and 5 to 16 against a real `claude` and a marketplace install, and macOS. To do by the owner before the public release.
+- 23/11/2026, Claude Code 2.1.330, Linux, partial (pre-release, before the repository exists): `npm run test:all` and the package check pass; the plugin validates; loaded with `--plugin-dir`, `/workflows`, `/workflows run` and `/workflows last` work and two sessions share one server (see docs/spikes/DECISIONS.md, "Plugin check"). Not yet run: checks 1, 2 and 5 to 16 against a real `claude` and a marketplace install, and macOS. To do by the owner before the public release.

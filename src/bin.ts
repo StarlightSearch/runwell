@@ -1,4 +1,4 @@
-/** The `runwell` command. */
+/** The `workflows` command. */
 import { main } from "./cli";
 import { openUrl } from "./launcher";
 
@@ -10,7 +10,7 @@ main(process.argv.slice(2), {
 }).then(
   (code) => process.exit(code),
   (e: Error) => {
-    process.stderr.write(`runwell: ${e.message}\n`);
+    process.stderr.write(`workflows: ${e.message}\n`);
     process.exit(1);
   },
 );

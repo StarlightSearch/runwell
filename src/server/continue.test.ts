@@ -6,7 +6,7 @@ import { continueRun, resumeInfo, type Launch } from "./continue";
 import type { RunRow } from "./runs";
 
 const SID = "0b1c2d3e-4f50-4617-8899-aabbccddeeff";
-const dir = mkdtempSync(join(tmpdir(), "runwell-it's-"));
+const dir = mkdtempSync(join(tmpdir(), "workflows-it's-"));
 const run = (over: Partial<RunRow> = {}): RunRow => ({
   id: "r1", skillKey: "personal:x", skillRef: "x", n: 1, kind: "button", status: "finished", brief: "", cwd: dir, place: "folder",
   projectPath: null, model: null, allowAll: false, skillVersion: 1, createdAt: 1, startedAt: 1, endedAt: 2, waitingMs: 0,

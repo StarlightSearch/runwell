@@ -51,7 +51,7 @@ describe("listSkills and closeMatches", () => {
   ];
   it("lists every tracked skill grouped by source, personal first", () => {
     expect(listSkills(skills).split("\n")).toEqual([
-      "Skills you can run (4). Use /runwell run <skill> [brief]",
+      "Skills you can run (4). Use /workflows run <skill> [brief]",
       "personal: motion-ad",
       "plugin superpowers: superpowers:brainstorming, superpowers:writing-plans",
       "project site: deploy",
@@ -82,7 +82,7 @@ it("refuses Node older than 20 with the hint", async () => {
   const err: string[] = [];
   const code = await main(["open"], { out: () => {}, err: (x) => err.push(x), openUrl: () => {}, cwd: "/", nodeVersion: "18.19.0" });
   expect(code).toBe(1);
-  expect(err[0]).toBe("Runwell needs Node 20 or newer. Install it from https://nodejs.org and try again.");
+  expect(err[0]).toBe("Workflows needs Node 20 or newer. Install it from https://nodejs.org and try again.");
 });
 
 describe.skipIf(!existsSync(ENTRY))("the CLI against a started server (needs npm run build)", () => {
@@ -90,16 +90,16 @@ describe.skipIf(!existsSync(ENTRY))("the CLI against a started server (needs npm
     const t = await setup();
     expect(await t.run("open")).toBe(0);
     expect(t.urls[0]).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/auth\?n=/);
-    expect(t.out[0]).toMatch(/^Runwell is open at http:\/\/127\.0\.0\.1:\d+\. In another browser, run: runwell open --print$/);
+    expect(t.out[0]).toMatch(/^Workflows is open at http:\/\/127\.0\.0\.1:\d+\. In another browser, run: workflows open --print$/);
   });
 
   it("run nope exits 1 with no candidates; run motion-ad hello there starts a run with that brief", async () => {
     process.env.FAKE_CLAUDE_FIXTURE = fakeEnv({ fixture: "happy" }).FAKE_CLAUDE_FIXTURE;
     const t = await setup();
     expect(await t.run("run", "nope")).toBe(1);
-    expect(t.err[0]).toBe('No skill named "nope". /runwell run with no name lists them all.');
+    expect(t.err[0]).toBe('No skill named "nope". /workflows run with no name lists them all.');
     expect(await t.run("run")).toBe(0);
-    expect(t.out.at(-1)).toMatch(/^Skills you can run \(\d+\)\. Use \/runwell run <skill> \[brief\]\npersonal: .*motion-ad/);
+    expect(t.out.at(-1)).toMatch(/^Skills you can run \(\d+\)\. Use \/workflows run <skill> \[brief\]\npersonal: .*motion-ad/);
     expect(await t.run("run", "motion-ad", "hello", "there")).toBe(0);
     expect(t.out.at(-1)).toMatch(/^Started motion-ad #\d+$/);
     expect(t.urls.at(-1)).toMatch(/\/auth\?n=.*to=%2Fruns%2F/);

@@ -1,5 +1,5 @@
 /**
- * What a run produced. Fresh-folder runs: everything in `work/` (already in Runwell's folder, so nothing
+ * What a run produced. Fresh-folder runs: everything in `work/` (already in Workflows' folder, so nothing
  * is copied). Runs in a project: files the run's Write/Edit calls named ("written") plus files changed in
  * the project during the run ("probably"), copied into `runs/<id>/outputs/` within the size caps.
  * Either kind also keeps files outside its folder that the run pointed to by path (`~/...`, see pointedFiles).
@@ -108,7 +108,7 @@ const NAMED_FILE = /(?:~|\/)[^\s"'`<>()|;&*?\\]+?\.(?:mp4|mov|webm|gif|png|jpe?g
 /**
  * Files outside the run's own folder that the run pointed to by path (a skill that saves its result to
  * ~/Downloads, say) and that were written during the run. Only under the home folder, never in a temp
- * folder (intermediate files), Runwell's own data, or anything hidden (a dot file or dot folder). Stored as
+ * folder (intermediate files), Workflows' own data, or anything hidden (a dot file or dot folder). Stored as
  * `~/<path>`.
  */
 export function pointedFiles(events: RunEvent[], window: { from: number; to: number }, skip: string[], home: string): { rel: string; abs: string }[] {
@@ -224,7 +224,7 @@ export function outputFile(run: RunRow, rel: string, p: Paths): string | null {
   }
 }
 
-const grantKey = (token: string) => createHmac("sha256", token).update("runwell-output-grant-v1").digest();
+const grantKey = (token: string) => createHmac("sha256", token).update("workflows-output-grant-v1").digest();
 
 /** A path-scoped grant for one run's files, good for an hour: `<exp>.<mac>`. */
 export function grantFor(token: string, runId: string, now: number): string {

@@ -26,7 +26,7 @@ describe.skipIf(!BUILT)("restart", () => {
     await h.stopServer("SIGKILL");
     await h.restartServer();
     const r = await h.waitForStatus(run.id, "failed", 5000);
-    expect(r.error).toBe("Runwell restarted during this run");
+    expect(r.error).toBe("Workflows restarted during this run");
     const after = await readEvents(h, run.id);
     expect(after.some((e) => e.t === "status" && e.status === "running")).toBe(true);
     expect(after.at(-1)).toMatchObject({ t: "status", status: "failed" });

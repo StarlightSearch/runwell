@@ -27,7 +27,7 @@ function put(path: string, text: string, mtime = T0 + 30_000) {
 
 describe("collectOutputs", () => {
   it("a fresh-folder run lists what is in work/, nothing copied", () => {
-    const p = paths(mkdtempSync(join(tmpdir(), "runwell-out-")));
+    const p = paths(mkdtempSync(join(tmpdir(), "workflows-out-")));
     put(join(p.work("r1"), "a.txt"), "a");
     put(join(p.work("r1"), "sub/b.mp4"), "bb");
     const rows = collectOutputs(run({ cwd: p.work("r1") }), [], DEFAULT_CONFIG, p);
@@ -35,15 +35,15 @@ describe("collectOutputs", () => {
   });
 
   it("a project run: Write paths are written, other changed files probably; skips node_modules, gitignored and outside paths", () => {
-    const p = paths(mkdtempSync(join(tmpdir(), "runwell-out-")));
-    const proj = mkdtempSync(join(tmpdir(), "runwell-proj-"));
+    const p = paths(mkdtempSync(join(tmpdir(), "workflows-out-")));
+    const proj = mkdtempSync(join(tmpdir(), "workflows-proj-"));
     put(join(proj, "report.md"), "r");
     put(join(proj, "poster.png"), "p");
     put(join(proj, "old.txt"), "o", T0 - 3_600_000);
     put(join(proj, "node_modules/x.js"), "x");
     put(join(proj, "secret.log"), "s");
     put(join(proj, ".gitignore"), "*.log\n", T0 - 3_600_000);
-    const outside = join(mkdtempSync(join(tmpdir(), "runwell-else-")), "else.txt");
+    const outside = join(mkdtempSync(join(tmpdir(), "workflows-else-")), "else.txt");
     put(outside, "e");
     const rows = collectOutputs(run({ place: "project", cwd: proj, projectPath: proj }), [...write("w1", join(proj, "report.md")), ...write("w2", outside)], DEFAULT_CONFIG, p);
     expect(rows.map((r) => [r.path, r.label]).sort()).toEqual([["poster.png", "probably"], ["report.md", "written"]]);
@@ -52,22 +52,22 @@ describe("collectOutputs", () => {
   });
 
   it("respects the copy caps: a big file is hashed not copied; copying stops at the run cap", () => {
-    const p = paths(mkdtempSync(join(tmpdir(), "runwell-out-")));
-    const proj = mkdtempSync(join(tmpdir(), "runwell-proj-"));
+    const p = paths(mkdtempSync(join(tmpdir(), "workflows-out-")));
+    const proj = mkdtempSync(join(tmpdir(), "workflows-proj-"));
     put(join(proj, "big.bin"), "x".repeat(20));
     let rows = collectOutputs(run({ place: "project", cwd: proj, projectPath: proj }), write("w", join(proj, "big.bin")), { ...DEFAULT_CONFIG, copyFileCapBytes: 10 }, p);
     expect(rows[0]).toMatchObject({ copied: false, bytes: 20 });
     expect(rows[0]!.hash).toMatch(/^[0-9a-f]{64}$/);
-    const p2 = paths(mkdtempSync(join(tmpdir(), "runwell-out-")));
-    const proj2 = mkdtempSync(join(tmpdir(), "runwell-proj-"));
+    const p2 = paths(mkdtempSync(join(tmpdir(), "workflows-out-")));
+    const proj2 = mkdtempSync(join(tmpdir(), "workflows-proj-"));
     for (const n of ["a", "b", "c"]) put(join(proj2, `${n}.txt`), "y".repeat(10));
     rows = collectOutputs(run({ place: "project", cwd: proj2, projectPath: proj2 }), [], { ...DEFAULT_CONFIG, copyRunCapBytes: 25 }, p2);
     expect(rows.filter((r) => r.copied)).toHaveLength(2);
   });
 
   it("never follows a symlink; skips a file that vanished", () => {
-    const p = paths(mkdtempSync(join(tmpdir(), "runwell-out-")));
-    const proj = mkdtempSync(join(tmpdir(), "runwell-proj-"));
+    const p = paths(mkdtempSync(join(tmpdir(), "workflows-out-")));
+    const proj = mkdtempSync(join(tmpdir(), "workflows-proj-"));
     symlinkSync("/etc/hosts", join(proj, "hosts"));
     const rows = collectOutputs(run({ place: "project", cwd: proj, projectPath: proj }), [...write("w1", join(proj, "hosts")), ...write("w2", join(proj, "gone.txt"))], DEFAULT_CONFIG, p);
     expect(rows).toEqual([]);
@@ -76,8 +76,8 @@ describe("collectOutputs", () => {
 
 describe("hidden files in a project", () => {
   it("a .env changed during a project run is never kept", () => {
-    const p = paths(mkdtempSync(join(tmpdir(), "runwell-out-")));
-    const proj = mkdtempSync(join(tmpdir(), "runwell-proj-"));
+    const p = paths(mkdtempSync(join(tmpdir(), "workflows-out-")));
+    const proj = mkdtempSync(join(tmpdir(), "workflows-proj-"));
     put(join(proj, ".env"), "SECRET=1");
     put(join(proj, "notes.md"), "hi");
     const rows = collectOutputs(run({ place: "project", cwd: proj, projectPath: proj }), [], DEFAULT_CONFIG, p);
@@ -88,20 +88,20 @@ describe("hidden files in a project", () => {
 describe("files a run points to outside its folder", () => {
   const said = (text: string): RunEvent[] => [{ t: "text", at: T0 + 5, agentId: null, text }];
   it("keeps a file under home that the run named and wrote during the run, for both run kinds", () => {
-    const home = mkdtempSync(join(tmpdir(), "runwell-home-"));
-    const p = paths(join(home, ".runwell"));
+    const home = mkdtempSync(join(tmpdir(), "workflows-home-"));
+    const p = paths(join(home, ".pulsar-workflows"));
     put(join(home, "Downloads", "ad-4x5.mp4"), "video");
     put(join(home, "Downloads", "old.mp4"), "old", T0 - 3_600_000);
-    put(join(home, ".runwell", "runs", "x", "work", "inner.png"), "mine");
+    put(join(home, ".pulsar-workflows", "runs", "x", "work", "inner.png"), "mine");
     put(join(home, ".claude.json"), "{}");
     put(join(home, ".config", "app", "notes.md"), "secret");
     const events = [
       ...said("Done. Saved to ~/Downloads/ad-4x5.mp4 (the 4:5 cut)."),
-      ...said(`Also see ${join(home, "Downloads", "old.mp4")} and ${join(home, ".runwell", "runs", "x", "work", "inner.png")}`),
+      ...said(`Also see ${join(home, "Downloads", "old.mp4")} and ${join(home, ".pulsar-workflows", "runs", "x", "work", "inner.png")}`),
       ...said("Settings are in ~/.claude.json and ~/.config/app/notes.md"),
       { t: "tool.start", at: T0 + 6, id: "b1", agentId: null, name: "Bash", input: { command: "ffmpeg -i /tmp/frames/%04d.png ~/Downloads/missing.mp4" } } as RunEvent,
     ];
-    const proj = mkdtempSync(join(tmpdir(), "runwell-proj-"));
+    const proj = mkdtempSync(join(tmpdir(), "workflows-proj-"));
     const projectRows = collectOutputs(run({ place: "project", cwd: proj, projectPath: proj }), events, DEFAULT_CONFIG, p, home);
     expect(projectRows.map((r) => [r.path, r.label, r.kind, r.copied])).toEqual([["~/Downloads/ad-4x5.mp4", "probably", "video", true]]);
     expect(readFileSync(join(p.outputs("r1"), "~/Downloads/ad-4x5.mp4"), "utf8")).toBe("video");
@@ -115,12 +115,12 @@ describe("files a run points to outside its folder", () => {
 
 describe("outputFile", () => {
   it("refuses absolute paths, .. segments and symlinks out of the folder", () => {
-    const p = paths(mkdtempSync(join(tmpdir(), "runwell-out-")));
+    const p = paths(mkdtempSync(join(tmpdir(), "workflows-out-")));
     put(join(p.work("r1"), "ok.txt"), "k");
     symlinkSync("/etc/hosts", join(p.work("r1"), "escape"));
     const r = run({ cwd: p.work("r1") });
     expect(outputFile(r, "ok.txt", p)).toBe(join(p.work("r1"), "ok.txt"));
-    expect(outputFile(r, "../../runwell.db", p)).toBeNull();
+    expect(outputFile(r, "../../workflows.db", p)).toBeNull();
     expect(outputFile(r, "/etc/passwd", p)).toBeNull();
     expect(outputFile(r, "escape", p)).toBeNull();
   });
@@ -128,7 +128,7 @@ describe("outputFile", () => {
 
 describe("file route", () => {
   async function app(now = T0) {
-    const p = paths(mkdtempSync(join(tmpdir(), "runwell-outroute-")));
+    const p = paths(mkdtempSync(join(tmpdir(), "workflows-outroute-")));
     const db = await openDb(p.db);
     migrate(db);
     const token = "t".repeat(64);
@@ -167,7 +167,7 @@ describe("file route", () => {
     expect((await a.request(`/o/nope/r1/page.html`, { headers: host })).status).toBe(404);
     expect((await a.request(`/o/${grantFor(token, "r2", T0)}/r1/page.html`, { headers: host })).status).toBe(404);
     expect((await a.request(`/o/${grantFor(token, "r1", T0 - 2 * 3_600_000)}/r1/page.html`, { headers: host })).status).toBe(404);
-    expect((await a.request(`/o/${grantFor(token, "r1", T0)}/r1/..%2F..%2Frunwell.db`, { headers: host })).status).toBe(404);
+    expect((await a.request(`/o/${grantFor(token, "r1", T0)}/r1/..%2F..%2Fworkflows.db`, { headers: host })).status).toBe(404);
   });
 
   it("answers a Range request with 206", async () => {

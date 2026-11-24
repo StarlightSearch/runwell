@@ -1,6 +1,6 @@
 /**
- * Runwell's Claude Code mod (built to plugin/hooks/register.js). At session start it runs the launcher,
- * which starts the Runwell server detached if it is not running and exits; it registers /runwell.
+ * Workflows' Claude Code mod (built to plugin/hooks/register.js). At session start it runs the launcher,
+ * which starts the Workflows server detached if it is not running and exits; it registers /workflows.
  * Every handler catches its own errors: nothing here can break or slow a session. It makes no network
  * call; the CLI it runs talks only to 127.0.0.1.
  */
@@ -17,7 +17,7 @@ type Api = {
 type Next = (e: unknown) => Promise<unknown>;
 type On = (event: string, ...rest: unknown[]) => void;
 
-const NODE_HINT = "Runwell needs Node 20 or newer to run. Install it from https://nodejs.org. Claude Code is not affected.";
+const NODE_HINT = "Workflows needs Node 20 or newer to run. Install it from https://nodejs.org. Claude Code is not affected.";
 
 // pathname is percent-encoded: a plugin folder with a space or an accent must be decoded.
 const root = decodeURIComponent(new URL("..", import.meta.url).pathname).replace(/\/$/, "");
@@ -35,14 +35,14 @@ async function hintOnce($: Api): Promise<void> {
   }
 }
 
-/** Runs a Node script with `node` on PATH, else the nodePath in ~/.runwell/config.json. */
+/** Runs a Node script with `node` on PATH, else the nodePath in ~/.pulsar-workflows/config.json. */
 async function runNode($: Api, args: string[]): Promise<RunResult | null> {
   try {
     return await $.process.run([node, ...args]);
   } catch {
     try {
       const home = await $.env.get("HOME");
-      const cfg = JSON.parse(await $.fs.read(`${home}/.runwell/config.json`)) as { nodePath?: unknown };
+      const cfg = JSON.parse(await $.fs.read(`${home}/.pulsar-workflows/config.json`)) as { nodePath?: unknown };
       if (typeof cfg.nodePath !== "string") return null;
       node = cfg.nodePath;
       return await $.process.run([node, ...args]);
@@ -61,14 +61,14 @@ export function register(on: On): void {
       /* the server is optional for the session */
     }
     try {
-      await $.command.register({ name: "runwell", description: "Open Runwell, or run a skill in it", argumentHint: "[run <skill> [brief] | last]", immediate: true });
+      await $.command.register({ name: "workflows", description: "Open Workflows, or run a skill in it", argumentHint: "[run <skill> [brief] | last]", immediate: true });
     } catch {
-      /* the commands/runwell.md fallback still works */
+      /* the commands/workflows.md fallback still works */
     }
     return next(e);
   });
 
-  on("command.run", { command: "runwell" }, async ($: Api, e: { args?: string }) => {
+  on("command.run", { command: "workflows" }, async ($: Api, e: { args?: string }) => {
     try {
       const words = (e.args ?? "").trim().split(/\s+/).filter(Boolean);
       const cwd = await $.session.cwd();
@@ -77,17 +77,17 @@ export function register(on: On): void {
       else if (words[0] === "last") argv = [cli, "last", "--cwd", cwd];
       else if (words[0] === "run" && words[1]) argv = [cli, "run", words[1], words.slice(2).join(" "), "--cwd", cwd];
       else if (words[0] === "run") argv = [cli, "run"];
-      else return { text: "Usage: /runwell, /runwell last, or /runwell run <skill> [brief]", isTextDisplayOnly: true };
+      else return { text: "Usage: /workflows, /workflows last, or /workflows run <skill> [brief]", isTextDisplayOnly: true };
       const r = await runNode($, argv);
       if (!r) {
         await hintOnce($);
         return { text: NODE_HINT, isTextDisplayOnly: true };
       }
       // The whole answer: one line for open, last and run, the list of skills for a bare `run`.
-      const text = r.stdout.trim() || r.stderr.trim() || "Runwell could not start.";
+      const text = r.stdout.trim() || r.stderr.trim() || "Workflows could not start.";
       return { text: text.length > 6000 ? `${text.slice(0, 6000)}…` : text, isTextDisplayOnly: true };
     } catch {
-      return { text: "Runwell could not start. Try npx runwell in a terminal.", isTextDisplayOnly: true };
+      return { text: "Workflows could not start. Try npx workflows in a terminal.", isTextDisplayOnly: true };
     }
   });
 }

@@ -9,7 +9,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 // src/shared/version.ts
-var VERSION = true ? "0.1.3" : "0.0.0-dev";
+var VERSION = true ? "0.2.0" : "0.0.0-dev";
 
 // src/server/lifecycle.ts
 import { closeSync, openSync, readFileSync, renameSync, rmSync, writeFileSync, writeSync } from "node:fs";
@@ -52,17 +52,22 @@ function decide(existing, mine) {
 }
 
 // src/server/paths.ts
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+function defaultRoot(home = homedir()) {
+  const root = join(home, ".pulsar-workflows");
+  const legacy = join(home, ".runwell");
+  return !existsSync(root) && existsSync(legacy) ? legacy : root;
+}
 function paths(home) {
-  const root = home ?? process.env.RUNWELL_HOME ?? join(homedir(), ".runwell");
+  const root = home ?? process.env.WORKFLOWS_HOME ?? defaultRoot();
   mkdirSync(root, { recursive: true, mode: 448 });
   const runs = join(root, "runs");
   const runDir = (id) => join(runs, id);
   return {
     root,
-    db: join(root, "runwell.db"),
+    db: join(root, existsSync(join(root, "runwell.db")) ? "runwell.db" : "workflows.db"),
     serverJson: join(root, "server.json"),
     lock: join(root, "server.lock"),
     configJson: join(root, "config.json"),
@@ -78,7 +83,7 @@ function paths(home) {
 }
 
 // src/launcher.ts
-var NODE_HINT = "Runwell needs Node 20 or newer. Install it from https://nodejs.org and try again.";
+var NODE_HINT = "Workflows needs Node 20 or newer. Install it from https://nodejs.org and try again.";
 var nodeOk = (v = process.versions.node) => Number(v.split(".")[0]) >= 20;
 var sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function waitFor(home, ms, pred) {
@@ -106,7 +111,7 @@ async function ensureServer(opts = {}) {
     await waitFor(p.root, 3e3, (live) => live === null);
   }
   const entry = opts.serverEntry ?? fileURLToPath(new URL("./server.js", import.meta.url));
-  const child = spawn(process.execPath, [entry], { detached: true, stdio: "ignore", env: { ...process.env, RUNWELL_HOME: p.root } });
+  const child = spawn(process.execPath, [entry], { detached: true, stdio: "ignore", env: { ...process.env, WORKFLOWS_HOME: p.root } });
   child.on("error", () => {
   });
   child.unref();

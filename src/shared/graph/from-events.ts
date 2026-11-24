@@ -1,5 +1,5 @@
 /**
- * Turns Runwell's run events into the input the ported graph builder reads.
+ * Turns Workflows' run events into the input the ported graph builder reads.
  *
  * The builder (ported from Pulsar) reads a run as chat messages: `todo_write` calls carry the
  * checklist's state, `subagent` calls carry each agent with its own blocks. So:
@@ -175,7 +175,7 @@ export function toGraphInput(events: RunEvent[], workflow: OverviewStep[] | null
 
 function todoCall(seq: number, todos: unknown[], at: number | null): ToolCallInfo {
   return {
-    toolCallId: `runwell-step-${seq}`,
+    toolCallId: `workflows-step-${seq}`,
     toolName: "todo_write",
     args: { todos },
     argsPartial: "",

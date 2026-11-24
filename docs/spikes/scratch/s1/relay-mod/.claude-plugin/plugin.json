@@ -1,1 +1,1 @@
-{ "name": "runwell-spike-relay", "version": "0.0.0", "description": "Spike 1 stub mod: holds Write/Bash checks by long-polling a local server." }
+{ "name": "workflows-spike-relay", "version": "0.0.0", "description": "Spike 1 stub mod: holds Write/Bash checks by long-polling a local server." }

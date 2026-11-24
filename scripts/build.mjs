@@ -1,4 +1,4 @@
-// Builds Runwell: the web UI with Vite into plugin/dist/web, and the Node entries with esbuild into
+// Builds Workflows: the web UI with Vite into plugin/dist/web, and the Node entries with esbuild into
 // plugin/dist (the plugin ships these) and dist (the npm package's bin). node-sqlite3-wasm stays external
 // and is copied beside the bundles with its .wasm file.
 import { build } from "esbuild";
@@ -26,11 +26,11 @@ for (const outdir of outDirs) {
     format: "esm",
     target: "node20",
     external: ["node-sqlite3-wasm"],
-    define: { __RUNWELL_VERSION__: JSON.stringify(pkg.version) },
+    define: { __WORKFLOWS_VERSION__: JSON.stringify(pkg.version) },
     banner: { js: "import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);" },
     logLevel: "warning",
   });
-  // The bin needs a shebang to run as `runwell`.
+  // The bin needs a shebang to run as `workflows`.
   const cli = join(outdir, "cli.js");
   writeFileSync(cli, `#!/usr/bin/env node\n${readFileSync(cli, "utf8")}`);
   chmodSync(cli, 0o755);
@@ -43,4 +43,4 @@ cpSync(join(root, "plugin/dist/web"), join(root, "dist/web"), { recursive: true 
 const mod = join(root, "plugin/hooks/register.js");
 await build({ entryPoints: [join(root, "src/plugin/mod.ts")], outfile: mod, bundle: true, format: "esm", platform: "neutral", target: "es2022", minify: false, logLevel: "warning" });
 if (/^\s*import\s|\brequire\(/m.test(readFileSync(mod, "utf8"))) throw new Error("The mod must not import anything.");
-console.log(`built runwell ${pkg.version}: ${Object.keys(entries).join(", ")}, mod + web`);
+console.log(`built workflows ${pkg.version}: ${Object.keys(entries).join(", ")}, mod + web`);

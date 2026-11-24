@@ -12,7 +12,7 @@ const said = (text: string, min: number) => ({ type: "user", cwd: "/p", timestam
 const tool = (id: string, name: string, input: object, min: number) => ({ type: "assistant", cwd: "/p", timestamp: t(min), message: { content: [{ type: "tool_use", id, name, input }] } });
 const result = (id: string, min: number, isError = false) => ({ type: "user", cwd: "/p", timestamp: t(min), message: { content: [{ type: "tool_result", tool_use_id: id, content: "ok", is_error: isError }] } });
 function log(lines: (object | string)[]) {
-  const f = join(mkdtempSync(join(tmpdir(), "runwell-log-")), "s.jsonl");
+  const f = join(mkdtempSync(join(tmpdir(), "workflows-log-")), "s.jsonl");
   writeFileSync(f, lines.map((l) => (typeof l === "string" ? l : JSON.stringify(l))).join("\n"));
   return f;
 }
@@ -43,7 +43,7 @@ describe("findSkillUses", () => {
   it("the fixture yields one use with its ref, brief and line range", () => {
     const uses = findSkillUses(readSessionLog(FIXTURE));
     expect(uses).toHaveLength(1);
-    expect(uses[0]).toMatchObject({ skillRef: "runwell-fixture", brief: "colour list", startLine: 1, endLine: 11 });
+    expect(uses[0]).toMatchObject({ skillRef: "workflows-fixture", brief: "colour list", startLine: 1, endLine: 11 });
   });
 
   it("two skill starts give two uses, the first ending where the second starts", () => {

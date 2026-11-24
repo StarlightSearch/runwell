@@ -2,7 +2,7 @@
 
 ## Question
 
-Can a mod or a settings hook start the Runwell server so that it outlives the session, without delaying
+Can a mod or a settings hook start the Workflows server so that it outlives the session, without delaying
 session start? What does a mod need for commands, paths, Node and opening a URL?
 
 ## Setup
@@ -32,7 +32,7 @@ session start? What does a mod need for commands, paths, Node and opening a URL?
   configured path). `$.process.run` rejects when the program cannot start.
 - **Commands.** `$.command.register({ name, description, argumentHint, immediate: true })` in
   `session.start`, plus a `command.run` hook with `{ command: name }` returning
-  `{ text, isTextDisplayOnly: true }`, answered `/runwell-spike hello` under `-p` with no model turn.
+  `{ text, isTextDisplayOnly: true }`, answered `/workflows-spike hello` under `-p` with no model turn.
   A plugin command file `commands/<name>.md` in the same plugin is listed as `<plugin-name>:<name>`, so it
   does not clash with the mod's bare `/<name>`.
 - **Opening a URL.** The mods API has no URL opener (`$.ui.open` opens a pane). Use
@@ -51,8 +51,8 @@ launcher that detaches and exits. Mods need `node` on PATH and get their own pat
 
 - `MOD_SPAWN: await $.process.run([node, new URL('..', import.meta.url).pathname + '/dist/launcher.js', ...args]) from session.start, wrapped in try/catch; the launcher spawns the server with detached:true, stdio:'ignore', unref() and exits`.
 - `HOOK_SPAWN: SessionStart command hook: node "${CLAUDE_PLUGIN_ROOT}/dist/launcher.js" (same launcher); Linux verified, macOS untested`.
-- `NODE_DISCOVERY: mod: "node" on PATH, else the path in ~/.runwell/config.json; hook and CLI: process.execPath when it is Node 20+, else PATH; when none is found: "Runwell needs Node 20 or newer. Install it from nodejs.org, then restart Claude Code."`.
-- `MOD_COMMANDS: $.command.register({name: "runwell", description, argumentHint: "[run|last|open]", immediate: true}) in session.start + on("command.run", {command: "runwell"}, ...) returning {text, isTextDisplayOnly: true}; fallback command file commands/runwell.md appears as /runwell:runwell`.
+- `NODE_DISCOVERY: mod: "node" on PATH, else the path in ~/.pulsar-workflows/config.json; hook and CLI: process.execPath when it is Node 20+, else PATH; when none is found: "Workflows needs Node 20 or newer. Install it from nodejs.org, then restart Claude Code."`.
+- `MOD_COMMANDS: $.command.register({name: "workflows", description, argumentHint: "[run|last|open]", immediate: true}) in session.start + on("command.run", {command: "workflows"}, ...) returning {text, isTextDisplayOnly: true}; fallback command file commands/workflows.md appears as /workflows:workflows`.
 - `OPEN_URL: $.process.run(["xdg-open", url]) on Linux, ["open", url] on macOS`.
 - `MOD_ROOT: new URL('..', import.meta.url).pathname (CLAUDE_PLUGIN_ROOT is not visible to mods)`.
 - `MOD_START_MS: about 150 ms for the session.start hook including the launcher`.

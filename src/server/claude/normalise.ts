@@ -8,7 +8,7 @@ import { SUBAGENT_TOOLS } from "../../shared/graph/from-events";
 import { SIGNED_OUT, isAuthError } from "./auth";
 
 const MAX_RESULT = 20_000;
-const HIDDEN_TOOLS = new Set(["mcp__runwell__runwell_step", "mcp__runwell__runwell_permission"]);
+const HIDDEN_TOOLS = new Set(["mcp__workflows__workflows_step", "mcp__workflows__workflows_permission"]);
 const KNOWN_TYPES = new Set(["assistant", "user", "result", "system", "rate_limit_event", "stream_event"]);
 
 type Block = { type?: string; text?: string; id?: string; name?: string; input?: unknown; tool_use_id?: string; content?: unknown; is_error?: boolean };

@@ -217,7 +217,7 @@ export function SettingsPage() {
               </span>
               <span />
             </div>
-            {restart ? <div className="desc" data-testid="restart-line">Takes effect the next time Runwell starts.</div> : null}
+            {restart ? <div className="desc" data-testid="restart-line">Takes effect the next time Workflows starts.</div> : null}
             <div className="srow">
               <span>Version</span>
               <span className="mono">{s.data.version}</span>

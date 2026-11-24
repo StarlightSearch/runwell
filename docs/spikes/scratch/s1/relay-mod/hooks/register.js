@@ -2,7 +2,7 @@
 // $.http.fetch time does not count against the hook's 10 s budget; each call is capped at 30 s.
 export function register(on) {
   on('session.start', async ($, e, next) => {
-    const runId = $.env.get('RUNWELL_RUN_ID')
+    const runId = $.env.get('WORKFLOWS_RUN_ID')
     await $.http.fetch('http://127.0.0.1:47911/log', { method: 'POST', body: JSON.stringify({ kind: 'session.start', runId, cwd: $.session.cwd(), id: $.session.id() }) }).catch(() => {})
     return next(e)
   })

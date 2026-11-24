@@ -1387,7 +1387,7 @@ var serve = (options, listeningListener) => {
 };
 
 // src/shared/version.ts
-var VERSION = true ? "0.1.3" : "0.0.0-dev";
+var VERSION = true ? "0.2.0" : "0.0.0-dev";
 
 // src/shared/outputs.ts
 var MIME = {
@@ -1453,7 +1453,7 @@ function outputKind(path) {
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 
 // src/shared/ignore.ts
-var DEFAULT_IGNORED = ["runwell:*"];
+var DEFAULT_IGNORED = ["workflows:*"];
 function isIgnored(skillRef, patterns, marketplace = null) {
   return patterns.some((p) => p.startsWith("@") ? marketplace !== null && matches(marketplace, p.slice(1)) : matches(skillRef, p));
 }
@@ -3756,7 +3756,7 @@ var setCookie = (c, name, value, opt) => {
 
 // src/server/routes/auth.ts
 var LINK_TTL_MS = 6e4;
-var EXPIRED = "This link has expired. Run /runwell or npx runwell again.";
+var EXPIRED = "This link has expired. Run /workflows or npx workflows again.";
 function safeTo(to) {
   return typeof to === "string" && to.startsWith("/") && !to.startsWith("//") && !to.includes("\\") ? to : "/";
 }
@@ -3890,9 +3890,9 @@ function pidCommand(pid) {
 }
 
 // src/server/lifecycle.ts
-var isRunwellServer = (pid) => {
+var isWorkflowsServer = (pid) => {
   const cmd = pidCommand(pid);
-  return cmd === null ? true : /server\.js|runwell|vitest|playwright/.test(cmd);
+  return cmd === null ? true : /server\.js|workflows|vitest|playwright/.test(cmd);
 };
 function readServerInfo(p) {
   try {
@@ -3937,7 +3937,7 @@ function takeLock(p) {
         holder = JSON.parse(readFileSync3(p.lock, "utf8")).pid ?? 0;
       } catch {
       }
-      if (holder && alive(holder) && isRunwellServer(holder)) return false;
+      if (holder && alive(holder) && isWorkflowsServer(holder)) return false;
       rmSync(p.lock, { force: true });
     }
   }
@@ -3985,21 +3985,26 @@ function idleWatch(opts) {
 }
 
 // src/server/paths.ts
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-function isRunwellFolder(path, root) {
+function isWorkflowsFolder(path, root) {
   const p = path.replace(/\/+$/, "");
-  return p === root || p.startsWith(`${root}/`) || /(^|\/)runwell-draw-[^/]*$/.test(p);
+  return p === root || p.startsWith(`${root}/`) || /(^|\/)(workflows|runwell)-draw-[^/]*$/.test(p);
+}
+function defaultRoot(home = homedir()) {
+  const root = join(home, ".pulsar-workflows");
+  const legacy = join(home, ".runwell");
+  return !existsSync(root) && existsSync(legacy) ? legacy : root;
 }
 function paths(home) {
-  const root = home ?? process.env.RUNWELL_HOME ?? join(homedir(), ".runwell");
+  const root = home ?? process.env.WORKFLOWS_HOME ?? defaultRoot();
   mkdirSync(root, { recursive: true, mode: 448 });
   const runs = join(root, "runs");
   const runDir = (id) => join(runs, id);
   return {
     root,
-    db: join(root, "runwell.db"),
+    db: join(root, existsSync(join(root, "runwell.db")) ? "runwell.db" : "workflows.db"),
     serverJson: join(root, "server.json"),
     lock: join(root, "server.lock"),
     configJson: join(root, "config.json"),
@@ -4252,7 +4257,7 @@ function outputFile(run3, rel, p) {
     return null;
   }
 }
-var grantKey = (token) => createHmac("sha256", token).update("runwell-output-grant-v1").digest();
+var grantKey = (token) => createHmac("sha256", token).update("workflows-output-grant-v1").digest();
 function grantFor(token, runId, now) {
   const exp = now + 36e5;
   const mac = createHmac("sha256", grantKey(token)).update(`${runId}:${exp}`).digest("base64url");
@@ -4300,7 +4305,7 @@ function createOutputsService(deps) {
 
 // src/server/runs.ts
 import { randomBytes as randomBytes4 } from "node:crypto";
-import { appendFileSync, cpSync, existsSync as existsSync2, mkdirSync as mkdirSync3, readFileSync as readFileSync6, readdirSync as readdirSync3, renameSync as renameSync3, rmSync as rmSync2, statSync as statSync4, writeFileSync as writeFileSync3 } from "node:fs";
+import { appendFileSync, cpSync, existsSync as existsSync3, mkdirSync as mkdirSync3, readFileSync as readFileSync6, readdirSync as readdirSync3, renameSync as renameSync3, rmSync as rmSync2, statSync as statSync4, writeFileSync as writeFileSync3 } from "node:fs";
 import { basename as basename2, extname, join as join5 } from "node:path";
 
 // src/shared/graph/names.ts
@@ -4917,7 +4922,7 @@ function toGraphInput(events, workflow, live) {
 }
 function todoCall(seq, todos, at) {
   return {
-    toolCallId: `runwell-step-${seq}`,
+    toolCallId: `workflows-step-${seq}`,
     toolName: "todo_write",
     args: { todos },
     argsPartial: "",
@@ -5003,7 +5008,7 @@ async function claudeState(opts) {
 }
 
 // src/server/projects.ts
-import { closeSync as closeSync2, existsSync, openSync as openSync2, readFileSync as readFileSync5, readSync, readdirSync as readdirSync2, statSync as statSync3 } from "node:fs";
+import { closeSync as closeSync2, existsSync as existsSync2, openSync as openSync2, readFileSync as readFileSync5, readSync, readdirSync as readdirSync2, statSync as statSync3 } from "node:fs";
 import { basename, join as join4 } from "node:path";
 var HEAD_BYTES = 2 * 1024 * 1024;
 var HEAD_LINES = 200;
@@ -5068,12 +5073,12 @@ function readLogs(claudeHome) {
 }
 function skillCount(path) {
   try {
-    return readdirSync2(join4(path, ".claude/skills"), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(join4(path, ".claude/skills", d.name, "SKILL.md"))).length;
+    return readdirSync2(join4(path, ".claude/skills"), { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync2(join4(path, ".claude/skills", d.name, "SKILL.md"))).length;
   } catch {
     return 0;
   }
 }
-function scanProjects(claudeHome, claudeJson, runwellRoot) {
+function scanProjects(claudeHome, claudeJson, workflowsRoot) {
   const trust = readTrust(claudeJson);
   const logs = readLogs(claudeHome);
   if (!trust && !logs) return { projects: [], readable: false };
@@ -5081,7 +5086,7 @@ function scanProjects(claudeHome, claudeJson, runwellRoot) {
   const projects = [];
   for (const path of paths2) {
     if (path.includes("/.claude/worktrees/")) continue;
-    if (runwellRoot && isRunwellFolder(path, runwellRoot)) continue;
+    if (workflowsRoot && isWorkflowsFolder(path, workflowsRoot)) continue;
     try {
       if (!statSync3(path).isDirectory()) continue;
     } catch {
@@ -5114,7 +5119,7 @@ function checkProject(path, projects) {
     exists,
     trusted: trustOf(projects, path) === "trusted",
     hooks: hasHooks(join4(path, ".claude/settings.json")) || hasHooks(join4(path, ".claude/settings.local.json")),
-    mcp: existsSync(join4(path, ".mcp.json"))
+    mcp: existsSync2(join4(path, ".mcp.json"))
   };
 }
 
@@ -5157,7 +5162,7 @@ function uniqueName(dir, raw2) {
   const ext2 = extname(base);
   const stem = base.slice(0, base.length - ext2.length) || "file";
   let name = base;
-  for (let i = 2; existsSync2(join5(dir, name)); i++) name = `${stem}-${i}${ext2}`;
+  for (let i = 2; existsSync3(join5(dir, name)); i++) name = `${stem}-${i}${ext2}`;
   return name;
 }
 function createRunsService(deps) {
@@ -5238,10 +5243,10 @@ function createRunsService(deps) {
     const mcpConfigPath = join5(deps.paths.runDir(id), "mcp.json");
     if (deps.mcpServer) {
       const s = deps.mcpServer();
-      writeFileSync3(mcpConfigPath, JSON.stringify({ mcpServers: { runwell: { command: s.command, args: s.args, env: { RUNWELL_HOME: deps.paths.root } } } }));
+      writeFileSync3(mcpConfigPath, JSON.stringify({ mcpServers: { workflows: { command: s.command, args: s.args, env: { WORKFLOWS_HOME: deps.paths.root } } } }));
     } else writeFileSync3(mcpConfigPath, JSON.stringify({ mcpServers: {} }));
     const inputsDir = deps.paths.inputs(id);
-    const inputs = existsSync2(inputsDir) ? readdirSync3(inputsDir).map((f) => join5(inputsDir, f)) : [];
+    const inputs = existsSync3(inputsDir) ? readdirSync3(inputsDir).map((f) => join5(inputsDir, f)) : [];
     const contextProject = r.place === "folder" ? deps.db.get("SELECT project_path FROM runs WHERE id = ?", id)?.project_path ?? null : null;
     deps.db.run("UPDATE runs SET status = 'running', started_at = ? WHERE id = ?", deps.now(), id);
     append(id, { t: "status", at: deps.now(), status: "running", reason: null });
@@ -5303,7 +5308,7 @@ function createRunsService(deps) {
     for (const up of uploadIds) {
       if (!/^[A-Za-z0-9_-]{1,64}$/.test(up)) continue;
       const dir = join5(deps.paths.runs, "_uploads", up);
-      if (!existsSync2(dir)) continue;
+      if (!existsSync3(dir)) continue;
       let original = null;
       try {
         original = readFileSync6(join5(dir, ".name"), "utf8");
@@ -5349,7 +5354,7 @@ function createRunsService(deps) {
       if (input.place.kind === "project") rmSync2(deps.paths.work(id), { recursive: true, force: true });
       mkdirSync3(deps.paths.inputs(id), { recursive: true });
       moveUploads(id, input.uploadIds);
-      if (from && !input.uploadIds.length && existsSync2(deps.paths.inputs(from.id))) {
+      if (from && !input.uploadIds.length && existsSync3(deps.paths.inputs(from.id))) {
         cpSync(deps.paths.inputs(from.id), deps.paths.inputs(id), { recursive: true });
       }
       deps.db.run(
@@ -5420,7 +5425,7 @@ function createRunsService(deps) {
     recoverOrphans() {
       const orphans = deps.db.all("SELECT id, pid FROM runs WHERE status IN ('queued', 'running', 'waiting')");
       for (const o of orphans) {
-        const reason = "Runwell restarted during this run";
+        const reason = "Workflows restarted during this run";
         deps.db.run("UPDATE runs SET status = 'failed', error = ?, ended_at = ?, pid = NULL WHERE id = ?", reason, deps.now(), o.id);
         append(o.id, { t: "status", at: deps.now(), status: "failed", reason });
         if (o.pid && (deps.pidCommand(o.pid) ?? "").includes(join5(deps.paths.runDir(o.id), "mcp.json"))) {
@@ -5450,7 +5455,7 @@ function createRunsService(deps) {
 }
 
 // src/server/sessions.ts
-import { closeSync as closeSync3, existsSync as existsSync3, openSync as openSync3, readFileSync as readFileSync7, readSync as readSync2, readdirSync as readdirSync4 } from "node:fs";
+import { closeSync as closeSync3, existsSync as existsSync4, openSync as openSync3, readFileSync as readFileSync7, readSync as readSync2, readdirSync as readdirSync4 } from "node:fs";
 import { basename as basename3, dirname, join as join6 } from "node:path";
 var MAX_LINE = 5 * 1024 * 1024;
 var MAX_RESULT = 2e4;
@@ -5523,7 +5528,7 @@ function mapEntry(d, at, agentId, line, out) {
   for (const b of content) {
     if (d.type === "assistant") {
       if (b?.type === "text" && typeof b.text === "string" && b.text.trim()) out.push({ t: "text", at, agentId, text: b.text, line });
-      else if (b?.type === "tool_use" && typeof b.id === "string" && typeof b.name === "string" && !b.name.startsWith("mcp__runwell__")) {
+      else if (b?.type === "tool_use" && typeof b.id === "string" && typeof b.name === "string" && !b.name.startsWith("mcp__workflows__")) {
         out.push({ t: "tool.start", at, id: b.id, agentId, name: b.name, input: b.input && typeof b.input === "object" ? b.input : {}, line });
       }
     } else if (d.type === "user" && b?.type === "tool_result" && typeof b.tool_use_id === "string") {
@@ -5591,7 +5596,7 @@ function readSessionLog(file) {
 }
 function addSubagents(file, log) {
   const dir = join6(dirname(file), basename3(file, ".jsonl"), "subagents");
-  if (!existsSync3(dir)) return;
+  if (!existsSync4(dir)) return;
   const callLine = /* @__PURE__ */ new Map();
   for (const e of log.events) if (e.t === "tool.start" && SUBAGENT_TOOLS.has(e.name)) callLine.set(e.id, e.line);
   const metas = [];
@@ -5607,7 +5612,7 @@ function addSubagents(file, log) {
   for (const m of metas.sort((a, b) => a.depth - b.depth)) {
     const top = topOf.get(m.toolUseId) ?? m.toolUseId;
     const line = callLine.get(top) ?? callLine.get(m.toolUseId);
-    if (line === void 0 || !existsSync3(m.file)) continue;
+    if (line === void 0 || !existsSync4(m.file)) continue;
     const inner = [];
     let lastAt = 0;
     for (const raw2 of lines(m.file)) {
@@ -5774,7 +5779,7 @@ function createBackfill(deps) {
   function importFile(file) {
     const log = readSessionLog(file);
     st.skippedLines += log.skipped;
-    if (log.cwd && isRunwellFolder(log.cwd, deps.paths.root)) return 0;
+    if (log.cwd && isWorkflowsFolder(log.cwd, deps.paths.root)) return 0;
     const ignored = deps.config().ignored;
     let found = 0;
     for (const use of findSkillUses(log)) {
@@ -5890,7 +5895,7 @@ var DECISIONS = {
 
 // src/server/claude/normalise.ts
 var MAX_RESULT2 = 2e4;
-var HIDDEN_TOOLS = /* @__PURE__ */ new Set(["mcp__runwell__runwell_step", "mcp__runwell__runwell_permission"]);
+var HIDDEN_TOOLS = /* @__PURE__ */ new Set(["mcp__workflows__workflows_step", "mcp__workflows__workflows_permission"]);
 var KNOWN_TYPES = /* @__PURE__ */ new Set(["assistant", "user", "result", "system", "rate_limit_event", "stream_event"]);
 function resultText(content) {
   if (typeof content === "string") return content;
@@ -5987,18 +5992,18 @@ var flatSteps = (steps, out = []) => {
   return out;
 };
 function systemPrompt(spec) {
-  const head = [`Run id: ${spec.runId}`, `This run is shown live in Runwell. Report progress with the runwell_step tool, passing runId "${spec.runId}".`];
+  const head = [`Run id: ${spec.runId}`, `This run is shown live in Workflows. Report progress with the workflows_step tool, passing runId "${spec.runId}".`];
   if (!spec.steps?.length) {
     return [
       ...head,
-      'Name your own steps: call runwell_step with a short id you choose (for example "gather-sources") and status "started" when you begin each one, and "done", "failed" or "skipped" when it ends.'
+      'Name your own steps: call workflows_step with a short id you choose (for example "gather-sources") and status "started" when you begin each one, and "done", "failed" or "skipped" when it ends.'
     ].join("\n");
   }
   return [
     ...head,
     "Steps:",
     ...flatSteps(spec.steps).map((s) => `- ${s.id}: ${s.title}`),
-    'Call runwell_step with status "started" when you begin a step and "done", "failed" or "skipped" when it ends. Start a loop step again each time you repeat it. If you do work that is not in the list, report it under a short id of your own.'
+    'Call workflows_step with status "started" when you begin a step and "done", "failed" or "skipped" when it ends. Start a loop step again each time you repeat it. If you do work that is not in the list, report it under a short id of your own.'
   ].join("\n");
 }
 function firstMessage(spec, d) {
@@ -6021,7 +6026,7 @@ function buildArgv(spec, d) {
     "--mcp-config",
     spec.mcpConfigPath,
     "--allowedTools",
-    "mcp__runwell__runwell_step"
+    "mcp__workflows__workflows_step"
   ];
   if (spec.addDir) argv.push("--add-dir", spec.addDir);
   if (spec.model) argv.push("--model", spec.model);
@@ -6032,7 +6037,7 @@ function buildArgv(spec, d) {
   }
   if (spec.allowAll) argv.push(...d.bypassFlag);
   else if (spec.mode === "auto") argv.push(...d.autoFlag);
-  if (!spec.allowAll && (d.askRoute === "permission-tool" || d.askRoute === "mixed")) argv.push("--permission-prompt-tool", "mcp__runwell__runwell_permission");
+  if (!spec.allowAll && (d.askRoute === "permission-tool" || d.askRoute === "mixed")) argv.push("--permission-prompt-tool", "mcp__workflows__workflows_permission");
   return argv;
 }
 function eventQueue() {
@@ -6070,7 +6075,7 @@ function createClaudeDriver(opts) {
       const argv = buildArgv(spec, d);
       const child = spawn(opts.bin, argv, {
         cwd: spec.cwd,
-        env: { ...process.env, ...opts.extraEnv, ...d.toolTimeoutEnv, RUNWELL_RUN_ID: spec.runId, RUNWELL_HOME: opts.home },
+        env: { ...process.env, ...opts.extraEnv, ...d.toolTimeoutEnv, WORKFLOWS_RUN_ID: spec.runId, WORKFLOWS_HOME: opts.home },
         stdio: ["pipe", "pipe", "pipe"],
         // Its own process group, so a stop that has to force it also ends what it started (Bash children,
         // the MCP server). Not on Windows, where a detached child gets its own console window.
@@ -6313,7 +6318,7 @@ function projectsRoutes(app, ctx) {
 
 // src/server/continue.ts
 import { spawn as spawn2, spawnSync } from "node:child_process";
-import { existsSync as existsSync4 } from "node:fs";
+import { existsSync as existsSync5 } from "node:fs";
 import { homedir as homedir7 } from "node:os";
 var SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 var shq = (s) => `'${s.replace(/'/g, `'\\''`)}'`;
@@ -6340,7 +6345,7 @@ var systemLaunch = {
 };
 function resumeInfo(run3, platform2) {
   if (!run3.sessionId || !SESSION_ID.test(run3.sessionId)) return null;
-  const cwd = run3.cwd && existsSync4(run3.cwd) ? run3.cwd : null;
+  const cwd = run3.cwd && existsSync5(run3.cwd) ? run3.cwd : null;
   const available = platform2 === "darwin" || platform2 === "win32";
   return {
     sessionId: run3.sessionId,
@@ -6362,7 +6367,7 @@ async function continueRun(run3, where, claudeBin, launch) {
   if (["queued", "running", "waiting"].includes(run3.status)) return { ok: false, status: 409, message: "This run is still going. Continue it once it has ended." };
   const info = resumeInfo(run3, launch.platform);
   if (!info) return { ok: false, status: 409, message: "This run has no Claude session to continue." };
-  const cwd = run3.cwd && existsSync4(run3.cwd) ? run3.cwd : homedir7();
+  const cwd = run3.cwd && existsSync5(run3.cwd) ? run3.cwd : homedir7();
   const argv = [claudeBin, "--resume", info.sessionId];
   if (where === "desktop") {
     if (!info.desktop.available) return { ok: false, status: 400, message: info.desktop.reason };
@@ -6534,7 +6539,7 @@ function runsRoutes(s) {
 
 // src/server/routes/settings.ts
 import { execFileSync as execFileSync2 } from "node:child_process";
-import { existsSync as existsSync5, readdirSync as readdirSync6, statSync as statSync7 } from "node:fs";
+import { existsSync as existsSync6, readdirSync as readdirSync6, statSync as statSync7 } from "node:fs";
 import { join as join11 } from "node:path";
 function folderBytes(root, limit = 5e4) {
   let total = 0;
@@ -6580,8 +6585,8 @@ function settingsRoutes(deps) {
       return c.json({
         config,
         folders: {
-          claudeHome: { path: claudeHome, found: existsSync5(claudeHome) },
-          claudeJson: { path: claudeJson, found: existsSync5(claudeJson) },
+          claudeHome: { path: claudeHome, found: existsSync6(claudeHome) },
+          claudeJson: { path: claudeJson, found: existsSync6(claudeJson) },
           claudeBin: { path: bin, found: bin !== null },
           node: { path: node, version: nodeVersion(node) },
           data: { path: ctx.paths.root, bytes: folderBytes(ctx.paths.root) }
@@ -6611,7 +6616,7 @@ function settingsRoutes(deps) {
         if (!(key in body)) continue;
         const v = body[key];
         if (v === null) patch[key] = null;
-        else if (typeof v === "string" && existsSync5(v)) patch[key] = v;
+        else if (typeof v === "string" && existsSync6(v)) patch[key] = v;
         else return c.json({ error: `That ${key === "claudeHome" ? "folder" : "file"} does not exist.` }, 400);
       }
       for (const key of ["maxRuns", "backfillDays"]) {
@@ -6745,7 +6750,7 @@ function continueRoutes(runs, claudeBin, launch) {
 
 // src/server/skills.ts
 import { createHash as createHash2 } from "node:crypto";
-import { existsSync as existsSync6, readFileSync as readFileSync8, readdirSync as readdirSync8, realpathSync as realpathSync2, statSync as statSync9, watch } from "node:fs";
+import { existsSync as existsSync7, readFileSync as readFileSync8, readdirSync as readdirSync8, realpathSync as realpathSync2, statSync as statSync9, watch } from "node:fs";
 import { homedir as homedir8 } from "node:os";
 import { basename as basename5, join as join13 } from "node:path";
 
@@ -7061,7 +7066,7 @@ function pluginRoots(claudeHome) {
       const list = Array.isArray(entries) ? entries : [entries];
       for (const e of list) {
         const p = e?.installPath;
-        if (typeof p === "string" && existsSync6(p) && !out.has(name)) out.set(name, { path: p, marketplace });
+        if (typeof p === "string" && existsSync7(p) && !out.has(name)) out.set(name, { path: p, marketplace });
       }
     }
     if (out.size) return out;
@@ -7241,7 +7246,7 @@ function createSkillsService(deps) {
 
 // src/server/workflow.ts
 import { spawn as spawn3 } from "node:child_process";
-import { existsSync as existsSync7, mkdirSync as mkdirSync6, mkdtempSync, readFileSync as readFileSync9, rmSync as rmSync4, writeFileSync as writeFileSync7 } from "node:fs";
+import { existsSync as existsSync8, mkdirSync as mkdirSync6, mkdtempSync, readFileSync as readFileSync9, rmSync as rmSync4, writeFileSync as writeFileSync7 } from "node:fs";
 import { tmpdir as tmpdir2 } from "node:os";
 import { join as join14 } from "node:path";
 var DRAW_PROMPT = 'Read the skill below and list its steps as JSON only, no prose: {"steps":[{"title":string (at most 40 characters),"detail":string (at most 160),"kind":"action"|"decision"|"loop","children"?:[steps, only for a loop],"maxPasses"?:number (only for a loop that states a limit),"agents"?:[{"name":string,"role":string}] (only subagents the skill names)}]}. At most 8 steps, loops nest once. Do not use any tools.';
@@ -7255,7 +7260,7 @@ function readSkillMd(skill) {
 }
 var cacheFile = (p, hash) => join14(p.workflows, `${hash.replace(/[^0-9a-zA-Z]/g, "")}.json`);
 function hasDrawing(skill, p) {
-  return existsSync7(cacheFile(p, skill.hash));
+  return existsSync8(cacheFile(p, skill.hash));
 }
 function cachedWorkflow(skill, p) {
   const md = readSkillMd(skill);
@@ -7293,7 +7298,7 @@ function createWorkflowService(deps) {
   const timeoutMs = deps.timeoutMs ?? 9e4;
   const drawing = /* @__PURE__ */ new Map();
   function runClaude(bin, skillMd) {
-    const cwd = mkdtempSync(join14(tmpdir2(), "runwell-draw-"));
+    const cwd = mkdtempSync(join14(tmpdir2(), "workflows-draw-"));
     return new Promise((resolve3) => {
       let out = "";
       let settled = false;
@@ -7391,7 +7396,7 @@ function buildServices(ctx, opts = {}) {
     return driver;
   };
   const here = dirname2(fileURLToPath(import.meta.url));
-  const mcpEntry = opts.mcpEntry ?? process.env.RUNWELL_MCP_ENTRY ?? join15(here, "mcp.js");
+  const mcpEntry = opts.mcpEntry ?? process.env.WORKFLOWS_MCP_ENTRY ?? join15(here, "mcp.js");
   let broker;
   const runs = createRunsService({
     paths: ctx.paths,
@@ -7476,7 +7481,7 @@ var IDLE_MS = 12 * 60 * 60 * 1e3;
 var UI_CSP = "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; frame-src 'self'; frame-ancestors 'none'";
 function webRoot() {
   const here = fileURLToPath2(new URL(".", import.meta.url));
-  return process.env.RUNWELL_WEB_ROOT ?? join16(here, "web");
+  return process.env.WORKFLOWS_WEB_ROOT ?? join16(here, "web");
 }
 function serveUi(app, root) {
   app.get("*", async (c) => {
@@ -7492,7 +7497,7 @@ function serveUi(app, root) {
       return c.body(body, 200, { "Content-Type": type });
     } catch {
       c.header("Content-Security-Policy", UI_CSP);
-      return c.html("<!doctype html><title>Runwell</title><p>The Runwell interface has not been built yet.</p>", inside2 ? 404 : 200);
+      return c.html("<!doctype html><title>Workflows</title><p>The Workflows interface has not been built yet.</p>", inside2 ? 404 : 200);
     }
   });
 }
@@ -7504,7 +7509,7 @@ async function startServer(opts = {}) {
   const lock = await acquire(p, opts.port ?? config().port, VERSION);
   if (!lock) {
     db.close();
-    throw new Error("Another Runwell server is already running.");
+    throw new Error("Another Workflows server is already running.");
   }
   db.run("DELETE FROM auth_sessions");
   const hub = createHub();
@@ -7565,8 +7570,8 @@ startServer().then(
     process.on("SIGINT", stop);
   },
   (err) => {
-    process.stderr.write(`runwell: ${err.message}
+    process.stderr.write(`workflows: ${err.message}
 `);
-    process.exit(err.message.startsWith("Another Runwell server") ? 0 : 1);
+    process.exit(err.message.startsWith("Another Workflows server") ? 0 : 1);
   }
 );

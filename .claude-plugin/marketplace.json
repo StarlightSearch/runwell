@@ -1,9 +1,9 @@
 {
-  "name": "runwell",
+  "name": "workflows",
   "owner": { "name": "Starlight" },
   "plugins": [
     {
-      "name": "runwell",
+      "name": "workflows",
       "source": "./plugin",
       "description": "Run your skills from a button, watch them work as a live graph, and keep every run. Works with Claude Code."
     }

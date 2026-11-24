@@ -91,7 +91,7 @@ interface Group {
   parent?: string;
 }
 
-const OPEN_KEY = "runwell:skills-open";
+const OPEN_KEY = "workflows:skills-open";
 const readOpen = (): Set<string> => {
   try {
     return new Set(JSON.parse(localStorage.getItem(OPEN_KEY) ?? "[]") as string[]);
@@ -141,7 +141,7 @@ export function SkillsPage() {
     { id: "personal", label: "Personal", count: all.filter((s) => s.source === "personal").length },
     { id: "plugin", label: "Plugins", count: all.filter((s) => s.source === "plugin").length },
     ...projects.map((p) => ({ id: `project:${p}`, label: folderName(p), color: projectColor(p), count: all.filter((s) => s.projectPath === p).length })),
-    { id: "workflow", label: "With a graph", count: all.filter((s) => s.hasGraph).length, title: "Skills Runwell can show as steps: from a workflow map in their SKILL.md, or a graph Claude has drawn on the skill's page." },
+    { id: "workflow", label: "With a graph", count: all.filter((s) => s.hasGraph).length, title: "Skills Workflows can show as steps: from a workflow map in their SKILL.md, or a graph Claude has drawn on the skill's page." },
   ];
   const matching = useMemo(
     () =>
@@ -287,7 +287,7 @@ export function SkillsPage() {
           }
         />
         {res.data && !all.length ? (
-          <Empty title="No skills found">Runwell looks in ~/.claude/skills, your plugins and your projects' .claude/skills folders.</Empty>
+          <Empty title="No skills found">Workflows looks in ~/.claude/skills, your plugins and your projects' .claude/skills folders.</Empty>
         ) : (
           <table className={`tbl skills-tbl${groups ? " grouped" : ""}`}>
             <colgroup>

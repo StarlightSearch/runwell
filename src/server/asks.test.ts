@@ -75,7 +75,7 @@ const skill: SkillRow = { key: "personal:x", source: "personal", name: "x", ref:
 
 /** A real server on a port with server.json written, so the fake's ask lines reach the routes. */
 async function stack(fixture: string) {
-  const p = paths(mkdtempSync(join(tmpdir(), "runwell-asks-")));
+  const p = paths(mkdtempSync(join(tmpdir(), "workflows-asks-")));
   const db = await openDb(p.db);
   migrate(db);
   const lock = (await acquire(p, 0, "0.1.0"))!;

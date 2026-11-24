@@ -14,9 +14,9 @@ const cmd = (name: string, args: string, min: number, cwd: string) => JSON.strin
 const write = (id: string, file_path: string, min: number, cwd: string) => JSON.stringify({ type: "assistant", cwd, timestamp: t(min), message: { content: [{ type: "tool_use", id, name: "Write", input: { file_path } }] } });
 
 async function setup(opts: { ignored?: string[] } = {}) {
-  const claudeHome = mkdtempSync(join(tmpdir(), "runwell-bfhome-"));
+  const claudeHome = mkdtempSync(join(tmpdir(), "workflows-bfhome-"));
   mkdirSync(join(claudeHome, "projects"), { recursive: true });
-  const p = paths(mkdtempSync(join(tmpdir(), "runwell-bf-")));
+  const p = paths(mkdtempSync(join(tmpdir(), "workflows-bf-")));
   saveConfig(p, { claudeHome, ...(opts.ignored ? { ignored: opts.ignored } : {}) });
   const db = await openDb(p.db);
   migrate(db);
@@ -44,14 +44,14 @@ describe("backfill", () => {
     const st = await finish(s.bf);
     expect(st).toMatchObject({ status: "done", filesDone: 1, filesTotal: 1, runsFound: 1 });
     const [r] = s.runs();
-    expect(r).toMatchObject({ skill_key: "unknown:runwell-fixture", skill_ref: "runwell-fixture", kind: "history", place: "chat", status: "finished", brief: "colour list" });
+    expect(r).toMatchObject({ skill_key: "unknown:workflows-fixture", skill_ref: "workflows-fixture", kind: "history", place: "chat", status: "finished", brief: "colour list" });
     const events = readFileSync(s.p.events(r!.id), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
     expect(events.some((e) => e.t === "tool.start" && e.name === "Agent")).toBe(true);
     expect(events.at(-1)).toMatchObject({ t: "status", status: "finished" });
     expect((r as { session_id?: string }).session_id).toBeTruthy();
   });
 
-  it("a session that ran in Runwell's own run folder is not read back as history", async () => {
+  it("a session that ran in Workflows' own run folder is not read back as history", async () => {
     const s = await setup();
     cpSync(FIXTURES, join(s.claudeHome, "projects"), { recursive: true });
     const f = join(s.claudeHome, "projects/-home-user-project/00000000-0000-4000-8000-000000000001.jsonl");
@@ -76,7 +76,7 @@ describe("backfill", () => {
     const s = await setup();
     const dir = join(s.claudeHome, "projects/-p");
     mkdirSync(dir, { recursive: true });
-    const proj = mkdtempSync(join(tmpdir(), "runwell-bfproj-"));
+    const proj = mkdtempSync(join(tmpdir(), "workflows-bfproj-"));
     const f = join(dir, "a.jsonl");
     writeFileSync(f, [cmd("known", "one", 0, proj), write("w1", join(proj, "x.txt"), 1, proj)].join("\n") + "\n");
     await finish(s.bf);
@@ -92,7 +92,7 @@ describe("backfill", () => {
     const s = await setup();
     const dir = join(s.claudeHome, "projects/-p");
     mkdirSync(dir, { recursive: true });
-    const proj = mkdtempSync(join(tmpdir(), "runwell-bfproj-"));
+    const proj = mkdtempSync(join(tmpdir(), "workflows-bfproj-"));
     const f = join(dir, "a.jsonl");
     writeFileSync(f, [cmd("known", "one", 0, proj), write("w1", join(proj, "x.txt"), 1, proj)].join("\n") + "\n");
     await finish(s.bf);
@@ -123,7 +123,7 @@ describe("backfill", () => {
     const s = await setup();
     const dir = join(s.claudeHome, "projects/-p");
     mkdirSync(dir, { recursive: true });
-    const proj = mkdtempSync(join(tmpdir(), "runwell-bfproj-"));
+    const proj = mkdtempSync(join(tmpdir(), "workflows-bfproj-"));
     writeFileSync(join(proj, "kept.txt"), "k");
     writeFileSync(join(dir, "a.jsonl"), [cmd("known", "x", 0, proj), write("w1", join(proj, "kept.txt"), 1, proj), write("w2", join(proj, "gone.txt"), 2, proj)].join("\n") + "\n");
     await finish(s.bf);
@@ -136,8 +136,8 @@ describe("backfill", () => {
     const s = await setup();
     const dir = join(s.claudeHome, "projects/-q");
     mkdirSync(dir, { recursive: true });
-    const proj = mkdtempSync(join(tmpdir(), "runwell-bfproj-"));
-    const outside = mkdtempSync(join(tmpdir(), "runwell-bfout-"));
+    const proj = mkdtempSync(join(tmpdir(), "workflows-bfproj-"));
+    const outside = mkdtempSync(join(tmpdir(), "workflows-bfout-"));
     writeFileSync(join(outside, "secret.txt"), "s");
     writeFileSync(join(proj, "ok.txt"), "o");
     writeFileSync(join(dir, "b.jsonl"), [

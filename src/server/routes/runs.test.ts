@@ -15,8 +15,8 @@ const TOKEN = "t".repeat(64);
 const headers = { host: `127.0.0.1:${PORT}`, authorization: `Bearer ${TOKEN}`, "content-type": "application/json" };
 
 async function setup(opts: { auth?: "in" | "out"; claudeHome?: string } = {}) {
-  const p = paths(mkdtempSync(join(tmpdir(), "runwell-routes-")));
-  const claudeHome = opts.claudeHome ?? mkdtempSync(join(tmpdir(), "runwell-claudehome-"));
+  const p = paths(mkdtempSync(join(tmpdir(), "workflows-routes-")));
+  const claudeHome = opts.claudeHome ?? mkdtempSync(join(tmpdir(), "workflows-claudehome-"));
   mkdirSync(join(claudeHome, "skills/motion-ad"), { recursive: true });
   writeFileSync(join(claudeHome, "skills/motion-ad/SKILL.md"), "---\nname: motion-ad\ndescription: ads\n---\nMake an ad.\n");
   saveConfig(p, { claudeHome });

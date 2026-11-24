@@ -27,7 +27,7 @@ function VideoPreview({ url }: { url: string }) {
   );
 }
 
-/** HTML runs in a sandboxed frame with no same-origin access: a page a skill wrote cannot reach Runwell.
+/** HTML runs in a sandboxed frame with no same-origin access: a page a skill wrote cannot reach Workflows.
  *  A PDF cannot be sandboxed (the browser's viewer refuses to open in one); it is served as application/pdf with nosniff. */
 export function OutputPreview({ output, grant }: { output: OutputItem; grant: string }) {
   const url = fileUrl(grant, output.runId, output.path);

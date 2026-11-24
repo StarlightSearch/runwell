@@ -41,7 +41,7 @@ test("changing the port shows the restart line and config.json holds it", async 
   await app.open("/settings");
   await app.page.getByLabel("Port").fill("4999");
   await app.page.getByRole("button", { name: "Save" }).click();
-  await expect(app.page.getByTestId("restart-line")).toHaveText("Takes effect the next time Runwell starts.");
+  await expect(app.page.getByTestId("restart-line")).toHaveText("Takes effect the next time Workflows starts.");
   expect(JSON.parse(readFileSync(join(app.seeded.home, "config.json"), "utf8")).port).toBe(4999);
 });
 

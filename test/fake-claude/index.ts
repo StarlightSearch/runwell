@@ -12,6 +12,6 @@ export function fakeEnv(opts: { fixture: string; auth?: "in" | "out"; ignoreSigi
     ...(opts.ignoreSigint ? { FAKE_CLAUDE_IGNORE_SIGINT: "1" } : {}),
     ...(opts.log ? { FAKE_CLAUDE_LOG: opts.log } : {}),
     ...(opts.holdMs ? { FAKE_CLAUDE_HOLD_MS: String(opts.holdMs) } : {}),
-    ...(opts.home ? { RUNWELL_HOME: opts.home } : {}),
+    ...(opts.home ? { WORKFLOWS_HOME: opts.home } : {}),
   };
 }

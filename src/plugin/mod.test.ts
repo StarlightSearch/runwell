@@ -23,7 +23,7 @@ async function load(opts: { run?: (argv: readonly string[]) => Promise<{ exitCod
 }
 
 describe("the built mod", () => {
-  it("at session start runs the launcher once, registers /runwell only, and returns fast", async () => {
+  it("at session start runs the launcher once, registers /workflows only, and returns fast", async () => {
     const { hooks, $ } = await load();
     const next = vi.fn(async () => "done");
     const t = performance.now();
@@ -32,7 +32,7 @@ describe("the built mod", () => {
     expect($.process.run).toHaveBeenCalledTimes(1);
     expect(($.process.run.mock.calls[0]![0] as string[])[1]).toMatch(/\/dist\/launcher\.js$/);
     expect($.command.register).toHaveBeenCalledTimes(1);
-    expect($.command.register.mock.calls[0]![0]).toMatchObject({ name: "runwell", immediate: true });
+    expect($.command.register.mock.calls[0]![0]).toMatchObject({ name: "workflows", immediate: true });
     expect([...hooks.keys()].sort()).toEqual(["command.run", "session.start"]);
   });
 
@@ -45,7 +45,7 @@ describe("the built mod", () => {
     expect($.ui.toast.mock.calls[0]![0]).toContain("Node 20 or newer");
   });
 
-  it("/runwell runs the CLI: open, last with the session folder, and run with the brief", async () => {
+  it("/workflows runs the CLI: open, last with the session folder, and run with the brief", async () => {
     const { hooks, $ } = await load({ run: async () => ({ exitCode: 0, stdout: "Started motion-ad #3\n", stderr: "" }) });
     // (a multi-line answer, like the list of skills, is shown whole: see the next test)
     const cmd = hooks.get("command.run")!;
@@ -65,7 +65,7 @@ describe("the built mod", () => {
     const { cpSync, mkdirSync, mkdtempSync } = await import("node:fs");
     const { tmpdir } = await import("node:os");
     const { join } = await import("node:path");
-    const root = join(mkdtempSync(join(tmpdir(), "runwell-mod-")), "José plugins", "runwell");
+    const root = join(mkdtempSync(join(tmpdir(), "workflows-mod-")), "José plugins", "workflows");
     mkdirSync(join(root, "hooks"), { recursive: true });
     cpSync(BUILT, join(root, "hooks", "register.js"));
     const mod = await import(pathToFileURL(join(root, "hooks", "register.js")).href);
@@ -78,7 +78,7 @@ describe("the built mod", () => {
   });
 
   it("shows a multi-line answer whole", async () => {
-    const list = "Skills you can run (2). Use /runwell run <skill> [brief]\npersonal: motion-ad\nplugin toolkit: toolkit:lint";
+    const list = "Skills you can run (2). Use /workflows run <skill> [brief]\npersonal: motion-ad\nplugin toolkit: toolkit:lint";
     const { hooks, $ } = await load({ run: async () => ({ exitCode: 0, stdout: `${list}\n`, stderr: "" }) });
     expect(await hooks.get("command.run")!($, { args: "run" })).toEqual({ text: list, isTextDisplayOnly: true });
   });

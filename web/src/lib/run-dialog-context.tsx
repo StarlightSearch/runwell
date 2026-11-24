@@ -9,5 +9,5 @@ export const useRunDialog = () => useContext(RunDialogContext);
 
 /** Opens the skill picker; the chosen skill's Run dialog starts with `brief` (kept when changing skill). */
 export function pickSkill(brief = ""): void {
-  window.dispatchEvent(new CustomEvent("runwell:pick", { detail: { brief } }));
+  window.dispatchEvent(new CustomEvent("workflows:pick", { detail: { brief } }));
 }

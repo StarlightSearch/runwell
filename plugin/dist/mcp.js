@@ -36660,7 +36660,7 @@ var StdioServerTransport = class {
 };
 
 // src/mcp/server.ts
-var NOT_RUNNING = "Runwell is not running, so nobody could be asked.";
+var NOT_RUNNING = "Workflows is not running, so nobody could be asked.";
 var ENDED = "The run ended before anyone answered.";
 function serverInfo(home) {
   try {
@@ -36705,12 +36705,12 @@ function toQuestions(input2) {
   });
 }
 var text = (s) => ({ content: [{ type: "text", text: s }] });
-function createRunwellMcp(opts) {
-  const mcp = new McpServer({ name: "runwell", version: "0.1.0" });
+function createWorkflowsMcp(opts) {
+  const mcp = new McpServer({ name: "workflows", version: "0.1.0" });
   mcp.registerTool(
-    "runwell_step",
+    "workflows_step",
     {
-      description: "Report the progress of a step of this run to Runwell.",
+      description: "Report the progress of a step of this run to Workflows.",
       inputSchema: { runId: external_exports.string(), stepId: external_exports.string(), status: external_exports.enum(["started", "done", "failed", "skipped"]), note: external_exports.string().optional() }
     },
     async ({ runId, stepId, status, note }) => {
@@ -36719,9 +36719,9 @@ function createRunwellMcp(opts) {
     }
   );
   mcp.registerTool(
-    "runwell_permission",
+    "workflows_permission",
     {
-      description: "Asks the person in Runwell whether a tool may run, or puts Claude's question to them.",
+      description: "Asks the person in Workflows whether a tool may run, or puts Claude's question to them.",
       inputSchema: { tool_name: external_exports.string(), input: external_exports.record(external_exports.string(), external_exports.unknown()), tool_use_id: external_exports.string().optional() }
     },
     async ({ tool_name, input: input2, tool_use_id }) => {
@@ -36739,14 +36739,14 @@ function createRunwellMcp(opts) {
   return mcp;
 }
 async function main() {
-  const home = process.env.RUNWELL_HOME ?? join(process.env.HOME ?? "", ".runwell");
-  const mcp = createRunwellMcp({ home, runId: process.env.RUNWELL_RUN_ID ?? null });
+  const home = process.env.WORKFLOWS_HOME ?? join(process.env.HOME ?? "", ".pulsar-workflows");
+  const mcp = createWorkflowsMcp({ home, runId: process.env.WORKFLOWS_RUN_ID ?? null });
   await mcp.connect(new StdioServerTransport());
 }
 
 // src/mcp/entry.ts
 main().catch((err) => {
-  process.stderr.write(`runwell mcp: ${err.message}
+  process.stderr.write(`workflows mcp: ${err.message}
 `);
   process.exit(1);
 });

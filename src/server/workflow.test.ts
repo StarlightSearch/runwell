@@ -13,18 +13,18 @@ function skillAt(dir: string, over: Partial<SkillRow> = {}): SkillRow {
   return { key: "personal:x", source: "personal", name: "x", ref: "x", description: "", path: dir, plugin: null, marketplace: null, projectPath: null, warning: null, hash: "h" + Math.random().toString(16).slice(2), hasWorkflow: false, workflowNote: null, version: 1, ignored: false, ...over };
 }
 function plainSkill() {
-  const dir = mkdtempSync(join(tmpdir(), "runwell-wfskill-"));
+  const dir = mkdtempSync(join(tmpdir(), "workflows-wfskill-"));
   writeFileSync(join(dir, "SKILL.md"), "---\nname: x\ndescription: d\n---\n# X\n## Gather\n## Write\n");
   return dir;
 }
 function fixtureAnswering(text: string, exitCode = 0) {
-  const dir = mkdtempSync(join(tmpdir(), "runwell-wffx-"));
+  const dir = mkdtempSync(join(tmpdir(), "workflows-wffx-"));
   const f = join(dir, "draw.jsonl");
   writeFileSync(f, [JSON.stringify({ type: "result", subtype: "success", is_error: false, result: text }), ...(exitCode ? [JSON.stringify({ __fake: "exit", code: exitCode })] : [])].join("\n"));
   return f;
 }
 function service(fixture: string, timeoutMs = 10_000) {
-  const p = paths(mkdtempSync(join(tmpdir(), "runwell-wf-")));
+  const p = paths(mkdtempSync(join(tmpdir(), "workflows-wf-")));
   const log = join(p.root, "fake.log");
   const svc = createWorkflowService({ paths: p, claudeBin: () => FAKE_CLAUDE, extraEnv: fakeEnv({ fixture, log }), timeoutMs });
   const spawned = () => (existsSync(log) ? readFileSync(log, "utf8").split("\n").filter((l) => l.includes('"argv"')).length : 0);
@@ -43,9 +43,9 @@ describe("workflow source", () => {
   });
 
   it("an invalid block gives a note", () => {
-    const dir = mkdtempSync(join(tmpdir(), "runwell-wfbad-"));
+    const dir = mkdtempSync(join(tmpdir(), "workflows-wfbad-"));
     writeFileSync(join(dir, "SKILL.md"), "# X\n## Workflow map\n```pulsar-workflow\n{nope\n```\n");
-    expect(cachedWorkflow(skillAt(dir), paths(mkdtempSync(join(tmpdir(), "runwell-wfp-"))))).toMatchObject({ from: "none", steps: null, note: "Workflow map ignored: the map is not valid JSON" });
+    expect(cachedWorkflow(skillAt(dir), paths(mkdtempSync(join(tmpdir(), "workflows-wfp-"))))).toMatchObject({ from: "none", steps: null, note: "Workflow map ignored: the map is not valid JSON" });
   });
 
   it("no block and draw false: none, no spawn", async () => {
@@ -54,7 +54,7 @@ describe("workflow source", () => {
     expect(spawned()).toBe(0);
   });
 
-  it("draw true: draws, caches under ~/.runwell/workflows, and a second call does not spawn", async () => {
+  it("draw true: draws, caches under ~/.pulsar-workflows/workflows, and a second call does not spawn", async () => {
     const { svc, p, spawned, log } = service(fixtureAnswering(GOOD));
     const dir = plainSkill();
     const before = readdirSync(dir);
@@ -89,7 +89,7 @@ describe("workflow source", () => {
   });
 
   it("a timeout gives none", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "runwell-wfslow-"));
+    const dir = mkdtempSync(join(tmpdir(), "workflows-wfslow-"));
     const fx = join(dir, "slow.jsonl");
     writeFileSync(fx, [JSON.stringify({ __fake: "sleep", ms: 5000 }), JSON.stringify({ type: "result", is_error: false, result: GOOD })].join("\n"));
     const { svc } = service(fx, 300);
@@ -99,7 +99,7 @@ describe("workflow source", () => {
   });
 
   it("no claude binary gives none", async () => {
-    const p = paths(mkdtempSync(join(tmpdir(), "runwell-wfnone-")));
+    const p = paths(mkdtempSync(join(tmpdir(), "workflows-wfnone-")));
     const svc = createWorkflowService({ paths: p, claudeBin: () => null });
     expect((await svc.resolveWorkflow(skillAt(plainSkill()), { draw: true })).from).toBe("none");
   });

@@ -8,7 +8,7 @@ import { DECISIONS } from "./decisions";
 import { buildArgv, createClaudeDriver, firstMessage, systemPrompt, type RunSpec } from "./driver";
 
 function setup(fixture: string, extra: Record<string, string | boolean | number> = {}) {
-  const root = mkdtempSync(join(tmpdir(), "runwell-drv-"));
+  const root = mkdtempSync(join(tmpdir(), "workflows-drv-"));
   const runDir = join(root, "runs", "r1");
   const work = join(runDir, "work");
   mkdirSync(join(runDir, "inputs"), { recursive: true });
@@ -42,8 +42,8 @@ describe("argv and prompt", () => {
     expect(argv).not.toContain("--bare");
     expect(argv[argv.indexOf("--append-system-prompt") + 1]).toContain("Run id: r1");
     expect(argv[argv.indexOf("--mcp-config") + 1]).toBe(spec.mcpConfigPath);
-    expect(argv[argv.indexOf("--permission-prompt-tool") + 1]).toBe("mcp__runwell__runwell_permission");
-    expect(argv[argv.indexOf("--allowedTools") + 1]).toBe("mcp__runwell__runwell_step");
+    expect(argv[argv.indexOf("--permission-prompt-tool") + 1]).toBe("mcp__workflows__workflows_permission");
+    expect(argv[argv.indexOf("--allowedTools") + 1]).toBe("mcp__workflows__workflows_step");
   });
 
   it("sends the skill invocation and the attached paths as the first message", async () => {
@@ -98,12 +98,12 @@ describe("argv and prompt", () => {
     const { spec } = setup("happy");
     expect(systemPrompt(spec)).toBe([
       "Run id: r1",
-      'This run is shown live in Runwell. Report progress with the runwell_step tool, passing runId "r1".',
+      'This run is shown live in Workflows. Report progress with the workflows_step tool, passing runId "r1".',
       "Steps:",
       "- s1: Brief and landing page",
-      'Call runwell_step with status "started" when you begin a step and "done", "failed" or "skipped" when it ends. Start a loop step again each time you repeat it. If you do work that is not in the list, report it under a short id of your own.',
+      'Call workflows_step with status "started" when you begin a step and "done", "failed" or "skipped" when it ends. Start a loop step again each time you repeat it. If you do work that is not in the list, report it under a short id of your own.',
     ].join("\n"));
-    expect(systemPrompt({ ...spec, steps: null })).toContain('Name your own steps: call runwell_step with a short id you choose (for example "gather-sources")');
+    expect(systemPrompt({ ...spec, steps: null })).toContain('Name your own steps: call workflows_step with a short id you choose (for example "gather-sources")');
     expect(firstMessage({ ...spec, inputs: [] }, DECISIONS)).toBe("/motion-ad A 15 second ad");
   });
 });
@@ -120,7 +120,7 @@ describe("running", () => {
   });
 
   it("a process that exits without a result resolves sawResult false", async () => {
-    const root = mkdtempSync(join(tmpdir(), "runwell-drvfix-"));
+    const root = mkdtempSync(join(tmpdir(), "workflows-drvfix-"));
     const fx = join(root, "dies.jsonl");
     const lines = readFileSync(join(FIXTURES, "failure.jsonl"), "utf8").split("\n").filter((l) => l && !l.includes('"type": "result"'));
     writeFileSync(fx, [...lines, JSON.stringify({ __fake: "exit", code: 1 })].join("\n"));

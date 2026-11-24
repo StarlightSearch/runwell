@@ -1,13 +1,13 @@
 /**
- * Captures the README's screenshots and the frames of its GIF. Skipped unless RUNWELL_CAPTURE names a
- * folder: `RUNWELL_CAPTURE=/tmp/shots npx playwright test test/ui/assets.spec.ts --project=dark`.
+ * Captures the README's screenshots and the frames of its GIF. Skipped unless WORKFLOWS_CAPTURE names a
+ * folder: `WORKFLOWS_CAPTURE=/tmp/shots npx playwright test test/ui/assets.spec.ts --project=dark`.
  */
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "./fixtures";
 
-const OUT = process.env.RUNWELL_CAPTURE;
-test.skip(!OUT, "set RUNWELL_CAPTURE to a folder to capture the README assets");
+const OUT = process.env.WORKFLOWS_CAPTURE;
+test.skip(!OUT, "set WORKFLOWS_CAPTURE to a folder to capture the README assets");
 // Live times in the screenshots, not the recorded fixture's.
 if (OUT) process.env.FAKE_CLAUDE_NOW = "1";
 test.use({ fakeFixture: "subagents-slow", viewport: { width: 1280, height: 780 } });

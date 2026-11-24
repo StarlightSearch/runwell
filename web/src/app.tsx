@@ -12,7 +12,7 @@ import { OutputsPage } from "./pages/outputs";
 import { SettingsPage } from "./pages/settings";
 import { Logo } from "./components/logo";
 
-export const SIGN_IN_GATE = "Open Runwell with /runwell in Claude Code or npx runwell in a terminal.";
+export const SIGN_IN_GATE = "Open Workflows with /workflows in Claude Code or npx workflows in a terminal.";
 
 function Gate({ message }: { message: string }) {
   return (
@@ -39,7 +39,7 @@ export function App() {
     <BrowserRouter>
       <RunDialogProvider>
       <div className="app">
-        <Sidebar onSearch={() => window.dispatchEvent(new CustomEvent("runwell:palette"))} />
+        <Sidebar onSearch={() => window.dispatchEvent(new CustomEvent("workflows:palette"))} />
         <main className="main">
           <Routes>
             <Route path="/" element={<Navigate to="/skills" replace />} />

@@ -75,12 +75,12 @@ describe("normaliser", () => {
     expect(n.push(JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text: "hi" }] } }) + "\r")).toEqual([{ t: "text", at: 1, agentId: null, text: "hi" }]);
   });
 
-  it("drops runwell_step and runwell_permission calls; keeps AskUserQuestion", () => {
+  it("drops workflows_step and workflows_permission calls; keeps AskUserQuestion", () => {
     const n = createNormaliser(() => 1);
     const asst = (name: string, id: string) => JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", id, name, input: {} }] } });
     const res = (id: string) => JSON.stringify({ type: "user", message: { content: [{ type: "tool_result", tool_use_id: id, content: "ok" }] } });
-    expect([...n.push(asst("mcp__runwell__runwell_step", "s")), ...n.push(res("s"))]).toEqual([]);
-    expect([...n.push(asst("mcp__runwell__runwell_permission", "p")), ...n.push(res("p"))]).toEqual([]);
+    expect([...n.push(asst("mcp__workflows__workflows_step", "s")), ...n.push(res("s"))]).toEqual([]);
+    expect([...n.push(asst("mcp__workflows__workflows_permission", "p")), ...n.push(res("p"))]).toEqual([]);
     expect(n.push(asst("AskUserQuestion", "q"))).toHaveLength(1);
   });
 

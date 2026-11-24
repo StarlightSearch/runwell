@@ -1,4 +1,4 @@
-/** JSON calls to Runwell's own server (same origin, the session cookie). */
+/** JSON calls to Workflows' own server (same origin, the session cookie). */
 export class ApiError extends Error {
   constructor(public status: number, public error: string, message: string) {
     super(message);

@@ -9,7 +9,7 @@ const MSG = JSON.stringify({ type: "user", message: { role: "user", content: [{ 
 
 function run(args: string[], env: Record<string, string>, opts: { input?: string; signalAfterMs?: number; signal?: NodeJS.Signals; killAfterMs?: number } = {}) {
   return new Promise<{ code: number | null; signal: string | null; stdout: string; stderr: string }>((resolve) => {
-    const cwd = mkdtempSync(join(tmpdir(), "runwell-fake-"));
+    const cwd = mkdtempSync(join(tmpdir(), "workflows-fake-"));
     const p = spawn(FAKE_CLAUDE, args, { env: { PATH: process.env.PATH ?? "", ...env }, cwd });
     let stdout = "";
     let stderr = "";
@@ -40,7 +40,7 @@ describe("fake claude", () => {
   });
 
   it("replays the fixture's lines byte for byte after the first stdin line, and logs argv and stdin", async () => {
-    const log = join(mkdtempSync(join(tmpdir(), "runwell-fakelog-")), "log.jsonl");
+    const log = join(mkdtempSync(join(tmpdir(), "workflows-fakelog-")), "log.jsonl");
     const r = await run(["-p", "--output-format", "stream-json", "--input-format", "stream-json", "--verbose"], fakeEnv({ fixture: "failure", log }), { input: MSG + "\n" });
     expect(r.code).toBe(0);
     expect(r.stdout.split("\n").filter(Boolean)).toEqual(fixtureLines("failure"));

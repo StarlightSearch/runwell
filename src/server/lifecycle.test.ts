@@ -8,7 +8,7 @@ import { paths } from "./paths";
 import { spawn } from "node:child_process";
 import { createServer as createHttpServer } from "node:http";
 
-const home = () => paths(mkdtempSync(join(tmpdir(), "runwell-life-")));
+const home = () => paths(mkdtempSync(join(tmpdir(), "workflows-life-")));
 
 describe("decide", () => {
   it.each([

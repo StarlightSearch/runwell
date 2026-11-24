@@ -6,7 +6,7 @@ import { checkProject, scanProjects, trustOf } from "./projects";
 
 /** A fake home: real project folders, a ~/.claude.json and session logs under ~/.claude/projects. */
 function home() {
-  const root = mkdtempSync(join(tmpdir(), "runwell-proj-"));
+  const root = mkdtempSync(join(tmpdir(), "workflows-proj-"));
   const claudeHome = join(root, ".claude");
   const claudeJson = join(root, ".claude.json");
   const proj = (name: string) => {
@@ -97,7 +97,7 @@ describe("projects routes", () => {
     const h = home();
     const alpha = h.proj("alpha");
     writeFileSync(h.claudeJson, JSON.stringify({ projects: { [alpha]: { hasTrustDialogAccepted: true } } }));
-    const p = paths(mkdtempSync(join(tmpdir(), "runwell-projroute-")));
+    const p = paths(mkdtempSync(join(tmpdir(), "workflows-projroute-")));
     saveConfig(p, { claudeHome: h.claudeHome });
     const db = await openDb(p.db);
     migrate(db);

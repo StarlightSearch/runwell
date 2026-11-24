@@ -70,18 +70,18 @@ const flatSteps = (steps: OverviewStep[], out: OverviewStep[] = []): OverviewSte
 };
 
 export function systemPrompt(spec: RunSpec): string {
-  const head = [`Run id: ${spec.runId}`, `This run is shown live in Runwell. Report progress with the runwell_step tool, passing runId "${spec.runId}".`];
+  const head = [`Run id: ${spec.runId}`, `This run is shown live in Workflows. Report progress with the workflows_step tool, passing runId "${spec.runId}".`];
   if (!spec.steps?.length) {
     return [
       ...head,
-      'Name your own steps: call runwell_step with a short id you choose (for example "gather-sources") and status "started" when you begin each one, and "done", "failed" or "skipped" when it ends.',
+      'Name your own steps: call workflows_step with a short id you choose (for example "gather-sources") and status "started" when you begin each one, and "done", "failed" or "skipped" when it ends.',
     ].join("\n");
   }
   return [
     ...head,
     "Steps:",
     ...flatSteps(spec.steps).map((s) => `- ${s.id}: ${s.title}`),
-    'Call runwell_step with status "started" when you begin a step and "done", "failed" or "skipped" when it ends. Start a loop step again each time you repeat it. If you do work that is not in the list, report it under a short id of your own.',
+    'Call workflows_step with status "started" when you begin a step and "done", "failed" or "skipped" when it ends. Start a loop step again each time you repeat it. If you do work that is not in the list, report it under a short id of your own.',
   ].join("\n");
 }
 
@@ -95,7 +95,7 @@ export function buildArgv(spec: RunSpec, d: Decisions): string[] {
     "-p", "--output-format", "stream-json", "--input-format", "stream-json", "--verbose",
     "--append-system-prompt", systemPrompt(spec),
     "--mcp-config", spec.mcpConfigPath,
-    "--allowedTools", "mcp__runwell__runwell_step",
+    "--allowedTools", "mcp__workflows__workflows_step",
   ];
   if (spec.addDir) argv.push("--add-dir", spec.addDir);
   if (spec.model) argv.push("--model", spec.model);
@@ -106,7 +106,7 @@ export function buildArgv(spec: RunSpec, d: Decisions): string[] {
   }
   if (spec.allowAll) argv.push(...d.bypassFlag);
   else if (spec.mode === "auto") argv.push(...d.autoFlag);
-  if (!spec.allowAll && (d.askRoute === "permission-tool" || d.askRoute === "mixed")) argv.push("--permission-prompt-tool", "mcp__runwell__runwell_permission");
+  if (!spec.allowAll && (d.askRoute === "permission-tool" || d.askRoute === "mixed")) argv.push("--permission-prompt-tool", "mcp__workflows__workflows_permission");
   return argv;
 }
 
@@ -148,7 +148,7 @@ export function createClaudeDriver(opts: { bin: string; home: string; extraEnv?:
       const argv = buildArgv(spec, d);
       const child = spawn(opts.bin, argv, {
         cwd: spec.cwd,
-        env: { ...process.env, ...opts.extraEnv, ...d.toolTimeoutEnv, RUNWELL_RUN_ID: spec.runId, RUNWELL_HOME: opts.home },
+        env: { ...process.env, ...opts.extraEnv, ...d.toolTimeoutEnv, WORKFLOWS_RUN_ID: spec.runId, WORKFLOWS_HOME: opts.home },
         stdio: ["pipe", "pipe", "pipe"],
         // Its own process group, so a stop that has to force it also ends what it started (Bash children,
         // the MCP server). Not on Windows, where a detached child gets its own console window.

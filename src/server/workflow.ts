@@ -1,6 +1,6 @@
 /**
  * Where a run's workflow comes from: the skill's own `pulsar-workflow` map; else a drawing cached in
- * `~/.runwell/workflows/<SKILL.md hash>.json`; else nothing. A drawing is made only when a button run
+ * `~/.pulsar-workflows/workflows/<SKILL.md hash>.json`; else nothing. A drawing is made only when a button run
  * starts or the person clicks "Draw workflow": the person's own `claude` reads the SKILL.md once.
  * Nothing is ever written into the skill's folder.
  */
@@ -83,7 +83,7 @@ export function createWorkflowService(deps: { paths: Paths; claudeBin(): string 
   const drawing = new Map<string, Promise<OverviewStep[] | null>>();
 
   function runClaude(bin: string, skillMd: string): Promise<string | null> {
-    const cwd = mkdtempSync(join(tmpdir(), "runwell-draw-"));
+    const cwd = mkdtempSync(join(tmpdir(), "workflows-draw-"));
     return new Promise((resolve) => {
       let out = "";
       let settled = false;

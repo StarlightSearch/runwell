@@ -75,7 +75,7 @@ describe.skipIf(!existsSync(ENTRY))("ensureServer (needs npm run build)", () => 
     const LAUNCHER = fileURLToPath(new URL("../plugin/dist/launcher.js", import.meta.url));
     const t = performance.now();
     // Async: the "old" server lives in this test process and must keep answering.
-    const code = await new Promise<number | null>((res) => spawn(process.execPath, [LAUNCHER], { env: { ...process.env, RUNWELL_HOME: h }, stdio: "ignore" }).on("exit", res));
+    const code = await new Promise<number | null>((res) => spawn(process.execPath, [LAUNCHER], { env: { ...process.env, WORKFLOWS_HOME: h }, stdio: "ignore" }).on("exit", res));
     expect(code).toBe(0);
     expect(performance.now() - t).toBeLessThan(1500);
     let info = null;

@@ -2,12 +2,12 @@
 // A stand-in for the `claude` CLI in tests. It replays a recorded stream-json fixture and acts out the
 // control lines in it (objects with a "__fake" key), which are never printed:
 //   {"__fake":"sleep","ms":50}
-//   {"__fake":"step","stepId":"s1","status":"started","note":null}   POSTs to Runwell's steps route
+//   {"__fake":"step","stepId":"s1","status":"started","note":null}   POSTs to Workflows' steps route
 //   {"__fake":"ask","ask":{...}}                                     POSTs to the asks route and waits for the answer
 //   {"__fake":"write","path":"out.txt","text":"hi"}                  writes relative to its working folder
 //   {"__fake":"exit","code":1}
 // Env: FAKE_CLAUDE_FIXTURE (path), FAKE_CLAUDE_AUTH (in|out), FAKE_CLAUDE_LOG (path),
-// FAKE_CLAUDE_IGNORE_SIGINT=1, FAKE_CLAUDE_NOW=1, FAKE_CLAUDE_HOLD_MS (wait this long before replaying), RUNWELL_HOME, RUNWELL_RUN_ID.
+// FAKE_CLAUDE_IGNORE_SIGINT=1, FAKE_CLAUDE_NOW=1, FAKE_CLAUDE_HOLD_MS (wait this long before replaying), WORKFLOWS_HOME, WORKFLOWS_RUN_ID.
 // The brief can pick the fixture and behaviour instead (for a server started once): "[fixture:failure]"
 // replays fixtures/stream/failure.jsonl, "[ignore-sigint]" ignores the interrupt.
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -54,8 +54,8 @@ process.on("SIGINT", () => {
 process.on("SIGTERM", () => process.exit(143));
 
 const sysIdx = argv.indexOf("--append-system-prompt");
-const runId = env.RUNWELL_RUN_ID ?? (sysIdx >= 0 ? /Run id: (\S+)/.exec(argv[sysIdx + 1] ?? "")?.[1] : undefined);
-const server = () => JSON.parse(readFileSync(join(env.RUNWELL_HOME ?? "", "server.json"), "utf8"));
+const runId = env.WORKFLOWS_RUN_ID ?? (sysIdx >= 0 ? /Run id: (\S+)/.exec(argv[sysIdx + 1] ?? "")?.[1] : undefined);
+const server = () => JSON.parse(readFileSync(join(env.WORKFLOWS_HOME ?? "", "server.json"), "utf8"));
 const post = async (path, body) => {
   const s = server();
   const r = await fetch(`http://127.0.0.1:${s.port}${path}`, { method: "POST", headers: { authorization: `Bearer ${s.token}`, "content-type": "application/json" }, body: JSON.stringify(body) });

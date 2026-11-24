@@ -1,5 +1,5 @@
 /** Skills the person chose not to track: names or patterns, `*` matching any run of characters. */
-export const DEFAULT_IGNORED = ["runwell:*"];
+export const DEFAULT_IGNORED = ["workflows:*"];
 
 /**
  * `skillRef` is `name` or `plugin:name`. Whole-string, case-sensitive. A pattern starting with `@` names a

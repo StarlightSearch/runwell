@@ -82,7 +82,7 @@ describe("readWorkflowMap: subagents in parallel", () => {
 
 const WITH_RESULT_BLOCK = skill({ ...earningsMap({}), result: [{ type: "stats", about: "Scores", labels: ["Score"] }] });
 
-describe("readWorkflowMap: Runwell additions", () => {
+describe("readWorkflowMap: Workflows additions", () => {
   it("ignores a result layout: only steps are returned", () => {
     const r = readWorkflowMap(WITH_RESULT_BLOCK);
     expect(r.status).toBe("valid");

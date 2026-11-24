@@ -17,11 +17,11 @@ describe("plugin files", () => {
   it("the JSON files parse and plugin.json has the fields and package.json's version", () => {
     const pkg = JSON.parse(readFileSync(join(PLUGIN, "../package.json"), "utf8"));
     const plugin = JSON.parse(readFileSync(join(PLUGIN, ".claude-plugin/plugin.json"), "utf8"));
-    expect(plugin).toMatchObject({ name: "runwell", version: pkg.version, license: "MIT" });
+    expect(plugin).toMatchObject({ name: "workflows", version: pkg.version, license: "MIT" });
     expect(plugin.description).toBe("Run your skills from a button, watch them work as a live graph, and keep every run. Works with Claude Code.");
     const market = JSON.parse(readFileSync(join(PLUGIN, "../.claude-plugin/marketplace.json"), "utf8"));
-    expect(market.name).toBe("runwell");
-    expect(market.plugins).toEqual([expect.objectContaining({ name: "runwell", source: "./plugin" })]);
+    expect(market.name).toBe("workflows");
+    expect(market.plugins).toEqual([expect.objectContaining({ name: "workflows", source: "./plugin" })]);
     const hooks = JSON.parse(readFileSync(join(PLUGIN, "hooks/hooks.json"), "utf8"));
     expect(hooks.modules).toEqual(["./register.js"]);
     expect(hooks.hooks.SessionStart[0].hooks[0].command).toContain("session-start.sh");
@@ -30,9 +30,9 @@ describe("plugin files", () => {
 
 describe.skipIf(!BUILT)("session-start.sh (needs npm run build)", () => {
   it("exits 0 at once with nothing on stdout, and starts a server that outlives it", async () => {
-    const home = mkdtempSync(join(tmpdir(), "runwell-hook-"));
+    const home = mkdtempSync(join(tmpdir(), "workflows-hook-"));
     const t = performance.now();
-    const r = spawnSync("sh", [SCRIPT], { env: { ...process.env, RUNWELL_HOME: home, CLAUDE_PLUGIN_ROOT: PLUGIN }, encoding: "utf8" });
+    const r = spawnSync("sh", [SCRIPT], { env: { ...process.env, WORKFLOWS_HOME: home, CLAUDE_PLUGIN_ROOT: PLUGIN }, encoding: "utf8" });
     expect(performance.now() - t).toBeLessThan(300);
     expect(r.status).toBe(0);
     expect(r.stdout).toBe("");
@@ -49,6 +49,6 @@ describe.skipIf(!BUILT)("session-start.sh (needs npm run build)", () => {
     const r = spawnSync("/bin/sh", [SCRIPT], { env: { PATH: "/nonexistent", CLAUDE_PLUGIN_ROOT: PLUGIN }, encoding: "utf8" });
     expect(r.status).toBe(0);
     expect(r.stdout).toBe("");
-    expect(r.stderr).toContain("Runwell needs Node 20 or newer");
+    expect(r.stderr).toContain("Workflows needs Node 20 or newer");
   });
 });

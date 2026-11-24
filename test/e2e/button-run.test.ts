@@ -33,13 +33,13 @@ describe.skipIf(!BUILT)("button run", () => {
     await h.waitForStatus(run.id, "running");
     const argv = readFileSync(h.log, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((l) => l.argv).at(-1).argv as string[];
     const cfgPath = argv[argv.indexOf("--mcp-config") + 1]!;
-    const cfg = JSON.parse(readFileSync(cfgPath, "utf8")).mcpServers.runwell as { command: string; args: string[]; env: Record<string, string> };
+    const cfg = JSON.parse(readFileSync(cfgPath, "utf8")).mcpServers.workflows as { command: string; args: string[]; env: Record<string, string> };
     expect(cfg.args[0]).toBe(join(ROOT, "plugin/dist/mcp.js"));
     const client = new Client({ name: "e2e", version: "0" });
-    await client.connect(new StdioClientTransport({ command: cfg.command, args: cfg.args, env: { ...cfg.env, RUNWELL_RUN_ID: run.id } as Record<string, string> }));
+    await client.connect(new StdioClientTransport({ command: cfg.command, args: cfg.args, env: { ...cfg.env, WORKFLOWS_RUN_ID: run.id } as Record<string, string> }));
     const tools = await client.listTools();
-    expect(tools.tools.map((t) => t.name).sort()).toEqual(["runwell_permission", "runwell_step"]);
-    await client.callTool({ name: "runwell_step", arguments: { runId: run.id, stepId: "e2e-step", status: "started", note: "from the real MCP server" } });
+    expect(tools.tools.map((t) => t.name).sort()).toEqual(["workflows_permission", "workflows_step"]);
+    await client.callTool({ name: "workflows_step", arguments: { runId: run.id, stepId: "e2e-step", status: "started", note: "from the real MCP server" } });
     await client.close();
     await h.fetchApi(`/api/runs/${run.id}/stop`, { method: "POST" });
     await h.waitForStatus(run.id, "stopped");

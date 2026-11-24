@@ -34,7 +34,7 @@ export function Sidebar({ onSearch }: { onSearch: () => void }) {
     <aside className="side" aria-label="Sidebar">
       <div className="ws">
         <Logo size={22} className="logo" />
-        <span className="ws-name">runwell</span>
+        <span className="ws-name">Workflows</span>
       </div>
       <button className="search" onClick={onSearch} type="button">
         <span>Search skills, runs…</span>

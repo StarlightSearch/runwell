@@ -1,5 +1,5 @@
 /**
- * Starts the Runwell server if it is not running, without making the caller wait for it: the server is
+ * Starts the Workflows server if it is not running, without making the caller wait for it: the server is
  * spawned detached with no stdio and unref'd, so it outlives the CLI, the hook and the Claude session.
  * An older server with no run in progress is asked to shut down and replaced; one in a run is reused.
  */
@@ -9,7 +9,7 @@ import { VERSION } from "./shared/version";
 import { decide, probe, readServerInfo, type ServerInfo } from "./server/lifecycle";
 import { paths } from "./server/paths";
 
-export const NODE_HINT = "Runwell needs Node 20 or newer. Install it from https://nodejs.org and try again.";
+export const NODE_HINT = "Workflows needs Node 20 or newer. Install it from https://nodejs.org and try again.";
 export const nodeOk = (v = process.versions.node) => Number(v.split(".")[0]) >= 20;
 
 export interface EnsureOptions {
@@ -51,7 +51,7 @@ export async function ensureServer(opts: EnsureOptions = {}): Promise<ServerInfo
     await waitFor(p.root, 3000, (live) => live === null);
   }
   const entry = opts.serverEntry ?? fileURLToPath(new URL("./server.js", import.meta.url));
-  const child = spawn(process.execPath, [entry], { detached: true, stdio: "ignore", env: { ...process.env, RUNWELL_HOME: p.root } });
+  const child = spawn(process.execPath, [entry], { detached: true, stdio: "ignore", env: { ...process.env, WORKFLOWS_HOME: p.root } });
   child.on("error", () => {});
   child.unref();
   if (!opts.wait) return null;

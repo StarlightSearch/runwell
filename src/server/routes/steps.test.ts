@@ -12,7 +12,7 @@ import { createHub } from "../sse";
 import { stepsRoutes } from "./steps";
 
 async function app(status: RunRow["status"]) {
-  const p = paths(mkdtempSync(join(tmpdir(), "runwell-steps-")));
+  const p = paths(mkdtempSync(join(tmpdir(), "workflows-steps-")));
   const db = await openDb(p.db);
   migrate(db);
   const session = "ab".repeat(16);

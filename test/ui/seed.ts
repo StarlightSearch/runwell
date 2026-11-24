@@ -1,5 +1,5 @@
 /**
- * A seeded Runwell home for UI tests: a fake ~/.claude (the skills fixture tree, two projects, one of them
+ * A seeded Workflows home for UI tests: a fake ~/.claude (the skills fixture tree, two projects, one of them
  * untrusted), three finished runs with outputs, one failed run, ratings, and a config pointing at it all.
  */
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -25,7 +25,7 @@ export interface Seeded {
 const ev = (events: RunEvent[]) => events.map((e) => JSON.stringify(e)).join("\n") + "\n";
 
 export async function seed(): Promise<Seeded> {
-  const root = mkdtempSync(join(tmpdir(), "runwell-ui-"));
+  const root = mkdtempSync(join(tmpdir(), "workflows-ui-"));
   const home = join(root, "home");
   const claudeHome = join(root, "claude-home", ".claude");
   mkdirSync(join(root, "claude-home"), { recursive: true });

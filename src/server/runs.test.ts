@@ -18,7 +18,7 @@ const skill = (key: string, ref = key.split(":").pop()!): SkillRow => ({
 });
 
 async function setup(opts: { fixture?: string; holdMs?: number; signedIn?: "in" | "out" | "unknown"; maxRuns?: number; projects?: { path: string; trusted: boolean }[] } = {}) {
-  const p = paths(mkdtempSync(join(tmpdir(), "runwell-runs-")));
+  const p = paths(mkdtempSync(join(tmpdir(), "workflows-runs-")));
   if (opts.maxRuns) saveConfig(p, { maxRuns: opts.maxRuns });
   const db = await openDb(p.db);
   migrate(db);
@@ -116,7 +116,7 @@ describe("RunsService", () => {
   });
 
   it("a process that dies with no result is failed, keeping the last events", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "runwell-dies-"));
+    const dir = mkdtempSync(join(tmpdir(), "workflows-dies-"));
     const fx = join(dir, "dies.jsonl");
     const lines = readFileSync(join(FIXTURES, "happy.jsonl"), "utf8").split("\n").filter((l) => l && !l.includes('"type": "result"') && !l.includes("__fake"));
     writeFileSync(fx, [...lines.slice(0, 6), JSON.stringify({ __fake: "exit", code: 1 })].join("\n"));
@@ -129,7 +129,7 @@ describe("RunsService", () => {
   });
 
   it("refuses a missing project folder and an untrusted one without confirmation; spawns nothing", async () => {
-    const trusted = mkdtempSync(join(tmpdir(), "runwell-proj-"));
+    const trusted = mkdtempSync(join(tmpdir(), "workflows-proj-"));
     const { runs, spawned } = await setup({ projects: [{ path: trusted, trusted: false }] });
     expect(await runs.start(input({ place: { kind: "project", path: "/nonexistent/x", confirmedUntrusted: true } }))).toMatchObject({ ok: false, error: "folder_missing", message: "That folder no longer exists." });
     expect(await runs.start(input({ place: { kind: "project", path: trusted, confirmedUntrusted: false } }))).toMatchObject({ ok: false, error: "untrusted_folder" });
@@ -189,7 +189,7 @@ describe("RunsService", () => {
     deps.pidCommand = (pid) =>
       pid === 111 ? `/home/me/.local/share/claude/versions/2.1.330 -p --mcp-config ${join(p.runDir("orphan1"), "mcp.json")}` : `/usr/bin/claude -p --mcp-config ${join(p.runDir("other"), "mcp.json")}`;
     expect(runs.recoverOrphans()).toBe(2);
-    expect(runs.get("orphan1")).toMatchObject({ status: "failed", error: "Runwell restarted during this run" });
+    expect(runs.get("orphan1")).toMatchObject({ status: "failed", error: "Workflows restarted during this run" });
     expect(runs.events("orphan1")[0]).toMatchObject({ t: "text" });
     expect(runs.events("orphan1").at(-1)).toMatchObject({ t: "status", status: "failed" });
     expect(kill).toHaveBeenCalledWith(process.platform === "win32" ? 111 : -111, "SIGTERM");

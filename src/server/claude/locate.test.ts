@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { FAKE_CLAUDE } from "../../../test/fake-claude";
 import { checkSignedIn, claudeState, claudeVersion, isAuthError, locateClaude, NOT_FOUND, SIGNED_OUT } from "./auth";
 
-const dir = () => mkdtempSync(join(tmpdir(), "runwell-loc-"));
+const dir = () => mkdtempSync(join(tmpdir(), "workflows-loc-"));
 function exe(folder: string, name = "claude", body = `#!/bin/sh\necho hi\n`, mode = 0o755) {
   mkdirSync(folder, { recursive: true });
   const f = join(folder, name);
