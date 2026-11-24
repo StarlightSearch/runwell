@@ -87,7 +87,7 @@ export function register(on: On): void {
       const text = r.stdout.trim() || r.stderr.trim() || "Workflows could not start.";
       return { text: text.length > 6000 ? `${text.slice(0, 6000)}…` : text, isTextDisplayOnly: true };
     } catch {
-      return { text: "Workflows could not start. Try npx workflows in a terminal.", isTextDisplayOnly: true };
+      return { text: "Workflows could not start. Try /workflows again, or start a new Claude Code session.", isTextDisplayOnly: true };
     }
   });
 }

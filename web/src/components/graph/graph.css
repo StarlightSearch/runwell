@@ -11,13 +11,14 @@
   position: relative;
 }
 .canvas-inner {
-  padding: 20px 26px 40px;
+  padding: 24px 26px 48px;
 }
 .progress {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
+  font-variant-numeric: tabular-nums;
   color: var(--tx2);
   font-size: 12px;
 }
@@ -123,7 +124,7 @@
   display: grid;
   place-items: center;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 590;
   background: var(--raise);
   color: var(--tx2);
   flex-shrink: 0;
@@ -131,6 +132,7 @@
 .gnode.agent {
   border-left: 2px solid var(--violet);
   border-radius: 8px;
+  padding: 8px 10px 8px 12px;
 }
 .gnode.agent .tile {
   background: var(--violet-bg);
@@ -140,14 +142,32 @@
   min-width: 0;
   flex: 1;
 }
+.gnode .txt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 .gnode .lb {
-  font-weight: 500;
+  display: block;
+  font-weight: 510;
+  line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Agent cards are narrow: their names get two lines before they are cut. */
+.gnode.agent .lb {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+  font-size: 12.5px;
+}
 .gnode .ln {
+  display: block;
   font-size: 11px;
+  line-height: 1.35;
   color: var(--tx3);
   white-space: nowrap;
   overflow: hidden;
@@ -207,109 +227,11 @@
 .gnode.asking .ln {
   color: var(--amber);
 }
-.panel {
-  width: 360px;
-  /* Long words (paths, flags like --target-pages) wrap instead of running out of the panel. */
-  overflow-wrap: anywhere;
-  overflow-x: hidden;
-  border-left: 1px solid var(--line);
-  background: var(--panel);
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  min-height: 0;
-}
-.ph {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--line);
-}
-.ph h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.ph p {
-  margin: 4px 0 0;
-  color: var(--tx3);
-  font-size: 12px;
-}
-.pb {
-  padding: 12px 16px;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.lab {
-  font-size: 11px;
-  color: var(--tx3);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.ev {
-  display: flex;
-  gap: 9px;
-  font-size: 12px;
-  color: var(--tx2);
-  padding: 3px 0;
-  min-width: 0;
-}
-.ev .k {
-  color: var(--tx3);
-  width: 40px;
-  flex-shrink: 0;
-}
-.ev .v {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.ev b {
-  color: var(--tx);
-  font-weight: 500;
-}
-.file {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 7px 10px;
-  background: var(--bg);
-  font-size: 12px;
-  min-width: 0;
-}
-.file .p {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tabs {
-  display: flex;
-  gap: 2px;
-  padding: 0 18px;
-  border-bottom: 1px solid var(--line);
-  flex-shrink: 0;
-}
-.tab {
-  padding: 9px 10px;
-  color: var(--tx3);
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  cursor: pointer;
-}
-.tab.on {
-  color: var(--tx);
-  border-bottom-color: var(--tx);
-}
 .waiting-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 18px;
+  gap: 12px;
+  padding: 10px 24px;
   background: var(--amber-bg);
   color: var(--amber);
   border-bottom: 1px solid var(--line);

@@ -32,7 +32,7 @@
   height: 120px;
   display: grid;
   place-items: center;
-  font-weight: 600;
+  font-weight: 590;
   font-size: 13px;
   overflow: hidden;
 }
@@ -50,4 +50,22 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 13px;
+}
+
+/* Runs table: the run name and the short columns stay on one line; the brief takes what is left. */
+.runs-tbl td:first-child,
+.runs-tbl td:nth-child(n + 3) {
+  white-space: nowrap;
+}
+.runs-tbl .num {
+  font-variant-numeric: tabular-nums;
+}
+.runs-tbl .brief-cell {
+  width: 100%;
+}
+@media (max-width: 860px) {
+  .runs-tbl th:nth-child(3),
+  .runs-tbl td:nth-child(3) {
+    display: none;
+  }
 }

@@ -23,7 +23,7 @@
   gap: 10px;
 }
 .dh .t {
-  font-weight: 600;
+  font-weight: 590;
   font-size: 14px;
 }
 .dbody {
@@ -56,7 +56,13 @@
   background: var(--bg);
   padding: 0 0 0 8px;
 }
+.opt > .icon {
+  color: var(--tx3);
+  flex-shrink: 0;
+}
 .opt select {
+  max-width: 150px;
+  text-overflow: ellipsis;
   border: 0;
   background: transparent;
   padding: 5px 8px 5px 2px;
@@ -92,16 +98,6 @@
   cursor: pointer;
   color: var(--tx3);
   padding: 0 4px;
-}
-.allow {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  font-size: 12px;
-  color: var(--tx2);
-}
-.allow .warn {
-  color: var(--amber);
 }
 .confirm {
   border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent);
@@ -141,4 +137,11 @@
 }
 .change-skill:hover {
   text-decoration: underline;
+}
+
+.subline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 2px;
 }

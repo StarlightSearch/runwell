@@ -57,7 +57,7 @@ table.tbl {
   border-collapse: collapse;
 }
 .tbl th {
-  font-weight: 500;
+  font-weight: 510;
   color: var(--tx3);
   text-align: left;
   font-size: 12px;
@@ -133,7 +133,7 @@ table.tbl {
   border-radius: 999px;
   background: color-mix(in srgb, var(--violet) 14%, transparent);
   color: var(--violet);
-  font-weight: 500;
+  font-weight: 510;
 }
 .tbl tr.ignored .tag {
   background: var(--raise);
@@ -278,7 +278,7 @@ table.tbl {
   min-height: 26px;
 }
 .grp-name {
-  font-weight: 600;
+  font-weight: 590;
   font-size: 13.5px;
   color: var(--tx);
 }
@@ -339,4 +339,22 @@ table.tbl {
 }
 .tbl tr.grp:hover .grp-caret {
   color: var(--tx);
+}
+
+/* Narrower windows: the trend goes first, then the source (the name line still says it). */
+.skills-tbl .nm .skill-link {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+@media (max-width: 1180px) {
+  .skills-tbl .c-trend {
+    display: none;
+  }
+}
+@media (max-width: 860px) {
+  .skills-tbl .c-src {
+    display: none;
+  }
 }

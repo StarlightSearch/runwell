@@ -9,7 +9,7 @@ import type { AuthLinkResponse } from "../../shared/api";
 import type { Ctx } from "../http";
 
 const LINK_TTL_MS = 60_000;
-const EXPIRED = "This link has expired. Run /workflows or npx workflows again.";
+const EXPIRED = "This link has expired. Run /workflows again.";
 
 /** A path inside the app: starts with "/", not "//", no backslash or scheme tricks. */
 export function safeTo(to: unknown): string {

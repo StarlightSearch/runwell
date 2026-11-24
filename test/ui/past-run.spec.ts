@@ -7,8 +7,9 @@ test("a finished run opens on Run: the video first, the png under Other files", 
   await expect(page.getByTestId("delivered").locator("video").first()).toBeVisible();
   await expect(page.getByTestId("delivered").locator(".deliv-head")).toContainText("ad-9x16.mp4");
   await expect(page.getByTestId("other-files")).toContainText("poster.png");
-  await expect(page.locator(".pill")).toHaveText(/Finished · 6m 40s/);
-  await expect(page.getByTestId("place-line")).toHaveText(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2} · from Run button · new run folder · v1/);
+  await expect(page.locator(".pill")).toHaveText("Finished");
+  const meta = page.getByTestId("place-line").locator("li");
+  await expect(meta).toHaveText([/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/, "6m 40s", "Run button", "New run folder", "v1"]);
   const body = await page.locator("body").innerText();
   expect(body).not.toContain("Improve");
   expect(body).not.toContain("Export");
@@ -31,9 +32,9 @@ test("rating toggles and survives a reload; a note is saved on blur", async ({ a
   await expect.poll(async () => (await app.api<{ run: { rating: number | null } }>(`/api/runs/${app.seeded.runIds.failed}`)).run.rating).toBeNull();
 });
 
-test("a history run reads 'from chat in', is tagged not installed and has no Run again", async ({ app }) => {
+test("a history run reads 'Chat in', is tagged not installed and has no Run again", async ({ app }) => {
   await app.open(`/runs/${app.seeded.runIds.history}`);
-  await expect(app.page.getByTestId("place-line")).toContainText("from chat in website");
+  await expect(app.page.getByTestId("place-line")).toContainText("Chat in website");
   await expect(app.page.getByTestId("not-installed")).toBeVisible();
   await expect(app.page.getByRole("button", { name: "Run again" })).toHaveCount(0);
   await expect(app.page.getByTestId("delivered")).toContainText("This run kept no files.");
@@ -42,7 +43,7 @@ test("a history run reads 'from chat in', is tagged not installed and has no Run
 test("How it went shows the loop; Replay at 0 has every node waiting and at the end matches the graph", async ({ app }) => {
   await app.open(`/runs/${app.seeded.runIds.loop}`);
   const page = app.page;
-  await expect(page.getByTestId("how-it-went")).toContainText("Review the launch post");
+  await expect(page.getByTestId("run-brief")).toContainText("Review the launch post");
   await expect(page.getByTestId("segment").filter({ hasText: "↻ ×2" })).toHaveCount(1);
   await page.getByRole("tab", { name: "Graph" }).click();
   const states = async () => page.locator(".gnode").evaluateAll((els) => els.map((e) => `${e.getAttribute("data-node")}:${e.getAttribute("data-state")}`));

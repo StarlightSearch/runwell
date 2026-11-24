@@ -1,3 +1,5 @@
+import { formatBytes } from "../../../src/shared/format";
+import { FileIcon } from "./icons";
 import { NoFiles, OutputActions, OutputList } from "./output-list";
 import { OutputPreview, type OutputItem } from "./output-preview";
 import "./past-run.css";
@@ -12,25 +14,40 @@ export function pickDelivered(outputs: OutputItem[]): OutputItem | null {
 export function Delivered({ outputs, grant, onRescan }: { outputs: OutputItem[]; grant: string; onRescan?: () => void }) {
   const main = pickDelivered(outputs);
   return (
-    <section data-testid="delivered">
-      <h2>Delivered by this run</h2>
-      {!main ? (
-        <NoFiles onRescan={onRescan} />
-      ) : (
-        <>
-          <OutputPreview output={main} grant={grant} />
-          <div className="deliv-head">
-            <span className="p mono">{main.path}</span>
-            <OutputActions output={main} />
+    <section className="deliv" data-testid="delivered">
+      <div className="card deliv-card">
+        <header className="card-h deliv-head">
+          <span className="deliv-ic">
+            <FileIcon size={15} />
+          </span>
+          <div className="deliv-name">
+            <div className="eyebrow">Delivered</div>
+            {main ? (
+              <div className="p mono" title={main.path}>
+                {main.path}
+              </div>
+            ) : (
+              <div className="p">No files</div>
+            )}
           </div>
-          {outputs.length > 1 ? (
-            <div style={{ marginTop: 18 }} data-testid="other-files">
-              <h2>Other files</h2>
-              <OutputList outputs={outputs.filter((o) => o !== main)} grant={grant} />
-            </div>
+          {main ? (
+            <>
+              {main.bytes ? <span className="deliv-size">{formatBytes(main.bytes)}</span> : null}
+              <OutputActions output={main} />
+            </>
           ) : null}
-        </>
-      )}
+        </header>
+        <div className="deliv-body">{main ? <OutputPreview output={main} grant={grant} /> : <NoFiles onRescan={onRescan} />}</div>
+      </div>
+      {main && outputs.length > 1 ? (
+        <div className="card" data-testid="other-files">
+          <header className="card-h">
+            <h3>Other files</h3>
+            <span className="card-count">{outputs.length - 1}</span>
+          </header>
+          <OutputList outputs={outputs.filter((o) => o !== main)} grant={grant} />
+        </div>
+      ) : null}
     </section>
   );
 }

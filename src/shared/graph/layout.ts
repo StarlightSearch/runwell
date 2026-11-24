@@ -21,7 +21,8 @@ import type { GraphGroup, GraphNode, WorkflowGraphModel } from "./types";
 
 export const STEP_W = 340;
 export const STEP_H = 50;
-export const AGENT_H = 44;
+/** Tall enough for a two-line agent name plus one line under it. */
+export const AGENT_H = 62;
 export const GAP_Y = 24;
 export const NARROW_BELOW = 600;
 /** The id of the arrowhead `<marker>` the canvas defines and puts on each loop return path. */

@@ -1,91 +1,321 @@
+/* A finished run's Run tab: what was asked, four numbers, then the deliverable beside the rating
+   and the steps. */
 .past {
   display: flex;
   flex-direction: column;
-  gap: 22px;
-  max-width: 980px;
+  gap: 20px;
+  padding-bottom: 24px;
+  max-width: 1100px;
 }
-.past h2 {
-  font-size: 13px;
-  font-weight: 600;
-  margin: 0 0 10px;
-  color: var(--tx2);
+.eyebrow {
+  font-size: 11px;
+  font-weight: 590;
+  color: var(--tx3);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+}
+.asked p {
+  margin: 6px 0 0;
+  font-size: 18px;
+  line-height: 1.4;
+  font-weight: 510;
+  letter-spacing: -0.01em;
+  color: var(--tx);
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.stat {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.stat-l {
+  font-size: 12.5px;
+  font-weight: 510;
+  color: var(--tx3);
+}
+.stat-v {
+  margin-top: 6px;
+  font-size: 21px;
+  font-weight: 590;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.deliv {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+/* Rating and steps side by side, the same height; stacked when the page is narrow. */
+.past-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+@media (max-width: 1100px) {
+  .past-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Cards: a header row (title, optional actions) over the content. */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.card-h {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.card-h h3 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 590;
+}
+.card-sub {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--tx3);
+}
+.card-actions {
+  display: flex;
+  gap: 6px;
+}
+.card-count {
+  font-size: 12px;
+  color: var(--tx3);
+  font-variant-numeric: tabular-nums;
+}
+.btn.sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  font-size: 12px;
+}
+
+/* The deliverable: the file's name and actions on top, the preview edge to edge below. */
+.deliv-card {
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
 }
 .deliv-head {
-  display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 8px;
+  padding: 12px 12px 12px 16px;
+  border-bottom: 1px solid var(--line);
 }
-.deliv-head .p {
+.deliv-ic {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--blue-bg);
+  color: var(--blue);
+  flex-shrink: 0;
+}
+.deliv-name {
   flex: 1;
   min-width: 0;
+}
+.deliv-name .p {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--tx);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.rate {
-  border: 1px solid var(--line2);
-  border-radius: 12px;
-  padding: 14px;
-  background: var(--panel);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.deliv-size {
+  font-size: 12px;
+  color: var(--tx3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
-.rate .thumbs {
-  display: flex;
+.deliv-head .btn {
+  padding: 4px 9px;
+  font-size: 12px;
+}
+.deliv-body > .preview {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.deliv-body > .desc {
+  padding: 20px 16px;
+}
+
+/* Rating. */
+.thumbs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
-.rate .thumbs button {
-  font-size: 18px;
-  width: 44px;
-  height: 36px;
+.thumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
   border-radius: 8px;
   border: 1px solid var(--line2);
   background: transparent;
+  color: var(--tx2);
+  font-weight: 510;
   cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
-.rate .thumbs button[aria-pressed="true"] {
-  background: var(--blue-bg);
-  border-color: var(--blue);
+.thumb:hover {
+  background: var(--raise);
+  color: var(--tx);
 }
-.rate textarea {
-  min-height: 56px;
-  resize: vertical;
-}
-.strip {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin: 10px 0;
-}
-.seg {
-  border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 12px;
+.thumb.up[aria-pressed="true"] {
   background: var(--green-bg);
+  border-color: color-mix(in srgb, var(--green) 55%, transparent);
   color: var(--green);
-  display: flex;
-  flex-direction: column;
-  min-width: 90px;
 }
-.seg.failed {
-  background: var(--red-bg, var(--raise));
+.thumb.down[aria-pressed="true"] {
+  background: var(--red-bg);
+  border-color: color-mix(in srgb, var(--red) 55%, transparent);
   color: var(--red);
 }
-.seg.waiting {
-  background: var(--amber-bg);
-  color: var(--amber);
+.note {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-.seg.pending {
-  background: var(--raise);
+.note-l {
+  font-size: 12px;
+  font-weight: 510;
   color: var(--tx3);
 }
-.seg .d {
-  font-size: 11px;
-  opacity: 0.8;
+.note textarea {
+  min-height: 76px;
+  resize: vertical;
+  line-height: 1.5;
+}
+.saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--green);
+  opacity: 0;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+.saved.on {
+  opacity: 1;
+}
+
+/* How it went: one row per step, with a bar for its share of the longest step. */
+.hw-steps-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.hw-srow {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  column-gap: 10px;
+  padding: 8px 0;
+  position: relative;
+}
+.hw-srow:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 22px;
+  bottom: -8px;
+  width: 1px;
+  background: var(--line2);
+}
+.hw-sdot {
+  width: 9px;
+  height: 9px;
+  margin: 5px 0 0 3px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 3px var(--green-bg);
+  position: relative;
+}
+.hw-srow.failed .hw-sdot {
+  background: var(--red);
+  box-shadow: 0 0 0 3px var(--red-bg);
+}
+.hw-srow.waiting .hw-sdot {
+  background: var(--amber);
+  box-shadow: 0 0 0 3px var(--amber-bg);
+}
+.hw-srow.pending .hw-sdot {
+  background: var(--tx4);
+  box-shadow: none;
+}
+.hw-sline {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.hw-sl {
+  flex: 1;
+  min-width: 0;
+  font-weight: 510;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hw-sd {
+  font-size: 12px;
+  color: var(--tx3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.hw-smeta {
+  font-size: 12px;
+  color: var(--tx3);
+  margin-top: 1px;
+}
+.hw-sbar {
+  margin-top: 7px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--raise);
+  overflow: hidden;
+}
+.hw-sbar i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--green);
+  opacity: 0.75;
+}
+.hw-srow.failed .hw-sbar i {
+  background: var(--red);
+}
+.hw-srow.waiting .hw-sbar i {
+  background: var(--amber);
 }
 .replay {
   display: flex;

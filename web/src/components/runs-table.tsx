@@ -33,7 +33,7 @@ export function RunsTable({ runs, keys = true, showSkill = true }: { runs: RunRo
   }, [runs, focus, navigate, keys]);
   const now = Date.now();
   return (
-    <table className="tbl" data-testid="runs-table">
+    <table className="tbl runs-tbl" data-testid="runs-table">
       <thead>
         <tr>
           <th>Run</th>
@@ -58,7 +58,7 @@ export function RunsTable({ runs, keys = true, showSkill = true }: { runs: RunRo
               <td className="desc" title={formatDateTime(started)}>
                 {formatAgo(started, now)}
               </td>
-              <td className="mono desc">{r.endedAt ? formatDuration(r.endedAt - started) : LIVE.has(r.status) ? "running" : ""}</td>
+              <td className="desc num">{r.endedAt ? formatDuration(r.endedAt - started) : LIVE.has(r.status) ? "running" : ""}</td>
               <td>{r.rating === 1 ? "👍" : r.rating === -1 ? "👎" : ""}</td>
             </tr>
           );

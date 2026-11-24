@@ -1,0 +1,366 @@
+/* The run page: header, tabs row and the detail panel beside the graph. */
+
+/* Breadcrumb: chevrons, not slashes; the skill name gives way first when space runs out. */
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13.5px;
+}
+.top-main > .crumbs {
+  flex-shrink: 1;
+}
+.crumbs > a,
+.crumbs > span {
+  color: var(--tx3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.crumbs > a:first-child {
+  flex-shrink: 0;
+}
+.crumbs > a:hover {
+  color: var(--tx);
+}
+.crumbs .sep {
+  color: var(--tx3);
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+.crumbs b {
+  color: var(--tx);
+  font-weight: 590;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Status pill: icon, word, and (when given) a quieter suffix after a hairline. */
+.pill {
+  height: 22px;
+  padding: 0 10px 0 8px;
+}
+.pill .icon {
+  stroke-width: 2.6;
+}
+.pill-suffix {
+  opacity: 0.75;
+  padding-left: 7px;
+  border-left: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tabs on the left, what the run was on the right. Meta items that do not fit wrap onto a hidden
+   second line, so whole items drop off the end instead of being cut mid-word. */
+.tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  min-width: 0;
+}
+.tabs {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 13px 10px 12px;
+  margin-bottom: -1px;
+  color: var(--tx3);
+  font-weight: 510;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tab:hover {
+  color: var(--tx2);
+}
+.tab.on {
+  color: var(--tx);
+  border-bottom-color: var(--tx);
+}
+.tab .count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--raise);
+  color: var(--tx3);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.tab.on .count {
+  background: var(--hover);
+  color: var(--tx2);
+}
+.run-meta {
+  list-style: none;
+  margin: 0 0 0 auto;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  column-gap: 18px;
+  height: 20px;
+  overflow: hidden;
+  min-width: 0;
+  color: var(--tx3);
+  font-size: 12px;
+}
+.run-meta li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.run-meta .icon {
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+/* The detail panel. */
+.panel {
+  width: 380px;
+  /* Long words (paths, flags like --target-pages) wrap instead of running out of the panel. */
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: 0;
+}
+.ph {
+  padding: 22px 24px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.ph-kind {
+  font-size: 11.5px;
+  font-weight: 510;
+  color: var(--tx3);
+  margin-bottom: 4px;
+}
+.ph h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.35;
+  font-weight: 590;
+  letter-spacing: -0.01em;
+}
+.ph-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 510;
+  background: var(--raise);
+  color: var(--tx2);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.chip.state-running {
+  background: var(--blue-bg);
+  color: var(--blue);
+}
+.chip.state-running .chip-dot {
+  animation: rw-pulse 1.4s ease-in-out infinite;
+}
+.chip.state-done {
+  background: var(--green-bg);
+  color: var(--green);
+}
+.chip.state-failed {
+  background: var(--red-bg);
+  color: var(--red);
+}
+.chip.state-waiting,
+.chip.state-skipped,
+.chip.state-not_run,
+.chip.state-stopped {
+  color: var(--tx3);
+}
+.pb {
+  padding: 22px 24px 32px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.psec {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.lab {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 590;
+  color: var(--tx3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.quiet {
+  color: var(--tx3);
+  font-size: 12.5px;
+}
+.task {
+  white-space: pre-wrap;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--tx2);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.task.clamped {
+  max-height: calc(1.6em * 7 + 24px);
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(#000 65%, transparent);
+  mask-image: linear-gradient(#000 65%, transparent);
+}
+.more {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--tx2);
+  font-size: 12px;
+  font-weight: 510;
+  cursor: pointer;
+}
+.more:hover {
+  color: var(--tx);
+}
+.says {
+  margin: 0;
+  padding: 2px 0 2px 12px;
+  border-left: 2px solid var(--line2);
+  color: var(--tx2);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+/* Activity: time, icon, what happened. */
+.acts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ev {
+  display: grid;
+  grid-template-columns: 34px 16px minmax(0, 1fr);
+  column-gap: 10px;
+  align-items: start;
+  padding: 6px 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--tx2);
+}
+.ev .k {
+  color: var(--tx3);
+  font-size: 11.5px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+.ev .ic {
+  display: grid;
+  place-items: center;
+  height: 18px;
+  color: var(--tx3);
+}
+.ev .ic.agent {
+  color: var(--violet);
+}
+.ev .ic.write {
+  color: var(--green);
+}
+.ev .v {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ev b {
+  color: var(--tx);
+  font-weight: 510;
+}
+.ev code {
+  font-family: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  color: var(--tx);
+  background: var(--raise);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.files {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: var(--bg);
+  font-size: 12.5px;
+  color: var(--tx2);
+}
+.file .icon {
+  color: var(--tx3);
+  flex-shrink: 0;
+}
+.file .p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Narrower windows: the panel gets slimmer, then the run's meta line goes. */
+@media (max-width: 1180px) {
+  .panel {
+    width: 320px;
+  }
+}
+@media (max-width: 1000px) {
+  .run-meta {
+    display: none;
+  }
+}

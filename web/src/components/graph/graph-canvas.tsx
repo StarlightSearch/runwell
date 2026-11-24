@@ -2,7 +2,6 @@ import type { GraphLayout } from "../../../../src/shared/graph/layout";
 import type { GraphNode, WorkflowGraphModel } from "../../../../src/shared/graph/types";
 
 const MARK: Partial<Record<GraphNode["state"], string>> = { done: "✓", failed: "!" };
-const STATE_WORD: Record<GraphNode["state"], string> = { waiting: "Not started", running: "Working", done: "Finished", skipped: "Skipped", failed: "Failed", not_run: "Not run", stopped: "Stopped here" };
 
 /** "1. Read the brief" with tile "1" reads "Read the brief": the tile already shows the number. */
 export function withoutNumber(label: string, tile: string): string {
@@ -49,11 +48,12 @@ export function GraphCanvas({ model, layout, selectedId, onSelect, askNodeIds }:
             data-node={n.id}
             data-state={n.state}
             aria-label={n.label}
+            title={n.label}
           >
-            <span className="tile">{n.tile ?? ""}</span>
+            {n.kind === "agent" ? null : <span className="tile">{n.tile ?? ""}</span>}
             <span className="txt">
-              <span className="lb" style={{ display: "block" }}>{n.tile ? withoutNumber(n.label, n.tile) : n.label}</span>
-              <span className="ln" style={{ display: "block" }}>{asking ? "Waiting for you" : (n.line ?? (n.kind === "agent" ? STATE_WORD[n.state] : ""))}</span>
+              <span className="lb">{n.tile && n.kind !== "agent" ? withoutNumber(n.label, n.tile) : n.label}</span>
+              {asking ? <span className="ln">Waiting for you</span> : n.line ? <span className="ln">{n.line}</span> : null}
             </span>
             <span className="mark">{MARK[n.state] ?? ""}</span>
           </button>

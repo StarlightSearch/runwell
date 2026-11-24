@@ -139,7 +139,7 @@
   display: grid;
   place-items: center;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 590;
   flex-shrink: 0;
 }
 .orow .meta {
@@ -213,7 +213,7 @@
   margin: 12px 0 6px;
 }
 .md code {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-family: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
   font-size: 12px;
   background: var(--raise);
   padding: 1px 4px;

@@ -10,8 +10,8 @@ test("the shell loads with the sidebar, recent runs and the right theme, and no 
   await expect(app.page.getByTestId("recent-run")).toHaveCount(6);
   await expect(app.page.getByTestId("recent-run").first()).toContainText("motion-ad #4");
   const bg = await app.page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-  if (info.project.name === "dark") expect(bg).toBe("rgb(11, 11, 12)");
-  else expect(bg).not.toBe("rgb(11, 11, 12)");
+  if (info.project.name === "dark") expect(bg).toBe("rgb(9, 9, 10)");
+  else expect(bg).not.toBe("rgb(9, 9, 10)");
   const text = await app.page.evaluate(() => document.body.innerText);
   expect(text).not.toContain("Skillrun");
   expect(text).not.toContain("Pulsar Workflows");
@@ -21,7 +21,7 @@ test("the shell loads with the sidebar, recent runs and the right theme, and no 
 
 test("without the cookie the page says how to open Workflows", async ({ app }) => {
   await app.page.goto(`${app.base}/skills`);
-  await expect(app.page.getByText("Open Workflows with /workflows in Claude Code or npx workflows in a terminal.")).toBeVisible();
+  await expect(app.page.getByText("Open Workflows with /workflows in Claude Code.")).toBeVisible();
 });
 
 test("the theme toggle switches and is remembered", async ({ app }) => {

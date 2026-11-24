@@ -12,7 +12,7 @@ import { OutputsPage } from "./pages/outputs";
 import { SettingsPage } from "./pages/settings";
 import { Logo } from "./components/logo";
 
-export const SIGN_IN_GATE = "Open Workflows with /workflows in Claude Code or npx workflows in a terminal.";
+export const SIGN_IN_GATE = "Open Workflows with /workflows in Claude Code.";
 
 function Gate({ message }: { message: string }) {
   return (

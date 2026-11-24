@@ -119,7 +119,7 @@ describe("one-time link", () => {
     expect((await app.request("/api/ping", { headers: { host: H, cookie: `rw=${id}` } })).status).toBe(200);
     const second = await app.request(u.pathname + u.search, { headers: { host: H } });
     expect(second.status).toBe(403);
-    expect(await second.text()).toBe("This link has expired. Run /workflows or npx workflows again.");
+    expect(await second.text()).toBe("This link has expired. Run /workflows again.");
   });
 
   it("a link older than 60 seconds is refused", async () => {

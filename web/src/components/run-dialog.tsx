@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { CpuIcon, FolderIcon, PaperclipIcon, ReplayIcon } from "./icons";
 import { useNavigate } from "react-router-dom";
 import type { WorkflowSource } from "../../../src/shared/api";
 import type { OverviewStep } from "../../../src/shared/graph/source-types";
@@ -18,10 +19,6 @@ interface Upload {
 }
 type Check = { exists: boolean; trusted: boolean; hooks: boolean; mcp: boolean };
 
-const MODE_HINT = {
-  auto: "Auto mode: Claude Code decides which actions need your OK; those come to the run page.",
-  ask: "Ask first: your own Claude Code permission settings decide; questions come to the run page.",
-} as const;
 
 const MODELS = [
   { label: "Default", value: "" },
@@ -52,8 +49,6 @@ function RunDialog({ skillKey, fromRun, initialBrief, onClose }: { skillKey: str
   const [customPath, setCustomPath] = useState("");
   const [model, setModel] = useState("");
   const [from, setFrom] = useState(fromRun ?? "");
-  const [allowAll, setAllowAll] = useState(false);
-  const [mode, setMode] = useState<"auto" | "ask">("auto");
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [uploading, setUploading] = useState(0);
   const [confirm, setConfirm] = useState<{ path: string; check: Check } | null>(null);
@@ -83,8 +78,8 @@ function RunDialog({ skillKey, fromRun, initialBrief, onClose }: { skillKey: str
       parts.push(`${countSteps(workflow.steps)} steps`);
       if (hasAgents(workflow.steps)) parts.push("uses agents");
     }
-    if (skill?.rated) parts.push(`last runs ${Math.round((skill.up / skill.rated) * 100)}% 👍`);
-    return parts.join(" · ");
+    if (skill?.rated) parts.push(`${Math.round((skill.up / skill.rated) * 100)}% of rated runs good`);
+    return parts;
   }, [workflow, skill]);
 
   const gate = !claude ? null : !claude.found || claude.signedIn === "out" ? claude.message : null;
@@ -118,7 +113,7 @@ function RunDialog({ skillKey, fromRun, initialBrief, onClose }: { skillKey: str
     setBusy(true);
     try {
       const place = projectPath !== null ? { kind: "project", path: projectPath, confirmedUntrusted: confirmedFor === projectPath } : { kind: "folder", contextProject: null };
-      const r = await post<{ run: RunRow }>("/api/runs", { skillKey, brief, place, model: model || null, allowAll, mode, uploadIds: uploads.map((u) => u.id), fromRun: from || null });
+      const r = await post<{ run: RunRow }>("/api/runs", { skillKey, brief, place, model: model || null, allowAll: false, mode: "auto", uploadIds: uploads.map((u) => u.id), fromRun: from || null });
       onClose();
       navigate(`/runs/${r.run.id}`);
     } catch (e) {
@@ -126,7 +121,7 @@ function RunDialog({ skillKey, fromRun, initialBrief, onClose }: { skillKey: str
     } finally {
       setBusy(false);
     }
-  }, [busy, gate, projectPath, confirmedFor, skillKey, brief, model, allowAll, mode, uploads, from, onClose, navigate]);
+  }, [busy, gate, projectPath, confirmedFor, skillKey, brief, model, uploads, from, onClose, navigate]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -169,7 +164,13 @@ function RunDialog({ skillKey, fromRun, initialBrief, onClose }: { skillKey: str
                 Change skill
               </button>
             </div>
-            {subline ? <div className="desc">{subline}</div> : null}
+            {subline.length ? (
+              <div className="desc subline">
+                {subline.map((p) => (
+                  <span key={p}>{p}</span>
+                ))}
+              </div>
+            ) : null}
           </div>
           <span className="sp" />
           <span className="kbd">esc</span>
@@ -184,8 +185,8 @@ function RunDialog({ skillKey, fromRun, initialBrief, onClose }: { skillKey: str
             onChange={(e) => setBrief(e.target.value)}
           />
           <div className="opts">
-            <label className="opt">
-              <span>📁</span>
+            <label className="opt" title={where.kind === "folder" ? "A fresh folder for this run. Every button run uses Claude Code's auto mode." : "Runs in this folder, the way a chat there would, in auto mode."}>
+              <FolderIcon size={14} />
               <select
                 aria-label="Where"
                 value={whereValue}
@@ -206,19 +207,12 @@ function RunDialog({ skillKey, fromRun, initialBrief, onClose }: { skillKey: str
               </select>
             </label>
             <label className="opt file">
-              📎 Attach files
+              <PaperclipIcon size={14} />
+              Attach files
               <input ref={fileInput} type="file" multiple hidden onChange={(e) => e.target.files && void addFiles(e.target.files)} />
             </label>
-            <label className="opt" title={MODE_HINT[mode]}>
-              <span>⛨</span>
-              <select aria-label="Permission mode" value={allowAll ? "all" : mode} disabled={allowAll} onChange={(e) => setMode(e.target.value as "auto" | "ask")}>
-                <option value="auto">Auto mode</option>
-                <option value="ask">Ask first</option>
-                {allowAll ? <option value="all">Everything allowed</option> : null}
-              </select>
-            </label>
             <label className="opt">
-              <span>◑</span>
+              <CpuIcon size={14} />
               <select aria-label="Model" value={model} onChange={(e) => setModel(e.target.value)}>
                 {MODELS.map((m) => (
                   <option key={m.label} value={m.value}>
@@ -229,7 +223,7 @@ function RunDialog({ skillKey, fromRun, initialBrief, onClose }: { skillKey: str
             </label>
             {runs.length ? (
               <label className="opt">
-                <span>⟲</span>
+                <ReplayIcon size={14} />
                 <select aria-label="From run" value={from} onChange={(e) => setFrom(e.target.value)}>
                   <option value="">Start fresh</option>
                   {runs.map((r) => (
@@ -242,10 +236,6 @@ function RunDialog({ skillKey, fromRun, initialBrief, onClose }: { skillKey: str
             ) : null}
           </div>
           {where.kind === "custom" ? <input aria-label="Folder path" placeholder="/full/path/to/folder" value={customPath} onChange={(e) => setCustomPath(e.target.value)} /> : null}
-          <div className="hint">
-            {where.kind === "folder" ? "Edits are allowed inside the run folder. Shell commands can still write elsewhere." : "Runs in this folder, the way a chat there would."}{" "}
-            {allowAll ? null : MODE_HINT[mode]}
-          </div>
           {uploads.length || uploading ? (
             <div className="chips">
               {uploads.map((u) => (
@@ -259,13 +249,6 @@ function RunDialog({ skillKey, fromRun, initialBrief, onClose }: { skillKey: str
               {uploading ? <span className="chip">Uploading…</span> : null}
             </div>
           ) : null}
-          <label className="allow">
-            <input type="checkbox" checked={allowAll} onChange={(e) => setAllowAll(e.target.checked)} />
-            <span>
-              Allow everything for this run
-              {allowAll ? <span className="warn"> Commands can reach outside the folder. Nothing will ask first.</span> : null}
-            </span>
-          </label>
           {confirm ? (
             <div className="confirm" role="alert">
               <span>{trustMessage(confirm.check)}</span>
@@ -286,7 +269,7 @@ function RunDialog({ skillKey, fromRun, initialBrief, onClose }: { skillKey: str
           {error ? <div className="err">{error}</div> : null}
         </div>
         <div className="df">
-          {gate ? <span className="gate-msg">{gate}</span> : <span>Runs with your own Claude Code login</span>}
+          {gate ? <span className="gate-msg">{gate}</span> : null}
           <span className="sp" />
           <button className="btn ghost" type="button" onClick={onClose}>
             Cancel

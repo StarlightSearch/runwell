@@ -9,6 +9,7 @@ import { useResource } from "../lib/use-resource";
 import { useTheme } from "../lib/theme";
 import { projectColor, shortAgo } from "../lib/colors";
 import { Logo } from "./logo";
+import { MoonIcon, OutputsIcon, PlusIcon, RunsIcon, SearchIcon, SettingsIcon, SkillsIcon, SunIcon } from "./icons";
 
 const LIVE = new Set(["queued", "running", "waiting"]);
 
@@ -36,42 +37,50 @@ export function Sidebar({ onSearch }: { onSearch: () => void }) {
         <Logo size={22} className="logo" />
         <span className="ws-name">Workflows</span>
       </div>
-      <button className="search" onClick={onSearch} type="button">
-        <span>Search skills, runs…</span>
+      <button className="search" onClick={onSearch} type="button" title="Search (⌘K)">
+        <span className="search-l">
+          <SearchIcon size={14} />
+          <span className="label">Search skills, runs…</span>
+        </span>
         <span className="kbd">⌘K</span>
       </button>
       <div className="side-scroll">
-        <NavLink to="/skills" className={({ isActive }) => `nav${isActive ? " on" : ""}`}>
-          <span>◇</span>
+        <NavLink to="/skills" title="Skills" className={({ isActive }) => `nav${isActive ? " on" : ""}`}>
+          <SkillsIcon />
           <span className="label">Skills</span>
           <span className="n">{skills.data ? visibleSkills : ""}</span>
         </NavLink>
-        <NavLink to="/runs" end className={({ isActive }) => `nav${isActive ? " on" : ""}`}>
-          <span>◎</span>
+        <NavLink to="/runs" end title="Runs" className={({ isActive }) => `nav${isActive ? " on" : ""}`}>
+          <RunsIcon />
           <span className="label">Runs</span>
-          <span className="n">{live ? `${live} live` : ""}</span>
+          {live ? (
+            <span className="n live-count" title={`${live} running`}>
+              <i className="pulse" />
+              {live}
+            </span>
+          ) : null}
         </NavLink>
-        <NavLink to="/outputs" className={({ isActive }) => `nav${isActive ? " on" : ""}`}>
-          <span>▣</span>
+        <NavLink to="/outputs" title="Outputs" className={({ isActive }) => `nav${isActive ? " on" : ""}`}>
+          <OutputsIcon />
           <span className="label">Outputs</span>
         </NavLink>
 
-        <div className="sec">Projects from Claude</div>
+        <div className="sec rail-hide">Projects from Claude</div>
         {(projects.data?.projects ?? []).slice(0, 8).map((p) => (
-          <a key={p.path} className="nav" title={p.path} onClick={() => navigate(`/skills?project=${encodeURIComponent(p.path)}`)}>
+          <a key={p.path} className="nav rail-hide" title={p.path} onClick={() => navigate(`/skills?project=${encodeURIComponent(p.path)}`)}>
             <i className="pdot" style={{ background: projectColor(p.path) }} />
             <span className="label">{p.name}</span>
             <span className="n">{p.skillCount || ""}</span>
           </a>
         ))}
-        <a className="nav muted" onClick={() => navigate("/settings")}>
-          <span>＋</span>
+        <a className="nav muted rail-hide" onClick={() => navigate("/settings")}>
+          <PlusIcon />
           <span className="label">Open folder…</span>
         </a>
 
-        <div className="sec">Recent runs</div>
+        <div className="sec rail-hide">Recent runs</div>
         {all.slice(0, 8).map((r) => (
-          <NavLink key={r.id} to={`/runs/${r.id}`} className={({ isActive }) => `nav${isActive ? " on" : ""}`} data-testid="recent-run">
+          <NavLink key={r.id} to={`/runs/${r.id}`} className={({ isActive }) => `nav rail-hide${isActive ? " on" : ""}`} data-testid="recent-run">
             <span className="label">
               {r.skillRef.split(":").pop()} <span className="run-n">#{r.n}</span>
             </span>
@@ -86,7 +95,7 @@ export function Sidebar({ onSearch }: { onSearch: () => void }) {
             )}
           </NavLink>
         ))}
-        {!all.length && runs.data ? <div className="backfill-line">No runs yet</div> : null}
+        {!all.length && runs.data ? <div className="backfill-line rail-hide">No runs yet</div> : null}
       </div>
 
       <div className="side-foot">
@@ -95,12 +104,12 @@ export function Sidebar({ onSearch }: { onSearch: () => void }) {
             Reading past chats: {bfState.filesDone} of {bfState.filesTotal}
           </div>
         ) : null}
-        <NavLink to="/settings" className={({ isActive }) => `nav${isActive ? " on" : ""}`}>
-          <span>⚙</span>
+        <NavLink to="/settings" title="Settings" className={({ isActive }) => `nav${isActive ? " on" : ""}`}>
+          <SettingsIcon />
           <span className="label">Settings</span>
         </NavLink>
-        <button className="nav" type="button" onClick={toggle} style={{ border: 0, background: "transparent", textAlign: "left" }}>
-          <span>{theme === "dark" ? "☾" : "☀"}</span>
+        <button className="nav" type="button" title="Switch theme" onClick={toggle} style={{ border: 0, background: "transparent", textAlign: "left" }}>
+          {theme === "dark" ? <MoonIcon /> : <SunIcon />}
           <span className="label">{theme === "dark" ? "Dark" : "Light"} theme</span>
         </button>
       </div>

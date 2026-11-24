@@ -23,12 +23,14 @@ import { Transcript } from "../components/transcript";
 import { PageHeader } from "../components/page-header";
 import { ProgressLine } from "../components/progress-line";
 import { StatusPill } from "../components/status-pill";
+import { CalendarIcon, ChatIcon, ChevronRightIcon, FolderIcon, PlayIcon, ShieldIcon, TagIcon, TimerIcon } from "../components/icons";
 import { del, post } from "../lib/api";
 import { useRunDialog } from "../lib/run-dialog-context";
 import "../components/past-run.css";
 import { useEvents } from "../lib/sse";
 import { useResource } from "../lib/use-resource";
 import "../components/graph/graph.css";
+import "./run.css";
 
 export interface RunDetail {
   run: RunRow;
@@ -66,15 +68,39 @@ function useWidth(): [React.RefObject<HTMLDivElement>, number] {
   return [ref, w];
 }
 
-export function placeLine(run: RunRow, skill: SkillRow | null, past = false): string {
-  const parts: string[] = past ? [formatDateTime(run.startedAt ?? run.createdAt)] : [];
-  if (run.kind === "history") parts.push(`from chat in ${base(run.projectPath) || "a folder"}`);
-  else parts.push("from Run button", run.place === "project" ? `in ${base(run.projectPath)}` : "new run folder");
-  parts.push(`v${run.skillVersion ?? skill?.version ?? 1}`);
-  if (run.allowAll) parts.push("everything allowed");
-  else if (run.mode === "auto") parts.push("auto mode");
-  else if (run.mode === "ask") parts.push("asks first");
-  return parts.join(" · ");
+export interface MetaItem {
+  key: string;
+  icon: ReactNode;
+  text: string;
+  title?: string;
+}
+
+/** Where a run came from and how it ran, as separate items (the run header shows them side by side). */
+export function runMeta(run: RunRow, skill: SkillRow | null, past: boolean, elapsed: number): MetaItem[] {
+  const items: MetaItem[] = [];
+  if (past) items.push({ key: "at", icon: <CalendarIcon size={13} />, text: formatDateTime(run.startedAt ?? run.createdAt), title: "Started" });
+  items.push({ key: "took", icon: <TimerIcon size={13} />, text: formatDuration(elapsed), title: past ? "Took" : "Running for" });
+  if (run.kind === "history") items.push({ key: "from", icon: <ChatIcon size={13} />, text: `Chat in ${base(run.projectPath) || "a folder"}`, title: "Found in a past Claude Code chat" });
+  else {
+    items.push({ key: "from", icon: <PlayIcon size={13} />, text: "Run button", title: "Started from the Run button" });
+    items.push({ key: "place", icon: <FolderIcon size={13} />, text: run.place === "project" ? base(run.projectPath) : "New run folder", title: run.projectPath ?? "A fresh folder for this run" });
+  }
+  items.push({ key: "v", icon: <TagIcon size={13} />, text: `v${run.skillVersion ?? skill?.version ?? 1}`, title: "Skill version" });
+  const mode = run.allowAll ? "Everything allowed" : run.mode === "auto" ? "Auto mode" : run.mode === "ask" ? "Asks first" : null;
+  if (mode) items.push({ key: "mode", icon: <ShieldIcon size={13} />, text: mode, title: "Permissions" });
+  return items;
+}
+
+/** The four numbers at the top of a finished run. */
+function runStats(model: import("../../../src/shared/graph/types").WorkflowGraphModel, files: number, elapsed: number): { label: string; value: string }[] {
+  const steps = model.nodes.filter((n) => n.kind !== "agent" && !n.parentId).length;
+  const agents = model.nodes.filter((n) => n.kind === "agent" && n.detail.startedAt).length;
+  return [
+    { label: "Took", value: formatDuration(elapsed) },
+    { label: "Steps", value: String(steps) },
+    { label: "Agents", value: String(agents) },
+    { label: "Files", value: String(files) },
+  ];
 }
 
 export function RunPage() {
@@ -157,7 +183,7 @@ export function RunPage() {
   const started = run.startedAt ?? run.createdAt;
   const elapsed = (run.endedAt ?? now) - started;
   const outputList = outs.data?.outputs ?? [];
-  const tabs: { id: string; label: string; render(): ReactNode }[] = [
+  const tabs: { id: string; label: ReactNode; render(): ReactNode }[] = [
     ...(live
       ? []
       : [
@@ -167,16 +193,29 @@ export function RunPage() {
             render: () => (
               <div className="past">
                 {run.status === "failed" && run.error ? <div className="err errbox" data-testid="run-error">{run.error}</div> : null}
+                <section className="asked" data-testid="run-brief">
+                  <div className="eyebrow">You asked</div>
+                  <p>{run.brief || <span className="muted">No brief</span>}</p>
+                </section>
+                <div className="stats">
+                  {runStats(full.model, outputList.length, elapsed).map((st) => (
+                    <div className="stat" key={st.label}>
+                      <div className="stat-l">{st.label}</div>
+                      <div className="stat-v">{st.value}</div>
+                    </div>
+                  ))}
+                </div>
                 <Delivered outputs={outputList} grant={outs.data?.grant ?? d.grant} onRescan={rescan} />
-                <RatingCard run={run} onSaved={() => detail.reload()} />
-                <HowItWent
-                  brief={run.brief}
-                  model={full.model}
-                  events={events}
-                  endAt={run.endedAt ?? now}
-                  onReplay={() => (setReplay(0), setTab("graph"))}
-                  onTranscript={() => setTab("transcript")}
-                />
+                <div className="past-pair">
+                  <RatingCard run={run} onSaved={() => detail.reload()} />
+                  <HowItWent
+                    model={full.model}
+                    events={events}
+                    endAt={run.endedAt ?? now}
+                    onReplay={() => (setReplay(0), setTab("graph"))}
+                    onTranscript={() => setTab("transcript")}
+                  />
+                </div>
               </div>
             ),
           },
@@ -184,7 +223,11 @@ export function RunPage() {
     { id: "graph", label: "Graph", render: () => null },
     { id: "timeline", label: "Timeline", render: () => <Timeline model={model} events={events} start={started} end={run.endedAt ?? now} /> },
     { id: "transcript", label: "Transcript", render: () => <Transcript events={events} runBrief={run.brief} /> },
-    { id: "outputs", label: `Outputs · ${outputList.length}`, render: () => <OutputList outputs={outputList} grant={outs.data?.grant ?? d.grant} onRescan={rescan} /> },
+    { id: "outputs", label: (
+        <>
+          Outputs<span className="count">{outputList.length}</span>
+        </>
+      ), render: () => <OutputList outputs={outputList} grant={outs.data?.grant ?? d.grant} onRescan={rescan} /> },
   ];
 
   return (
@@ -240,12 +283,15 @@ export function RunPage() {
           </>
         }
       >
-        <span className="crumb">
-          <Link to="/runs">Runs</Link> / {d.skill ? <Link to={`/skills/${encodeURIComponent(run.skillKey)}`}>{run.skillRef}</Link> : run.skillRef} / <b>#{run.n}</b>
-        </span>
-        <StatusPill status={run.status} suffix={formatDuration(elapsed)} />
+        <nav className="crumb crumbs" aria-label="Breadcrumb">
+          <Link to="/runs">Runs</Link>
+          <ChevronRightIcon size={14} className="sep" />
+          {d.skill ? <Link to={`/skills/${encodeURIComponent(run.skillKey)}`}>{run.skillRef}</Link> : <span>{run.skillRef}</span>}
+          <ChevronRightIcon size={14} className="sep" />
+          <b>#{run.n}</b>
+        </nav>
+        <StatusPill status={run.status} />
         {!d.skill ? <span className="src" data-testid="not-installed">not installed</span> : null}
-        <span className="crumb mono" data-testid="place-line">{placeLine(run, d.skill, !live)}</span>
       </PageHeader>
       {d.asks.length ? (
         <div className="waiting-bar" data-testid="waiting-bar">
@@ -255,12 +301,22 @@ export function RunPage() {
           </button>
         </div>
       ) : null}
-      <div className="tabs" role="tablist">
-        {tabs.map((t) => (
-          <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={`tab${tab === t.id ? " on" : ""}`} onClick={() => setTab(t.id)}>
-            {t.label}
-          </button>
-        ))}
+      <div className="tabs-row">
+        <div className="tabs" role="tablist">
+          {tabs.map((t) => (
+            <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={`tab${tab === t.id ? " on" : ""}`} onClick={() => setTab(t.id)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <ul className="run-meta" data-testid="place-line" aria-label="About this run">
+          {runMeta(run, d.skill, !live, elapsed).map((m) => (
+            <li key={m.key} title={m.title}>
+              {m.icon}
+              <span>{m.text}</span>
+            </li>
+          ))}
+        </ul>
       </div>
       {tab === "graph" ? (
         <div className="run-body">

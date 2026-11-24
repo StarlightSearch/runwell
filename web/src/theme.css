@@ -1,54 +1,63 @@
-/* Workflows' look: calm and dense, colour kept for status. Dark and light share every token name. */
+/* The look: neutral greys with a near-black frame, the page as an inset card, colour kept for status.
+   Dark and light share every token name. */
 :root,
 :root[data-theme="dark"] {
-  --bg: #0b0b0c;
-  --panel: #111113;
-  --raise: #18181b;
-  --hover: #1d1d21;
-  --line: #26262b;
-  --line2: #34343a;
-  --tx: #f4f4f5;
-  --tx2: #c4c4cc;
-  --tx3: #8e8e98;
-  --blue: #5b8cff;
-  --blue-bg: rgba(91, 140, 255, 0.12);
-  --green: #3ecf8e;
-  --green-bg: rgba(62, 207, 142, 0.1);
-  --amber: #f5a524;
-  --amber-bg: rgba(245, 165, 36, 0.1);
-  --violet: #a78bfa;
-  --violet-bg: rgba(167, 139, 250, 0.12);
-  --red: #f87171;
-  --red-bg: rgba(248, 113, 113, 0.1);
-  --dots: #222227;
-  --shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
-  --primary-bg: #ededef;
-  --primary-tx: #0b0b0c;
+  --app: #09090a;
+  --bg: #121213;
+  --panel: #171718;
+  --raise: #1e1e20;
+  --hover: #252527;
+  --line: #232426;
+  --line2: #2e2e31;
+  --tx: #e3e4e6;
+  --tx2: #b0b0b4;
+  --tx3: #8b8b90;
+  --tx4: #5d5d61;
+  --blue: #4b9bfa;
+  --blue-bg: rgba(31, 137, 249, 0.14);
+  --green: #3fcf7f;
+  --green-bg: rgba(63, 207, 127, 0.11);
+  --amber: #e69900;
+  --amber-bg: rgba(230, 153, 0, 0.12);
+  --violet: #a58bf2;
+  --violet-bg: rgba(165, 139, 242, 0.13);
+  --pink: #d7659a;
+  --pink-bg: rgba(215, 101, 154, 0.13);
+  --red: #e5606b;
+  --red-bg: rgba(229, 96, 107, 0.11);
+  --dots: #1d1d1f;
+  --shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --primary-bg: #e3e4e6;
+  --primary-tx: #09090a;
   color-scheme: dark;
 }
 :root[data-theme="light"] {
-  --bg: #fbfbfa;
-  --panel: #ffffff;
+  --app: #f3f3f4;
+  --bg: #ffffff;
+  --panel: #fbfbfb;
   --raise: #f4f4f5;
-  --hover: #efeff1;
-  --line: #e7e7ea;
-  --line2: #dadadf;
-  --tx: #111113;
-  --tx2: #45454d;
-  --tx3: #71717a;
-  --blue: #3567e6;
-  --blue-bg: rgba(53, 103, 230, 0.1);
-  --green: #12a46b;
-  --green-bg: rgba(18, 164, 107, 0.1);
-  --amber: #c27c0e;
-  --amber-bg: rgba(194, 124, 14, 0.1);
-  --violet: #7c5ce0;
-  --violet-bg: rgba(124, 92, 224, 0.1);
-  --red: #dc4b4b;
-  --red-bg: rgba(220, 75, 75, 0.08);
-  --dots: #e6e6ea;
-  --shadow: 0 24px 60px rgba(20, 20, 30, 0.18);
-  --primary-bg: #18181b;
+  --hover: #ececee;
+  --line: #e6e6e8;
+  --line2: #d9d9dc;
+  --tx: #17171a;
+  --tx2: #4a4a50;
+  --tx3: #76767d;
+  --tx4: #a3a3a9;
+  --blue: #1f7ae0;
+  --blue-bg: rgba(31, 122, 224, 0.09);
+  --green: #13a058;
+  --green-bg: rgba(19, 160, 88, 0.09);
+  --amber: #b97700;
+  --amber-bg: rgba(230, 153, 0, 0.11);
+  --violet: #7357e0;
+  --violet-bg: rgba(115, 87, 224, 0.09);
+  --pink: #c2457e;
+  --pink-bg: rgba(194, 69, 126, 0.09);
+  --red: #d6434f;
+  --red-bg: rgba(214, 67, 79, 0.08);
+  --dots: #e9e9eb;
+  --shadow: 0 8px 24px -8px rgba(20, 20, 30, 0.18), 0 1px 2px rgba(20, 20, 30, 0.06);
+  --primary-bg: #17171a;
   --primary-tx: #ffffff;
   color-scheme: light;
 }
@@ -63,13 +72,14 @@ body,
   margin: 0;
 }
 body {
-  background: var(--bg);
+  background: var(--app);
   color: var(--tx);
-  font: 13.5px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 13px/1.5 "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-feature-settings: "cv11", "ss01";
   -webkit-font-smoothing: antialiased;
 }
 .mono {
-  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
 }
 a {
@@ -82,17 +92,17 @@ button {
 }
 .btn {
   border: 1px solid var(--line2);
-  background: var(--raise);
+  background: transparent;
   color: var(--tx);
-  border-radius: 7px;
+  border-radius: 6px;
   padding: 5px 10px;
-  font-weight: 500;
+  font-weight: 510;
   font-size: 12px;
   cursor: pointer;
   white-space: nowrap;
 }
 .btn:hover {
-  background: var(--hover);
+  background: var(--raise);
 }
 .btn:disabled {
   opacity: 0.45;

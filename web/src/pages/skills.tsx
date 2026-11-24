@@ -228,11 +228,11 @@ export function SkillsPage() {
                     </div>
                   </td>
                   {groups ? null : (
-                    <td>
+                    <td className="c-src">
                       <SourceTag skill={s} />
                     </td>
                   )}
-                  <td>
+                  <td className="c-trend">
                     <Sparkline values={s.runs14} />
                   </td>
                   <td>
@@ -292,8 +292,8 @@ export function SkillsPage() {
           <table className={`tbl skills-tbl${groups ? " grouped" : ""}`}>
             <colgroup>
               <col />
-              {groups ? null : <col style={{ width: 170 }} />}
-              <col style={{ width: 130 }} />
+              {groups ? null : <col className="c-src" style={{ width: 170 }} />}
+              <col className="c-trend" style={{ width: 130 }} />
               <col style={{ width: 96 }} />
               <col style={{ width: 112 }} />
               <col style={{ width: 104 }} />
@@ -301,8 +301,8 @@ export function SkillsPage() {
             <thead>
               <tr>
                 <th>Skill</th>
-                {groups ? null : <th>Source</th>}
-                <th>Last 14 days</th>
+                {groups ? null : <th className="c-src">Source</th>}
+                <th className="c-trend">Last 14 days</th>
                 <th>Rating</th>
                 <th>Last run</th>
                 <th />

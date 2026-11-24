@@ -38,7 +38,7 @@ test.describe("files", () => {
     const id = await startRun(app);
     await app.open(`/runs/${id}`);
     await expect(app.page.locator(".pill")).toHaveText(/Finished/, { timeout: 10_000 });
-    await app.page.getByRole("tab", { name: /Outputs · 4/ }).click();
+    await app.page.getByRole("tab", { name: /Outputs\s*4/ }).click();
     const rows = app.page.getByTestId("output-row");
     await expect(rows).toHaveCount(4);
     await expect(rows.filter({ hasText: "words.txt" })).toContainText("written by this run");

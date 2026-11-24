@@ -3756,7 +3756,7 @@ var setCookie = (c, name, value, opt) => {
 
 // src/server/routes/auth.ts
 var LINK_TTL_MS = 6e4;
-var EXPIRED = "This link has expired. Run /workflows or npx workflows again.";
+var EXPIRED = "This link has expired. Run /workflows again.";
 function safeTo(to) {
   return typeof to === "string" && to.startsWith("/") && !to.startsWith("//") && !to.includes("\\") ? to : "/";
 }
