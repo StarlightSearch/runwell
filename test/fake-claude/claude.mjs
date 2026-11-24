@@ -5,12 +5,13 @@
 //   {"__fake":"step","stepId":"s1","status":"started","note":null}   POSTs to Workflows' steps route
 //   {"__fake":"ask","ask":{...}}                                     POSTs to the asks route and waits for the answer
 //   {"__fake":"write","path":"out.txt","text":"hi"}                  writes relative to its working folder
+//   {"__fake":"copy","from":"media/x.mp4","path":"x.mp4"}             copies a file from test/fixtures into it
 //   {"__fake":"exit","code":1}
 // Env: FAKE_CLAUDE_FIXTURE (path), FAKE_CLAUDE_AUTH (in|out), FAKE_CLAUDE_LOG (path),
 // FAKE_CLAUDE_IGNORE_SIGINT=1, FAKE_CLAUDE_NOW=1, FAKE_CLAUDE_HOLD_MS (wait this long before replaying), WORKFLOWS_HOME, WORKFLOWS_RUN_ID.
 // The brief can pick the fixture and behaviour instead (for a server started once): "[fixture:failure]"
 // replays fixtures/stream/failure.jsonl, "[ignore-sigint]" ignores the interrupt.
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
@@ -94,6 +95,10 @@ rl.on("line", async (line) => {
       const target = join(process.cwd(), ctl.path);
       mkdirSync(dirname(target), { recursive: true });
       writeFileSync(target, ctl.text ?? "");
+    } else if (ctl.__fake === "copy") {
+      const target = join(process.cwd(), ctl.path);
+      mkdirSync(dirname(target), { recursive: true });
+      copyFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "fixtures", ctl.from), target);
     } else if (ctl.__fake === "step") {
       await post(`/api/runs/${runId}/steps`, { stepId: ctl.stepId, status: ctl.status, note: ctl.note ?? null }).catch(() => {});
     } else if (ctl.__fake === "ask") {

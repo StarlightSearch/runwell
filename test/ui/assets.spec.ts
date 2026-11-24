@@ -24,7 +24,7 @@ test("capture", async ({ app }) => {
   await expect(page.locator("tr[data-skill]").first()).toBeVisible();
   await page.screenshot({ path: join(OUT!, "skills.png") });
 
-  const { run } = await app.api<{ run: { id: string } }>("/api/runs", { method: "POST", body: { skillKey: "personal:motion-ad", brief: "A 15 second ad for the spring launch", place: { kind: "folder" } } });
+  const { run } = await app.api<{ run: { id: string } }>("/api/runs", { method: "POST", body: { skillKey: "personal:motion-ad", brief: "A short ad for the Lumen 2 spring launch", place: { kind: "folder" } } });
   await page.goto(`${app.base}/runs/${run.id}`);
   let i = 0;
   let shotLive = false;
@@ -41,5 +41,15 @@ test("capture", async ({ app }) => {
   for (let k = 0; k < 8; k++) await page.screenshot({ path: join(OUT!, "frames", `${String(i++).padStart(4, "0")}.png`) });
   await page.reload();
   await expect(page.getByTestId("how-it-went")).toBeVisible();
+  // The delivered video, loaded, so the shot shows its first frame and no loading spinner.
+  await page.waitForFunction(() => (document.querySelector("video")?.readyState ?? 0) >= 4);
+  await page.evaluate(async () => {
+    const v = document.querySelector("video")!;
+    v.currentTime = 0.05;
+    await new Promise((r) => v.addEventListener("seeked", r, { once: true }));
+    // Headless Chromium keeps its loading ring over a loaded video; the shot shows the frame without it.
+    v.controls = false;
+  });
+  await page.waitForTimeout(600);
   await page.screenshot({ path: join(OUT!, "run-past.png") });
 });

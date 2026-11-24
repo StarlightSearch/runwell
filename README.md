@@ -29,7 +29,7 @@ Needs Node 20 or newer and Claude Code. macOS and Linux.
 
 ![A run in progress](docs/assets/run-live.png)
 
-**Every run kept.** The files it made (videos, images, PDFs, HTML and markdown preview in the page), the full transcript, a timeline, a replay of the graph, and a thumbs up or down with a note. Workflows also finds the skills you used in past Claude Code chats and lists those runs too.
+**Every run kept.** The files it made (videos, images, PDFs, HTML and markdown preview in the page), the full transcript, a timeline, a replay of the graph, and a Good or Not good rating with a note. Workflows also finds the skills you used in past Claude Code chats and lists those runs too.
 
 ![A finished run](docs/assets/run-past.png)
 
@@ -46,16 +46,15 @@ In the page: `⌘K` or `Ctrl K` searches skills and runs, `R` runs the selected 
 ## How a run works
 
 - Workflows runs your own `claude` command with your own login. It never asks for an API key and never reads or stores your credentials.
-- Your own permission settings apply. When Claude wants to do something your settings would ask about, the question comes to the run's page.
+- Every run uses Claude Code's auto mode: Claude Code decides which actions need your OK, and those questions, like any question Claude asks, come to the run's page as cards you answer there.
 - By default a run works in a new folder of its own, so it does not touch your projects. Edits are allowed inside that folder. You can pick one of your projects instead, and the run works there the way a chat in that folder would.
-- **Allow everything for this run** is off every time. Turned on, nothing asks first for that one run, and commands can reach outside the run's folder. Runs that had it on are labelled.
 - Stop ends a run at once. A run never keeps going after Workflows stops.
 
 ## What it reads and what it never touches
 
 **Reads:** your skill folders; `~/.claude.json`, only for project paths and whether you have trusted them; and the session logs under `~/.claude/projects`, to find the skills you used in past chats.
 
-**Writes:** only `~/.pulsar-workflows`, and a project folder only when you choose to run in it.
+**Writes:** only `~/.pulsar-workflows` (or `~/.runwell`, if you used Workflows before it was renamed), and a project folder only when you choose to run in it.
 
 **Never:** your credentials, tokens or the keychain, git, your skill files, or the network. The server listens on 127.0.0.1 only and every request needs a token. There is no telemetry.
 
@@ -67,15 +66,15 @@ claude plugin validate ./plugin
 
 The part that runs inside Claude Code is one short file, [`plugin/hooks/register.js`](plugin/hooks/register.js) (built from [`src/plugin/mod.ts`](src/plugin/mod.ts)). At the start of a session it starts the Workflows server in the background if it is not running, and it adds `/workflows`. It makes no network calls.
 
-## Limits in 0.1
+## Limits
 
 - Runs started from the Run button (or `/workflows run`) are shown live. Skills used in a chat are read from the session logs afterwards, not live.
 - Tested on Linux. macOS is checked by hand before each release. Windows is not tested.
 - Built-in skills that have no files on disk are not listed.
 
-## Next
+## Coming next
 
-0.2 adds live tracking of skills used in a chat, improving a skill from the runs you choose, and exporting a run as one HTML file.
+Live tracking of skills used in a chat, improving a skill from the runs you choose, and exporting a run as one HTML file.
 
 ## License
 

@@ -32,3 +32,7 @@ Applied by `docs/spikes/scratch/fixture.py` (and a final pass for the user name)
   `toolUseId`, `spawnDepth`, `finished`.
 
 Prompts in these runs were written for the spikes, not taken from anyone's work.
+
+`media/lumen-spring.mp4` is the video the `subagents-slow` demo run delivers (a fake `copy` control
+puts it in the run folder), so the README shows a real video ad. `media/lumen-spring.html` is the page it
+was rendered from.
