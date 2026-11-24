@@ -5,7 +5,7 @@
 
 The open-source, local version of [Pulsar Workflows](https://pulsarbot.cloud). Run your skills from a button, watch them work, keep every run. Works with Claude Code.
 
-![A Workflows run: two agents working side by side under the step that started them](docs/assets/workflows.gif)
+![A Workflows run: two agents working side by side under the step that started them](docs/assets/workflows.webp)
 
 ## Install
 

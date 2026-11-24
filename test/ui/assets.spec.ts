@@ -1,6 +1,9 @@
 /**
- * Captures the README's screenshots and the frames of its GIF. Skipped unless WORKFLOWS_CAPTURE names a
- * folder: `WORKFLOWS_CAPTURE=/tmp/shots npx playwright test test/ui/assets.spec.ts --project=dark`.
+ * Captures the README's screenshots and the frames of its animation, at 2x. Skipped unless WORKFLOWS_CAPTURE
+ * names a folder: `WORKFLOWS_CAPTURE=/tmp/shots npx playwright test test/ui/assets.spec.ts --project=dark`.
+ * The animation is an animated WebP (sharp, small, no 256-colour limit), made from the frames with:
+ * `ffmpeg -framerate 2.5 -i /tmp/shots/frames/%04d.png -c:v libwebp_anim -quality 88 -compression_level 6 -loop 0 docs/assets/workflows.webp`
+ * (copy the last frame a few times first, so the finished run holds for a moment).
  */
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -10,7 +13,8 @@ const OUT = process.env.WORKFLOWS_CAPTURE;
 test.skip(!OUT, "set WORKFLOWS_CAPTURE to a folder to capture the README assets");
 // Live times in the screenshots, not the recorded fixture's.
 if (OUT) process.env.FAKE_CLAUDE_NOW = "1";
-test.use({ fakeFixture: "subagents-slow", viewport: { width: 1280, height: 780 } });
+// 2x, so the README stays sharp on high-density screens.
+test.use({ fakeFixture: "subagents-slow", viewport: { width: 1280, height: 780 }, deviceScaleFactor: 2 });
 
 test("capture", async ({ app }) => {
   test.setTimeout(120_000);
